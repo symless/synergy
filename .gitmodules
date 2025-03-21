@@ -1,0 +1,3 @@
+[submodule "ext/synergy-extra"]
+	path = ext/synergy-extra
+	url = git@github.com:symless/synergy-extra.git
