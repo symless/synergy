@@ -23,7 +23,8 @@ cmake_minimum_required(VERSION 3.8)
 project(deskflow C CXX)
 
 # Include first to control the cached variables.
-include("ext/synergy-extra/cmake/Extra.cmake")
+set(SYNERGY_EXTRA_ROOT "${CMAKE_SOURCE_DIR}/ext/synergy-extra")
+include("${SYNERGY_EXTRA_ROOT}/cmake/Extra.cmake")
 
 include(cmake/Version.cmake)
 include(cmake/Definitions.cmake)
