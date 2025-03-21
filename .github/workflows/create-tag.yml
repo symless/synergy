@@ -1,0 +1,67 @@
+name: Create tag
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - release/**
+
+jobs:
+  create-tag:
+    if: ${{ vars.CREATE_TAGS }}
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Fetch all tags
+          fetch-depth: 0
+          submodules: true
+
+      - name: Read version file
+        id: current-version
+        run: echo "value=$(cat VERSION)" | tee $GITHUB_OUTPUT
+
+      - name: Set stage to snapshot
+        id: override-stage
+        if: ${{ !startsWith(github.ref, 'refs/heads/release') }}
+        run: echo "value=snapshot" | tee $GITHUB_OUTPUT
+
+      - name: Get next snapshot version
+        id: next-version
+        if: ${{ !startsWith(github.ref, 'refs/heads/release') }}
+        uses: symless/actions/next-version@master
+        with:
+          current-version: ${{ steps.current-version.outputs.value }}
+          override-stage: ${{ steps.override-stage.outputs.value }}
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ -z "${{ steps.next-version.outputs.next-version }}" ]]; then
+            echo "value=${{ steps.current-version.outputs.value }}" | tee $GITHUB_OUTPUT
+          else
+            echo "value=${{ steps.next-version.outputs.next-version }}" | tee $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Create and push Git tag
+        run: |
+          git tag ${{ steps.version.outputs.value }}
+          git push origin ${{ steps.version.outputs.value }}
+        shell: bash
+
+      - name: Trigger CI workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'ci.yml',
+              ref: '${{ steps.version.outputs.value }}'
+            });

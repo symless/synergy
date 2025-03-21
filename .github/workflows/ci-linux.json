@@ -1,0 +1,118 @@
+{
+  "distro": [
+    {
+      "name": "debian-13-arm64",
+      "like": "debian",
+      "container": "arm64v8/debian:trixie-slim",
+      "runs-on": "ubuntu-24.04-4-core-arm64"
+    },
+    {
+      "name": "debian-13-amd64",
+      "like": "debian",
+      "container": "debian:trixie-slim",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "debian-12-arm64",
+      "like": "debian",
+      "container": "arm64v8/debian:12-slim",
+      "runs-on": "ubuntu-24.04-4-core-arm64"
+    },
+    {
+      "name": "debian-12-amd64",
+      "like": "debian",
+      "container": "debian:12-slim",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "ubuntu-24.10-amd64",
+      "like": "debian",
+      "container": "ubuntu:24.10",
+      "runs-on": "ubuntu-latest",
+      "extra-dep-args": "--meson-no-system libportal --meson-static libportal --subprojects",
+      "extra-cmake-args": "-DSYSTEM_LIBPORTAL=OFF -DSTATIC_LIBPORTAL=ON"
+    },
+    {
+      "name": "ubuntu-24.04-amd64",
+      "like": "debian",
+      "container": "ubuntu:24.04",
+      "runs-on": "ubuntu-latest",
+      "extra-dep-args": "--meson-no-system libportal --meson-static libportal --subprojects",
+      "extra-cmake-args": "-DSYSTEM_LIBPORTAL=OFF -DSTATIC_LIBPORTAL=ON"
+    },
+    {
+      "name": "ubuntu-22.04-amd64",
+      "like": "debian",
+      "container": "ubuntu:22.04",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "fedora-41-arm64",
+      "like": "fedora",
+      "container": "arm64v8/fedora:41",
+      "runs-on": "ubuntu-24.04-4-core-arm64"
+    },
+    {
+      "name": "fedora-41-amd64",
+      "like": "fedora",
+      "container": "fedora:41",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "fedora-40-arm64",
+      "like": "fedora",
+      "container": "arm64v8/fedora:40",
+      "runs-on": "ubuntu-24.04-4-core-arm64"
+    },
+    {
+      "name": "fedora-40-amd64",
+      "like": "fedora",
+      "container": "fedora:40",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "fedora-39-arm64",
+      "like": "fedora",
+      "container": "arm64v8/fedora:39",
+      "runs-on": "ubuntu-24.04-4-core-arm64"
+    },
+    {
+      "name": "fedora-39-amd64",
+      "like": "fedora",
+      "container": "fedora:39",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "opensuse-tumbleweed-amd64",
+      "like": "suse",
+      "container": "opensuse/tumbleweed:latest",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "rockylinux-9-amd64",
+      "like": "fedora",
+      "container": "rockylinux:9",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "almalinux-9-amd64",
+      "like": "fedora",
+      "container": "almalinux:9",
+      "runs-on": "ubuntu-latest"
+    },
+    {
+      "name": "archlinux-amd64",
+      "like": "arch",
+      "container": "archlinux:latest",
+      "runs-on": "ubuntu-latest",
+      "package-user": "build"
+    },
+    {
+      "name": "manjaro-amd64",
+      "like": "arch",
+      "container": "manjarolinux/base:latest",
+      "runs-on": "ubuntu-latest",
+      "package-user": "build"
+    }
+  ]
+}

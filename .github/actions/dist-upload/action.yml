@@ -1,0 +1,96 @@
+name: "Upload to AWS S3"
+description: "Uploads the package from the dist dir to AWS S3"
+inputs:
+  asset-name-pattern:
+    description: "Pattern to match the asset name"
+    default: "package-*"
+
+  aws-s3-target-dir:
+    description: "Target directory in AWS S3"
+    required: true
+
+  aws-s3-package-version:
+    description: "Package version to use in the AWS S3 path"
+    required: true
+
+  aws-access-key-id:
+    description: "AWS access key ID"
+    required: true
+  
+  aws-secret-access-key:
+    description: "AWS secret access key"
+    required: true
+
+  aws-region:
+    description: "AWS region"
+    default: "us-east-2"
+    required: true
+
+  aws-s3-bucket:
+    description: "AWS S3 bucket name"
+    default: muskoka-packages
+    required: true
+
+runs:
+  using: "composite"
+
+  steps:
+    # If a required field is empty, the action does not fail, so we have to implement this.
+    - run: |
+        check_input() {
+          input_name="$1"
+          input_value="$2"
+          if [[ -z "$input_value" ]]; then
+            echo "Input $input_name is required"
+            exit 1
+          fi
+        }
+
+        check_input "asset-name-pattern" "${{ inputs.asset-name-pattern }}"
+        check_input "aws-s3-target-dir" "${{ inputs.aws-s3-target-dir }}"
+        check_input "aws-s3-package-version" "${{ inputs.aws-s3-package-version }}"
+        check_input "aws-access-key-id" "${{ inputs.aws-access-key-id }}"
+        check_input "aws-secret-access-key" "${{ inputs.aws-secret-access-key }}"
+        check_input "aws-region" "${{ inputs.aws-region }}"
+        check_input "aws-s3-bucket" "${{ inputs.aws-s3-bucket }}"
+
+      shell: bash
+
+    - name: Download packages
+      uses: actions/download-artifact@v4
+      with:
+        pattern: ${{ inputs.asset-name-pattern }}
+        merge-multiple: true
+        path: dist
+        
+    - name: AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ inputs.aws-access-key-id }}
+        aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+        aws-region: ${{ inputs.aws-region }}
+
+    - name: Upload to AWS S3
+      run: |
+        source_dir="./dist/"
+
+        # Should be the product name
+        base_dir="${{ inputs.aws-s3-target-dir }}"
+
+        # Separate snapshot and release versions for easier navigation
+        if [[ "${{ inputs.aws-s3-package-version }}" =~ snapshot ]]; then
+          sub_dir="snapshot"
+        else
+          sub_dir="release"
+        fi
+
+        # Organize by major.minor.patch dir (i.e. v1.0.0/v1.0.0-foobar+r123)
+        short_version=$(echo "${{ inputs.aws-s3-package-version }}" | cut -d'-' -f1 | cut -d'+' -f1)
+
+        target_dir="$base_dir/$sub_dir/$short_version/${{ inputs.aws-s3-package-version }}"
+        url="s3://${{ inputs.aws-s3-bucket }}/$target_dir"
+
+        echo "Uploading to AWS S3: $url"
+        aws s3 cp $source_dir $url --recursive
+
+      shell: bash
