@@ -25,12 +25,12 @@ from lib.linux import PackageType
 from dotenv import load_dotenv  # type: ignore
 
 ENV_FILE = ".env"
-DEFAULT_PRODUCT_NAME = "Deskflow"
-DEFAULT_FILENAME_BASE = "deskflow"
+DEFAULT_PRODUCT_NAME = "Synergy"
+DEFAULT_FILENAME_BASE = "synergy"
 DEFAULT_PROJECT_BUILD_DIR = "build"
 DEFAULT_DIST_DIR = "dist"
-DEFAULT_TEST_CMD = "deskflow-server --version"
-DEFAULT_PACKAGE_NAME = "deskflow"
+DEFAULT_TEST_CMD = "synergy-server --version"
+DEFAULT_PACKAGE_NAME = "synergy"
 VERSION_FILE = "VERSION"
 
 
