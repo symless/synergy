@@ -1,6 +1,5 @@
 # Deskflow -- mouse and keyboard sharing utility
-# Copyright (C) 2024 Symless Ltd.
-# Copyright (C) 2009 Nick Bolton
+# Copyright (C) 2024 - 2025 Symless Ltd.
 #
 # This package is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -23,17 +22,25 @@ cmake_minimum_required(VERSION 3.8)
 
 project(deskflow C CXX)
 
+# Include first to control the cached variables.
+include("ext/synergy-extra/cmake/Extra.cmake")
+
 include(cmake/Version.cmake)
 include(cmake/Definitions.cmake)
 include(cmake/Build.cmake)
 include(cmake/Libraries.cmake)
 include(cmake/Packaging.cmake)
 
+# Builds the 'extra' library (linked against later on).
+add_subdirectory("ext/synergy-extra")
+
 set_version()
 configure_definitions()
 configure_build()
 configure_libs()
 configure_packaging()
+
+include_directories("ext/synergy-extra/src/lib")
 
 add_subdirectory(src)
 
