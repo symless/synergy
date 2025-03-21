@@ -50,13 +50,13 @@
       "label": "clean-config",
       "type": "shell",
       "linux": {
-        "command": "rm -r ~/.config/Deskflow/Deskflow.conf"
+        "command": "rm -r ~/.config/Synergy/Synergy.conf"
       },
       "windows": {
-        "command": "remove-item -recurse $env:APPDATA\\Deskflow\\Deskflow"
+        "command": "remove-item -recurse $env:APPDATA\\Synergy\\Synergy"
       },
       "osx": {
-        "command": "rm -r ~/Library/Application\\ Support/Deskflow/Deskflow"
+        "command": "rm -r ~/Library/Application\\ Support/Synergy/Synergy"
       }
     },
     {
@@ -67,9 +67,9 @@
     {
       "label": "kill",
       "type": "shell",
-      "command": "killall deskflow; killall deskflow-client; killall deskflow-server || true",
+      "command": "killall synergy; killall synergy-client; killall synergy-server || true",
       "windows": {
-        "command": "taskkill /F /IM deskflow.exe /IM deskflow-client.exe /IM deskflow-client.exe; $true"
+        "command": "taskkill /F /IM synergy.exe /IM synergy-client.exe /IM synergy-client.exe; $true"
       },
       "presentation": {
         "reveal": "silent"
@@ -83,11 +83,11 @@
     {
       "label": "gui",
       "type": "process",
-      "command": "${workspaceFolder}/build/bin/deskflow",
+      "command": "${workspaceFolder}/build/bin/synergy",
       "dependsOn": ["build", "kill"],
       "problemMatcher": [],
       "windows": {
-        "command": "${workspaceFolder}/build/bin/deskflow.exe"
+        "command": "${workspaceFolder}/build/bin/synergy.exe"
       }
     },
     {
