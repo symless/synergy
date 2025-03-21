@@ -116,7 +116,7 @@ jobs:
       - name: Install dependencies
         env:
           VCPKG_ROOT: "" # Unset deliberately to suppress 'already installed' warning.
-        run: python ./scripts/setup.py
+        run: python ./scripts/install_deps.py
 
       - name: Get version
         uses: ./.github/actions/get-version
@@ -193,7 +193,7 @@ jobs:
           key: ${{ runner.os }}-deps-${{ hashFiles('config.yaml') }}
 
       - name: Install dependencies
-        run: ./scripts/setup.py
+        run: ./scripts/install_deps.py
 
       - name: Get version
         uses: ./.github/actions/get-version
@@ -295,7 +295,7 @@ jobs:
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Install dependencies
-        run: ./scripts/setup.py ${{ matrix.distro.extra-dep-args }}
+        run: ./scripts/install_deps.py ${{ matrix.distro.extra-dep-args }}
         env:
           # Prevent apt prompting for input.
           DEBIAN_FRONTEND: noninteractive
