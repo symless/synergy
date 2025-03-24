@@ -26,13 +26,15 @@
 #include <Windows.h>
 #include <tchar.h>
 
+#include <functional>
+
 #define ARCH_DAEMON ArchDaemonWindows
 
 //! Win32 implementation of IArchDaemon
 class ArchDaemonWindows : public IArchDaemon
 {
 public:
-  typedef int (*RunFunc)(void);
+  using RunFunc = std::function<int(void)>;
 
   ArchDaemonWindows();
   virtual ~ArchDaemonWindows();
