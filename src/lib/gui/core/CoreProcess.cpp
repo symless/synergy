@@ -504,6 +504,12 @@ bool CoreProcess::addGenericArgs(QStringList &args, const ProcessMode processMod
     args << "--enable-crypto";
   }
 
+#ifdef Q_OS_LINUX
+  if (!m_appConfig.enableLibei()) {
+    args << "--no-libei";
+  }
+#endif
+
 #if defined(Q_OS_WIN)
   // on windows, the profile directory changes depending on the user that
   // launched the process (e.g. when launched with elevation). setting the
@@ -538,6 +544,16 @@ bool CoreProcess::addServerArgs(QStringList &args, QString &app)
   if (configFilename.isEmpty()) {
     qFatal("config file name empty for server args");
     return false;
+  }
+
+  if (m_appConfig.invertConnection()) {
+    qDebug("inverting server connection");
+
+    if (correctedAddress().isEmpty()) {
+      emit error(Error::AddressMissing);
+      qDebug("address is missing for server args");
+      return false;
+    }
   }
 
   // the address arg is dual purpose; when in listening mode, it's the address
@@ -585,13 +601,20 @@ bool CoreProcess::addClientArgs(QStringList &args, QString &app)
     args << "--invert-scroll";
   }
 
-  if (correctedAddress().isEmpty()) {
-    Q_EMIT error(Error::AddressMissing);
-    qDebug("address is missing for client args");
-    return false;
-  }
+  if (m_appConfig.invertConnection()) {
+    qDebug("inverting client connection");
+    args << "--host";
+    args << ":" + QString::number(m_appConfig.port());
+  } else {
 
-  args << correctedAddress() + ":" + QString::number(m_appConfig.port());
+    if (correctedAddress().isEmpty()) {
+      emit error(Error::AddressMissing);
+      qDebug("address is missing for client args");
+      return false;
+    }
+
+    args << correctedAddress() + ":" + QString::number(m_appConfig.port());
+  }
 
   return true;
 }
