@@ -278,7 +278,8 @@ jobs:
             dnf install -y git python3
           elif [ "${{ matrix.distro.like }}" == "suse" ]; then
             zypper refresh
-            zypper install -y --non-interactive --force-resolution git python3
+            zypper --non-interactive --no-gpg-checks \
+              install -y --force-resolution git python3
           elif [ "${{ matrix.distro.like }}" == "arch" ]; then
             pacman -Syu --noconfirm git python sudo
             useradd -m build
