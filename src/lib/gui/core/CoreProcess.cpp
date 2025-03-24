@@ -494,7 +494,7 @@ bool CoreProcess::addGenericArgs(QStringList &args, const ProcessMode processMod
 
 #ifndef Q_OS_LINUX
 
-  if (m_serverConfig.enableDragAndDrop()) {
+  if (m_appConfig.enableDragAndDrop()) {
     args << "--enable-drag-drop";
   }
 
