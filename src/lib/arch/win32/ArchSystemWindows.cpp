@@ -7,7 +7,7 @@
  * modify it under the terms of the GNU General Public License
  * found in the file LICENSE that should have accompanied this file.
  *
- * This package is distributed in the hope that it will be useful,
+ * This package isx distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.

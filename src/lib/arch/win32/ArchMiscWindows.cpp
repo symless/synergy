@@ -182,6 +182,15 @@ bool ArchMiscWindows::hasValue(HKEY key, const TCHAR *name)
   return (result == ERROR_SUCCESS && (type == REG_DWORD || type == REG_SZ));
 }
 
+void ArchMiscWindows::deleteKeyTree(HKEY key, const TCHAR *name)
+{
+  assert(key != NULL);
+  assert(name != NULL);
+  if (key == NULL || name == NULL)
+    return;
+  RegDeleteTree(key, name);
+}
+
 ArchMiscWindows::EValueType ArchMiscWindows::typeOfValue(HKEY key, const TCHAR *name)
 {
   DWORD type;

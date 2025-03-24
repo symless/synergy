@@ -41,3 +41,11 @@ const auto kDebugBuild = true;
 #else
 const auto kDebugBuild = false;
 #endif
+
+#ifdef _WIN32
+
+const auto kWindowsRegistryKey = "SOFTWARE\\Synergy";
+const auto kCloseEventName = "Global\\SynergyClose";
+const auto kSendSasEventName = "Global\\SynergySendSAS";
+
+#endif
