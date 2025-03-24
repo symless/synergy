@@ -12,6 +12,7 @@
 #include "base/Log.h"
 #include "base/TMethodJob.h"
 #include "base/log_outputters.h"
+#include "common/constants.h"
 #include "deskflow/App.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsHandle.h"

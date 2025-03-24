@@ -8,6 +8,7 @@
 
 #include "arch/win32/XArchWindows.h"
 #include "base/Log.h"
+#include "common/constants.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
