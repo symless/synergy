@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
-// Used by deskflowc.rc
+// Used by deskflow-client.rc
 //
 #define IDS_FAILED 1
 #define IDS_INIT_FAILED 2
