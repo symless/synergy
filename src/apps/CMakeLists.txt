@@ -14,13 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_subdirectory(deskflowd)
+add_subdirectory(deskflow-daemon)
 
 if(BUILD_UNIFIED)
   add_subdirectory(deskflow-core)
 else()
-  add_subdirectory(deskflowc)
-  add_subdirectory(deskflows)
+  add_subdirectory(deskflow-client)
+  add_subdirectory(deskflow-server)
 endif(BUILD_UNIFIED)
 
 add_subdirectory(deskflow-legacy)

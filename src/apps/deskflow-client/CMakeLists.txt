@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(client_source_name "deskflowc")
+set(client_source_name "deskflow-client")
 set(target ${CLIENT_BINARY_NAME})
 set(sources ${client_source_name}.cpp)
 

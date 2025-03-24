@@ -20,10 +20,10 @@
 /**
  * @brief The elevate mode tristate determines two behaviors on Windows.
  *
- * The first, switch-on-desk-switch (SodS), passed through deskflowd as a
+ * The first, switch-on-desk-switch (SodS), passed through the daemon as a
  * command line argument to deskflow core, determines if the server restarts
  * when switching Windows desktops (e.g. when Windows UAC dialog pops up).
- * The second, passed as a boolean flag to Deskflowd over the IPC inside
+ * The second, passed as a boolean flag to the daemon over the IPC inside
  * IpcMessageType::CommandMessage, determines whether Deskflow should be started
  * with elevated privileges.
  *

@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(server_source_name "deskflows")
+set(server_source_name "deskflow-server")
 set(target ${SERVER_BINARY_NAME})
 set(sources ${server_source_name}.cpp)
 
