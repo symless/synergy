@@ -84,14 +84,6 @@ int main(int argc, char **argv)
   }
 
   try {
-
-#if SYSAPI_WIN32
-    // Show warning if not running as admin as daemon will behave differently.
-    if (!ArchMiscWindows::isProcessElevated()) {
-      LOG_WARN("not running as admin, some features may not work");
-    }
-#endif
-
     if (parser.isSet(installOption)) {
       daemon.install();
       return kExitSuccess;
