@@ -21,6 +21,8 @@
 #include "base/String.h"
 #include "common/IInterface.h"
 
+#include <functional>
+
 //! Interface for architecture dependent daemonizing
 /*!
 This interface defines the operations required by deskflow for installing
@@ -30,7 +32,7 @@ implement this interface.
 class IArchDaemon : public IInterface
 {
 public:
-  typedef int (*DaemonFunc)(int argc, const char **argv);
+  using DaemonFunc = std::function<int(int, const char **)>;
 
   //! @name manipulators
   //@{

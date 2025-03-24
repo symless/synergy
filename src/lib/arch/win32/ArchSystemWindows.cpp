@@ -113,3 +113,8 @@ bool ArchSystemWindows::isWOW64() const
 #endif
   return false;
 }
+
+void ArchSystemWindows::clearSettings() const
+{
+  ArchMiscWindows::deleteKeyTree(HKEY_LOCAL_MACHINE, kWindowsRegistryKey);
+}

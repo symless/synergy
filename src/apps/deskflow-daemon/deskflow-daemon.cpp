@@ -1,42 +1,148 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
- * Copyright (C) 2012 Nick Bolton
- *
- * This package is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * found in the file LICENSE that should have accompanied this file.
- *
- * This package is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2012 - 2016, 2025 Symless Ltd.
+ * SPDX-FileCopyrightText: (C) 2012 Nick Bolton
+ * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
+#include "arch/Arch.h"
+#include "base/EventQueue.h"
+#include "base/Log.h"
+#include "common/constants.h"
 #include "deskflow/DaemonApp.h"
+#include "deskflow/ipc/DaemonIpcServer.h"
 
-#include <iostream>
+#if SYSAPI_WIN32
 
-#ifdef SYSAPI_UNIX
-
-int main(int argc, char **argv)
-{
-  DaemonApp app;
-  return app.run(argc, argv);
-}
-
-#elif SYSAPI_WIN32
+#include "arch/win32/ArchMiscWindows.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#endif
+
+#include <QCommandLineParser>
+#include <QCoreApplication>
+#include <QThread>
+
+using namespace deskflow::core;
+
+void handleError(const char *message = "Unrecognized error.");
+
+int main(int argc, char **argv)
+{
+#if SYSAPI_WIN32
+  ArchMiscWindows::guardRuntimeVersion();
+
+  // Save window instance for later use, e.g. `GetModuleFileName` which is used when installing the daemon.
+  ArchMiscWindows::setInstanceWin32(GetModuleHandle(nullptr));
+#endif
+
+  Arch arch;
+  arch.init();
+
+  Log log;
+  EventQueue events;
+
+  // Daemon deliberately does not have a parent, as it will be moved to a new thread.
+  DaemonApp daemon(events);
+
+  QCoreApplication app(argc, argv);
+  QCoreApplication::setApplicationName(QStringLiteral("%1 Daemon").arg(kAppName));
+
+  QCommandLineParser parser;
+  parser.addHelpOption();
+  parser.addVersionOption();
+
+  const auto foregroundOption = QCommandLineOption({"f", "foreground"}, "Run in the foreground (show console)");
+  parser.addOption(foregroundOption);
+
+  const auto installOption = QCommandLineOption({"i", "install"}, "Install as a Windows service");
+  parser.addOption(installOption);
+
+  const auto uninstallOption = QCommandLineOption({"u", "uninstall"}, "Uninstall the Windows service");
+  parser.addOption(uninstallOption);
+
+  parser.process(app);
+
+  if (parser.isSet(foregroundOption)) {
+    daemon.setForeground();
+  }
+
+  // Depends on whether foreground option was set.
+  daemon.initLogging();
+
+  // Important: Log the app name and version number to the log file daemon app has initialized
+  // logging as it creates the file logger. Logging before would only log to stdout which is not
+  // useful for troubleshooting Windows services.
+  // It's important to write the version number to the log file so we can be certain the old daemon
+  // was uninstalled, since sometimes Windows services can get stuck and fail to be removed.
+  LOG_PRINT("%s v%s", QCoreApplication::applicationName().toStdString().c_str(), kDisplayVersion);
+
+  // Default log level to system setting (found in Registry).
+  if (std::string logLevel = ARCH->setting("LogLevel"); logLevel != "") {
+    CLOG->setFilter(logLevel.c_str());
+    LOG_DEBUG("log level: %s", logLevel.c_str());
+  }
+
+  try {
+
+#if SYSAPI_WIN32
+    // Show warning if not running as admin as daemon will behave differently.
+    if (!ArchMiscWindows::isProcessElevated()) {
+      LOG_WARN("not running as admin, some features may not work");
+    }
+#endif
+
+    if (parser.isSet(installOption)) {
+      daemon.install();
+      return kExitSuccess;
+    } else if (parser.isSet(uninstallOption)) {
+      daemon.uninstall();
+      return kExitSuccess;
+    }
+
+    const auto ipcServer = new ipc::DaemonIpcServer(&app, DaemonApp::logFilename().c_str()); // NOSONAR - Qt managed
+    ipcServer->listen();
+    daemon.connectIpcServer(ipcServer);
+
+    QThread daemonThread;
+    QObject::connect(&daemonThread, &QThread::finished, &app, &QCoreApplication::quit);
+    daemon.run(daemonThread);
+
+    const auto exitCode = QCoreApplication::exec();
+    daemonThread.wait();
+
+    LOG_DEBUG("daemon exited, code: %d", exitCode);
+    return exitCode;
+
+  } catch (std::exception &e) {
+    handleError(e.what());
+    return kExitFailed;
+  } catch (...) {
+    handleError();
+    return kExitFailed;
+  }
+}
+
+#if SYSAPI_WIN32
+
+// Win32 subsystem entry point (simply forwards to main).
+// We need this because using regular main under the Win32 subsystem results in empty args.
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
-  DaemonApp app;
-  return app.run(__argc, __argv);
+  return main(__argc, __argv);
 }
 
 #endif
+
+void handleError(const char *message)
+{
+  // Always print error to stdout in case run as CLI program.
+  LOG_ERR("%s", message);
+
+#if SYSAPI_WIN32
+  // Show a message box for when run from MSI in Win32 subsystem.
+  MessageBoxA(nullptr, message, "Deskflow daemon error", MB_OK | MB_ICONERROR);
+#endif
+}

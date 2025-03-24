@@ -16,8 +16,8 @@
 
 set(lib_name app)
 
-file(GLOB headers "*.h" "languages/*.h")
-file(GLOB sources "*.cpp" "languages/*.cpp")
+file(GLOB headers "*.h" "languages/*.h" "ipc/*.h")
+file(GLOB sources "*.cpp" "languages/*.cpp" "ipc/*.cpp")
 
 # arch
 if(WIN32)
@@ -42,9 +42,12 @@ endif()
 
 add_library(${lib_name} STATIC ${sources})
 
+target_link_libraries(${lib_name} PRIVATE Qt6::Core Qt6::Network)
+
 if(UNIX)
   target_link_libraries(
     ${lib_name}
+    PRIVATE
     arch
     client
     ipc
@@ -57,12 +60,15 @@ if(UNIX)
     ${tomlplusplus_lib})
 
   if(NOT APPLE)
-    target_link_libraries(${lib_name} pugixml)
+    target_link_libraries(${lib_name} PRIVATE pugixml)
 
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
-      target_link_libraries(${lib_name} PkgConfig::lib_glib
-                            PkgConfig::lib_gdkpixbuf PkgConfig::lib_notify)
+      target_link_libraries(
+        ${lib_name} PRIVATE
+        PkgConfig::lib_glib
+        PkgConfig::lib_gdkpixbuf
+        PkgConfig::lib_notify)
     endif()
   endif()
 endif()

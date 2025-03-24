@@ -25,6 +25,9 @@
 const auto kAppName = DESKFLOW_APP_NAME;
 const auto kAppDescription = "Mouse and keyboard sharing utility";
 const auto kVersion = DESKFLOW_VERSION;
+const auto kDaemonBinName = "synergy-daemon";
+const auto kDaemonIpcName = "synergy-daemon";
+const auto kDaemonLogFilename = "synergy-daemon.log";
 
 #ifdef GIT_SHA_SHORT
 const auto kVersionGitSha = GIT_SHA_SHORT;

@@ -1,44 +1,22 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012 Symless Ltd.
- *
- * This package is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * found in the file LICENSE that should have accompanied this file.
- *
- * This package is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2012 - 2025 Symless Ltd.
+ * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
-
-// TODO: split this class into windows and unix to get rid
-// of all the #ifdefs!
 
 #include "deskflow/DaemonApp.h"
 
 #include "arch/XArch.h"
-#include "base/EventQueue.h"
+#include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "base/log_outputters.h"
-#include "common/ipc.h"
+#include "common/constants.h"
 #include "deskflow/App.h"
-#include "deskflow/ArgParser.h"
-#include "deskflow/ClientArgs.h"
-#include "deskflow/ServerArgs.h"
-#include "ipc/IpcClientProxy.h"
-#include "ipc/IpcLogOutputter.h"
-#include "ipc/IpcMessage.h"
-#include "ipc/IpcSettingMessage.h"
-#include "net/SocketMultiplexer.h"
+#include "deskflow/ipc/DaemonIpcServer.h"
 
 #if SYSAPI_WIN32
 
-#include "arch/win32/ArchMiscWindows.h"
+#include "arch/win32/ArchMiscWindows.h" // IWYU pragma: keep
 #include "deskflow/Screen.h"
 #include "platform/MSWindowsDebugOutputter.h"
 #include "platform/MSWindowsEventQueueBuffer.h"
@@ -47,238 +25,232 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-#elif SYSAPI_UNIX
-
-#include <iostream>
-
 #endif
 
-#include <memory>
-#include <sstream>
+#include <filesystem>
+#include <iostream>
 #include <string>
 
 using namespace std;
+using namespace deskflow::core;
 
-const char *const kLogFilename = DAEMON_BINARY_NAME ".log";
-
-namespace {
-void updateSetting(const IpcMessage &message)
+void showHelp(int argc, char **argv) // NOSONAR - CLI args
 {
+  const auto binName = argc > 0 ? std::filesystem::path(argv[0]).filename().string() : kDaemonBinName;
+  std::cout << "Usage: " << binName << " [-f|--foreground] [--install] [--uninstall]" << std::endl;
+}
+
+DaemonApp::DaemonApp(IEventQueue &events) : m_events(events)
+{
+}
+
+DaemonApp::~DaemonApp() = default;
+
+void DaemonApp::saveLogLevel(const QString &logLevel) const
+{
+  LOG_DEBUG("log level changed: %s", logLevel.toUtf8().constData());
+  CLOG->setFilter(logLevel.toUtf8().constData());
+
   try {
-    auto setting = static_cast<const IpcSettingMessage &>(message);
-    ARCH->setting(setting.getName(), setting.getValue());
-  } catch (const XArch &e) {
-    LOG((CLOG_ERR "failed to save setting: %s", e.what()));
-  }
-}
-
-bool isServerCommandLine(const std::vector<String> &cmd)
-{
-  auto isServer = false;
-
-  if (cmd.size() > 1) {
-    isServer = (cmd[0].find(SERVER_BINARY_NAME) != String::npos) ||
-               (cmd[0].find(CORE_BINARY_NAME) != String::npos && cmd[1] == "server");
-  }
-
-  return isServer;
-}
-
-} // namespace
-
-DaemonApp *DaemonApp::s_instance = nullptr;
-
-int mainLoopStatic()
-{
-  DaemonApp::s_instance->mainLoop(true);
-  return kExitSuccess;
-}
-
-int unixMainLoopStatic(int, const char **)
-{
-  return mainLoopStatic();
-}
-
-#if SYSAPI_WIN32
-int winMainLoopStatic(int, const char **)
-{
-  return ArchMiscWindows::runDaemon(mainLoopStatic);
-}
-#endif
-
-DaemonApp::DaemonApp()
-{
-  s_instance = this;
-}
-
-DaemonApp::~DaemonApp()
-{
-  s_instance = nullptr;
-}
-
-int DaemonApp::run(int argc, char **argv)
-{
-#if SYSAPI_WIN32
-  // win32 instance needed for threading, etc.
-  ArchMiscWindows::setInstanceWin32(GetModuleHandle(NULL));
-#endif
-
-  Arch arch;
-  arch.init();
-
-  Log log;
-  m_events = std::make_unique<EventQueue>();
-
-  bool uninstall = false;
-  try {
-#if SYSAPI_WIN32
-    // TODO: maybe we should only add this if not using /f?
-    // sends debug messages to visual studio console window.
-    log.insert(new MSWindowsDebugOutputter());
-#endif
-
-    // default log level to system setting.
-    if (string logLevel = arch.setting("LogLevel"); logLevel != "")
-      log.setFilter(logLevel.c_str());
-
-    bool foreground = false;
-
-    for (int i = 1; i < argc; ++i) {
-      string arg(argv[i]);
-
-      if (arg == "/f" || arg == "-f") {
-        foreground = true;
-      }
-#if SYSAPI_WIN32
-      else if (arg == "/install") {
-        LOG((CLOG_PRINT "installing windows daemon"));
-        uninstall = true;
-        arch.installDaemon();
-        return kExitSuccess;
-      } else if (arg == "/uninstall") {
-        LOG((CLOG_PRINT "uninstalling windows daemon"));
-        arch.uninstallDaemon();
-        return kExitSuccess;
-      }
-#endif
-      else {
-        stringstream ss;
-        ss << "Unrecognized argument: " << arg;
-        foregroundError(ss.str().c_str());
-        return kExitArgs;
-      }
-    }
-
-    if (foreground) {
-      LOG((CLOG_PRINT "starting daemon in foreground"));
-
-      // run process in foreground instead of daemonizing.
-      // useful for debugging.
-      mainLoop(false, foreground);
-    } else {
-#if SYSAPI_WIN32
-      LOG((CLOG_PRINT "daemonizing windows service"));
-      arch.daemonize(DESKFLOW_APP_NAME, winMainLoopStatic);
-#elif SYSAPI_UNIX
-      LOG((CLOG_PRINT "daemonizing unix service"));
-      arch.daemonize(DESKFLOW_APP_NAME, unixMainLoopStatic);
-#endif
-    }
-
-    return kExitSuccess;
+    // saves setting for next time the daemon starts.
+    ARCH->setting("LogLevel", logLevel.toStdString());
   } catch (XArch &e) {
-    String message = e.what();
-    if (uninstall && (message.find("The service has not been started") != String::npos)) {
-      // TODO: if we're keeping this use error code instead (what is it?!).
-      // HACK: this message happens intermittently, not sure where from but
-      // it's quite misleading for the user. they thing something has gone
-      // horribly wrong, but it's just the service manager reporting a false
-      // positive (the service has actually shut down in most cases).
-    } else {
-      foregroundError(message.c_str());
-    }
-    return kExitFailed;
-  } catch (std::exception &e) {
-    foregroundError(e.what());
-    return kExitFailed;
-  } catch (...) {
-    foregroundError("Unrecognized error.");
-    return kExitFailed;
+    LOG_ERR("failed to save log level setting: %s", e.what());
   }
 }
 
-void DaemonApp::mainLoop(bool logToFile, bool foreground)
+void DaemonApp::setElevate(bool elevate)
 {
+  LOG_DEBUG("elevate value changed: %s", elevate ? "yes" : "no");
+  m_elevate = elevate;
+
   try {
-    DAEMON_RUNNING(true);
-
-    if (logToFile) {
-      m_fileLogOutputter = std::make_unique<FileLogOutputter>(logFilename().c_str());
-      CLOG->insert(m_fileLogOutputter.get());
-    }
-
-    // create socket multiplexer.  this must happen after daemonization
-    // on unix because threads evaporate across a fork().
-    SocketMultiplexer multiplexer;
-
-    // uses event queue, must be created here.
-    m_ipcServer = std::make_unique<IpcServer>(m_events.get(), &multiplexer);
-
-    // send logging to gui via ipc, log system adopts outputter.
-    m_ipcLogOutputter = std::make_unique<IpcLogOutputter>(*m_ipcServer, IpcClientType::GUI, true);
-    CLOG->insert(m_ipcLogOutputter.get());
-
-#if SYSAPI_WIN32
-    m_watchdog = std::make_unique<MSWindowsWatchdog>(false, *m_ipcServer, *m_ipcLogOutputter, foreground);
-    m_watchdog->setFileLogOutputter(m_fileLogOutputter.get());
-#endif
-
-    m_events->adoptHandler(
-        m_events->forIpcServer().messageReceived(), m_ipcServer.get(),
-        new TMethodEventJob<DaemonApp>(this, &DaemonApp::handleIpcMessage)
-    );
-
-    m_ipcServer->listen();
-
-#if SYSAPI_WIN32
-
-    // install the platform event queue to handle service stop events.
-    m_events->adoptBuffer(new MSWindowsEventQueueBuffer(m_events.get()));
-
-    String command = ARCH->setting("Command");
-    bool elevate = ARCH->setting("Elevate") == "1";
-    if (command != "") {
-      LOG((CLOG_INFO "using last known command: %s", command.c_str()));
-      m_watchdog->setCommand(command, elevate);
-    }
-
-    m_watchdog->startAsync();
-#endif
-    m_events->loop();
-
-#if SYSAPI_WIN32
-    m_watchdog->stop();
-#endif
-
-    m_events->removeHandler(m_events->forIpcServer().messageReceived(), m_ipcServer.get());
-
-    CLOG->remove(m_ipcLogOutputter.get());
-
-    DAEMON_RUNNING(false);
-  } catch (std::exception &e) {
-    LOG((CLOG_CRIT "an error occurred: %s", e.what()));
-  } catch (...) {
-    LOG((CLOG_CRIT "an unknown error occurred.\n"));
+    // saves setting for next time the daemon starts.
+    ARCH->setting("Elevate", std::string(elevate ? "1" : "0"));
+  } catch (XArch &e) {
+    LOG_ERR("failed to save elevate setting: %s", e.what());
   }
 }
 
-void DaemonApp::foregroundError(const char *message)
+void DaemonApp::setCommand(const QString &command)
+{
+  LOG_DEBUG("service command updated");
+  m_command = command.toStdString();
+
+  try {
+    // saves setting for next time the daemon starts.
+    ARCH->setting("Command", command.toStdString());
+  } catch (XArch &e) {
+    LOG_ERR("failed to save command setting: %s", e.what());
+  }
+}
+
+void DaemonApp::applyWatchdogCommand() const
+{
+  LOG_DEBUG("applying watchdog command");
+
+#if SYSAPI_WIN32
+  m_pWatchdog->setProcessConfig(m_command, m_elevate);
+#else
+  LOG_ERR("applying watchdog command not implemented on this platform");
+#endif
+}
+
+void DaemonApp::clearWatchdogCommand()
+{
+  LOG_DEBUG("clearing watchdog command");
+
+  // Clear the setting to prevent it from being next time the daemon starts.
+  setCommand("");
+
+#if SYSAPI_WIN32
+  m_pWatchdog->setProcessConfig("", false);
+#else
+  LOG_ERR("clearing watchdog command not implemented on this platform");
+#endif
+}
+
+void DaemonApp::clearSettings() const
+{
+  LOG_INFO("clearing daemon settings");
+  ARCH->clearSettings();
+}
+
+void DaemonApp::connectIpcServer(const ipc::DaemonIpcServer *ipcServer) const
+{
+  // Use direct connection as this object is on it's own thread,
+  // and so is on a different event loop to the main Qt loop.
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::logLevelChanged, this, &DaemonApp::saveLogLevel, //
+      Qt::DirectConnection
+  );
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::elevateModeChanged, this, &DaemonApp::setElevate, //
+      Qt::DirectConnection
+  );
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::commandChanged, this, &DaemonApp::setCommand, //
+      Qt::DirectConnection
+  );
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::startProcessRequested, this, &DaemonApp::applyWatchdogCommand, //
+      Qt::DirectConnection
+  );
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::stopProcessRequested, this, &DaemonApp::clearWatchdogCommand, //
+      Qt::DirectConnection
+  );
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::clearSettingsRequested, this, &DaemonApp::clearSettings, //
+      Qt::DirectConnection
+  );
+}
+
+void DaemonApp::install() const
+{
+  LOG_NOTE("installing windows daemon");
+  ARCH->installDaemon();
+}
+
+void DaemonApp::uninstall() const
+{
+  LOG_NOTE("uninstalling windows daemon");
+  ARCH->uninstallDaemon();
+}
+
+void DaemonApp::run(QThread &daemonThread)
+{
+  LOG_NOTE("starting daemon");
+
+  // Important: Move the daemon app to the daemon thread before creating any more Qt objects
+  // owned by the daemon app, as they will be created on the daemon thread.
+  moveToThread(&daemonThread);
+
+  QObject::connect(&daemonThread, &QThread::started, [this, &daemonThread]() {
+    LOG_DEBUG("daemon thread started");
+
+    if (m_foreground) {
+      LOG_DEBUG("running daemon in foreground");
+      mainLoop();
+    } else {
+      LOG_DEBUG("running daemon in background (daemonizing)");
+      ARCH->daemonize(kAppName, [this](int, const char **) { return daemonLoop(); });
+    }
+
+    daemonThread.quit();
+    LOG_DEBUG("daemon thread finished");
+  });
+
+#if SYSAPI_WIN32
+  m_pWatchdog = std::make_unique<MSWindowsWatchdog>(m_foreground, *m_pFileLogOutputter);
+
+  std::string command = ARCH->setting("Command");
+  bool elevate = ARCH->setting("Elevate") == "1";
+  if (!command.empty()) {
+    LOG_DEBUG("using last known command: %s", command.c_str());
+    m_pWatchdog->setProcessConfig(command, elevate);
+  }
+#endif
+
+  LOG_DEBUG("starting daemon thread");
+  daemonThread.start();
+}
+
+int DaemonApp::daemonLoop()
 {
 #if SYSAPI_WIN32
-  MessageBox(NULL, message, "Deskflow Service", MB_OK | MB_ICONERROR);
+  // Runs the daemon through the Windows service controller, which controls the program lifecycle.
+  return ArchMiscWindows::runDaemon([this]() { return mainLoop(); });
 #elif SYSAPI_UNIX
-  cerr << message << endl;
+  return mainLoop();
 #endif
+}
+
+int DaemonApp::mainLoop()
+{
+#if SYSAPI_WIN32
+  if (m_pWatchdog == nullptr) {
+    LOG_ERR("watchdog not initialized");
+    return kExitFailed;
+  }
+#endif
+
+  DAEMON_RUNNING(true);
+
+  try {
+#if SYSAPI_WIN32
+    // Install the platform event queue to handle service stop events.
+    // This must be done on the same thread as the event loop, otherwise the service stop
+    // request will not add the quit event to the event queue, and the service won't stop.
+    m_events.adoptBuffer(new MSWindowsEventQueueBuffer(&m_events));
+
+    LOG_DEBUG("starting watchdog threads");
+    m_pWatchdog->startAsync();
+#endif
+
+    LOG_INFO("daemon is running");
+    m_events.loop();
+  } catch (std::exception &e) { // NOSONAR - Catching all exceptions
+    LOG((CLOG_CRIT "daemon error: %s", e.what()));
+  } catch (...) { // NOSONAR - Catching remaining exceptions
+    LOG((CLOG_CRIT "daemon unknown error"));
+  }
+
+  LOG_INFO("daemon is stopping");
+
+#if SYSAPI_WIN32
+  try {
+    LOG_DEBUG("stopping process watchdog");
+    m_pWatchdog->stop();
+  } catch (std::exception &e) { // NOSONAR - Catching all exceptions
+    LOG((CLOG_CRIT "daemon stop watchdog error: %s", e.what()));
+  } catch (...) { // NOSONAR - Catching remaining exceptions
+    LOG((CLOG_CRIT "daemon stop watchdog unknown error"));
+  }
+#endif
+
+  DAEMON_RUNNING(false);
+  return kExitSuccess;
 }
 
 std::string DaemonApp::logFilename()
@@ -288,118 +260,41 @@ std::string DaemonApp::logFilename()
   if (logFilename.empty()) {
     logFilename = ARCH->getLogDirectory();
     logFilename.append("/");
-    logFilename.append(kLogFilename);
+    logFilename.append(kDaemonLogFilename);
   }
 
   return logFilename;
 }
 
-void DaemonApp::handleIpcMessage(const Event &e, void *)
+void DaemonApp::setForeground()
 {
-  IpcMessage *m = static_cast<IpcMessage *>(e.getDataObject());
-  switch (m->type()) {
-  case IpcMessageType::Command: {
-    IpcCommandMessage *cm = static_cast<IpcCommandMessage *>(m);
-    String command = cm->command();
+  m_foreground = true;
+  showConsole();
+}
 
-    // if empty quotes, clear.
-    if (command == "\"\"") {
-      command.clear();
-    }
-
-    if (!command.empty()) {
-      LOG((CLOG_DEBUG "daemon got new core command"));
-      LOG((CLOG_DEBUG2 "new command, elevate=%d command=%s", cm->elevate(), command.c_str()));
-
-      std::vector<String> argsArray;
-      ArgParser::splitCommandString(command, argsArray);
-      ArgParser argParser(NULL);
-      const char **argv = argParser.getArgv(argsArray);
-      int argc = static_cast<int>(argsArray.size());
-
-      if (isServerCommandLine(argsArray)) {
-        auto serverArgs = new deskflow::ServerArgs();
-        argParser.parseServerArgs(*serverArgs, argc, argv);
-      } else {
-        auto clientArgs = new deskflow::ClientArgs();
-        argParser.parseClientArgs(*clientArgs, argc, argv);
-      }
-
-      delete[] argv;
-      String logLevel(ArgParser::argsBase().m_logFilter);
-      if (!logLevel.empty()) {
-        try {
-          // change log level based on that in the command string
-          // and change to that log level now.
-          ARCH->setting("LogLevel", logLevel);
-          CLOG->setFilter(logLevel.c_str());
-        } catch (XArch &e) {
-          LOG((CLOG_ERR "failed to save LogLevel setting, %s", e.what()));
-        }
-      }
-    } else {
-      LOG((CLOG_DEBUG "empty command, elevate=%d", cm->elevate()));
-    }
-
-    try {
-      // store command in system settings. this is used when the daemon
-      // next starts.
-      ARCH->setting("Command", command);
-
-      // TODO: it would be nice to store bools/ints...
-      ARCH->setting("Elevate", String(cm->elevate() ? "1" : "0"));
-    } catch (XArch &e) {
-      LOG((CLOG_ERR "failed to save settings, %s", e.what()));
-    }
-
+void DaemonApp::initLogging()
+{
 #if SYSAPI_WIN32
-    // tell the relauncher about the new command. this causes the
-    // relauncher to stop the existing command and start the new
-    // command.
-    m_watchdog->setCommand(command, cm->elevate());
-#endif
-    break;
+  if (!m_foreground) {
+    // Only use MS debug outputter when the process is daemonized, since stdout won't be accessible
+    // in that case, but is accessible when running in the foreground.
+    CLOG->insert(new MSWindowsDebugOutputter()); // NOSONAR - Adopted by `Log`
   }
-
-  case IpcMessageType::Hello: {
-    IpcHelloMessage *hm = static_cast<IpcHelloMessage *>(m);
-    String type;
-    switch (hm->clientType()) {
-    case IpcClientType::GUI:
-      type = "gui";
-      break;
-    case IpcClientType::Node:
-      type = "node";
-      break;
-    default:
-      type = "unknown";
-      break;
-    }
-
-    LOG((CLOG_DEBUG "ipc hello, type=%s", type.c_str()));
-
-    // TODO: implement hello back handling in s1 gui and node (server/client).
-    if (hm->clientType() == IpcClientType::GUI) {
-      LOG((CLOG_DEBUG "sending ipc hello back"));
-      IpcHelloBackMessage hbm;
-      m_ipcServer->send(hbm, hm->clientType());
-    }
-
-#if SYSAPI_WIN32
-    String watchdogStatus = m_watchdog->isProcessActive() ? "active" : "idle";
-    LOG((CLOG_INFO "service status: %s", watchdogStatus.c_str()));
 #endif
 
-    m_ipcLogOutputter->notifyBuffer();
-    break;
-  }
+  m_pFileLogOutputter = new FileLogOutputter(logFilename().c_str()); // NOSONAR - Adopted by `Log`
+  CLOG->insert(m_pFileLogOutputter);
+}
 
-  case IpcMessageType::Setting:
-    updateSetting(*m);
-    break;
-
-  default:
-    LOG((CLOG_DEBUG "ipc message ignored"));
-    break;
-  }
+void DaemonApp::showConsole()
+{
+#if SYSAPI_WIN32
+  // The daemon bin is compiled using the Win32 subsystem which works best for Windows services,
+  // so when running as a foreground process we need to allocate a console (or we won't see output).
+  // It is important to do this inside the arg check loop so that we can attach console ahead
+  // of log output generated by handling other args.
+  AllocConsole();
+  freopen("CONOUT$", "w", stdout);
+  freopen("CONOUT$", "w", stderr);
+#endif
 }

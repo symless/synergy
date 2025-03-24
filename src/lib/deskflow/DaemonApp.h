@@ -1,30 +1,27 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012 Symless Ltd.
- *
- * This package is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * found in the file LICENSE that should have accompanied this file.
- *
- * This package is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2012 - 2025 Symless Ltd.
+ * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
 #pragma once
 
-#include "ipc/IpcServer.h"
+#include "common/common.h"
 
-#include <memory>
 #include <string>
 
+#include <QObject>
+#include <QThread>
+
 class Event;
-class IpcLogOutputter;
+class IEventQueue;
 class FileLogOutputter;
+class QLocalServer;
+class QCoreApplication;
+
+namespace deskflow::core::ipc {
+class DaemonIpcServer;
+}
 
 #if SYSAPI_WIN32
 class MSWindowsWatchdog;
@@ -32,31 +29,57 @@ class MSWindowsWatchdog;
 
 extern const char *const kLogFilename;
 
-class DaemonApp
+class DaemonApp : public QObject
 {
+  Q_OBJECT
 
 public:
-  DaemonApp();
-  ~DaemonApp();
-  int run(int argc, char **argv);
-  void mainLoop(bool logToFile, bool foreground = false);
+  enum class InitResult
+  {
+    Installed,
+    Uninstalled,
+    StartDaemon,
+    ShowHelp,
+    ArgsError,
+    FatalError,
+  };
+
+  explicit DaemonApp(IEventQueue &events);
+  ~DaemonApp() override;
+
+  InitResult init(int argc, char **argv);
+  void install() const;
+  void uninstall() const;
+  void run(QThread &daemonThread);
+  void setForeground();
+  void initLogging();
+  void connectIpcServer(const deskflow::core::ipc::DaemonIpcServer *ipcServer) const;
+
+  static std::string logFilename();
 
 private:
   void daemonize();
-  void foregroundError(const char *message);
-  std::string logFilename();
-  void handleIpcMessage(const Event &, void *);
+  void handleError(const char *message);
+  void handleIpcMessage(const Event &e, void *);
+  int mainLoop();
+  int daemonLoop();
+  void saveLogLevel(const QString &logLevel) const;
+  void setElevate(bool elevate);
+  void setCommand(const QString &command);
+  void applyWatchdogCommand() const;
+  void clearWatchdogCommand();
+  void clearSettings() const;
 
-public:
-  static DaemonApp *s_instance;
+  static void showConsole();
 
 #if SYSAPI_WIN32
-  std::unique_ptr<MSWindowsWatchdog> m_watchdog;
+  std::unique_ptr<MSWindowsWatchdog> m_pWatchdog;
 #endif
 
-private:
-  std::unique_ptr<IpcServer> m_ipcServer;
-  std::unique_ptr<IpcLogOutputter> m_ipcLogOutputter;
-  std::unique_ptr<IEventQueue> m_events;
-  std::unique_ptr<FileLogOutputter> m_fileLogOutputter;
+  IEventQueue &m_events;
+  FileLogOutputter *m_pFileLogOutputter = nullptr;
+  deskflow::core::ipc::DaemonIpcServer *m_ipcServer = nullptr;
+  std::string m_command = "";
+  bool m_elevate = false;
+  bool m_foreground = false;
 };
