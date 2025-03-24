@@ -32,8 +32,6 @@ void handleError(const char *message = "Unrecognized error.");
 int main(int argc, char **argv)
 {
 #if SYSAPI_WIN32
-  ArchMiscWindows::guardRuntimeVersion();
-
   // Save window instance for later use, e.g. `GetModuleFileName` which is used when installing the daemon.
   ArchMiscWindows::setInstanceWin32(GetModuleHandle(nullptr));
 #endif
