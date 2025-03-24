@@ -54,9 +54,9 @@ HANDLE openProcessForKill(const PROCESSENTRY32 &entry)
   if (entry.th32ProcessID == 0)
     return nullptr;
 
-  if (_stricmp(entry.szExeFile, "deskflow-client.exe") != 0 && //
-      _stricmp(entry.szExeFile, "deskflow-server.exe") != 0 && //
-      _stricmp(entry.szExeFile, "deskflow-core.exe") != 0) {
+  if (_stricmp(entry.szExeFile, CLIENT_BINARY_NAME) != 0 && //
+      _stricmp(entry.szExeFile, SERVER_BINARY_NAME) != 0 && //
+      _stricmp(entry.szExeFile, CORE_BINARY_NAME) != 0) {
     return nullptr;
   }
 
@@ -437,7 +437,7 @@ void MSWindowsWatchdog::shutdownExistingProcesses()
 std::string MSWindowsWatchdog::runActiveDesktopUtility()
 {
   const auto installDir = ARCH->getInstalledDirectory();
-  const auto coreBinPath = installDir + "\\deskflow-server.exe";
+  const auto coreBinPath = installDir + "\\" SERVER_BINARY_NAME;
   std::string utilityCommand = "\"" + coreBinPath + "\" --active-desktop";
 
   LOG_DEBUG("starting active desktop utility: %s", utilityCommand.c_str());
