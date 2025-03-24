@@ -27,6 +27,8 @@
 
 #include <Tlhelp32.h>
 
+#include <functional>
+
 //! Miscellaneous win32 functions.
 class ArchMiscWindows
 {
@@ -46,7 +48,7 @@ public:
     kDISPLAY = 0x0002
   };
 
-  typedef int (*RunFunc)(void);
+  using RunFunc = std::function<int(void)>;
 
   //! Initialize
   static void init();
