@@ -209,7 +209,6 @@ private:
   deskflow::gui::config::ServerConfigDialogState m_ServerConfigDialogState;
   bool m_SaveOnExit = true;
   deskflow::gui::core::WaylandWarnings m_WaylandWarnings;
-
   deskflow::gui::ConfigScopes &m_ConfigScopes;
   AppConfig &m_AppConfig;
   ServerConfig m_ServerConfig;

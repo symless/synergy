@@ -22,6 +22,7 @@
 #error version was not passed to the compiler
 #endif
 
+const auto kAppId = DESKFLOW_APP_ID;
 const auto kAppName = DESKFLOW_APP_NAME;
 const auto kAppDescription = "Mouse and keyboard sharing utility";
 const auto kVersion = DESKFLOW_VERSION;

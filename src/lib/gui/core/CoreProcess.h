@@ -1,41 +1,35 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2024 Symless Ltd.
- *
- * This package is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * found in the file LICENSE that should have accompanied this file.
- *
- * This package is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2024 - 2025 Symless Ltd.
+ * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
 #pragma once
 
+#include "gui/FileTail.h"
 #include "gui/config/IAppConfig.h"
 #include "gui/config/IServerConfig.h"
-#include "gui/ipc/QIpcClient.h"
 #include "gui/proxy/QProcessProxy.h"
 
+#include <memory>
+
+#include <QFileSystemWatcher>
 #include <QMutex>
 #include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
-#include <memory>
 
 namespace deskflow::gui {
+
+namespace ipc {
+class DaemonIpcClient;
+}
 
 class CoreProcess : public QObject
 {
   using IServerConfig = deskflow::gui::IServerConfig;
   using QProcessProxy = deskflow::gui::proxy::QProcessProxy;
-  using IQIpcClient = deskflow::gui::ipc::IQIpcClient;
 
   Q_OBJECT
 
@@ -47,17 +41,12 @@ public:
     {
       return m_process;
     }
-    virtual IQIpcClient &ipcClient()
-    {
-      return m_ipcClient;
-    }
     virtual QString appPath(const QString &name) const;
     virtual bool fileExists(const QString &path) const;
     virtual QString getProfileRoot() const;
 
   private:
     QProcessProxy m_process;
-    QIpcClient m_ipcClient;
   };
 
   enum class Mode
@@ -97,6 +86,8 @@ public:
   void stop(std::optional<ProcessMode> processMode = std::nullopt);
   void restart();
   void cleanup();
+  void applyLogLevel();
+  void clearSettings();
 
   // getters
   Mode mode() const
@@ -139,18 +130,16 @@ signals:
   void secureSocket(bool enabled);
 
 private slots:
-  void onIpcClientServiceReady();
-  void onIpcClientRead(const QString &text);
-  void onIpcClientError(const QString &text) const;
   void onProcessFinished(int exitCode, QProcess::ExitStatus);
   void onProcessReadyReadStandardOutput();
   void onProcessReadyReadStandardError();
+  void daemonIpcClientConnected();
 
 private:
-  void startDesktop(const QString &app, const QStringList &args);
-  void startService(const QString &app, const QStringList &args);
-  void stopDesktop() const;
-  void stopService();
+  void startForegroundProcess(const QString &app, const QStringList &args);
+  void startProcessFromDaemon(const QString &app, const QStringList &args);
+  void stopForegroundProcess() const;
+  void stopProcessFromDaemon();
   bool addGenericArgs(QStringList &args, const ProcessMode processMode) const;
   bool addServerArgs(QStringList &args, QString &app);
   bool addClientArgs(QStringList &args, QString &app);
@@ -164,6 +153,7 @@ private:
   void handleLogLines(const QString &text);
   QString correctedInterface() const;
   QString correctedAddress() const;
+  QString requestDaemonLogPath();
 
 #ifdef Q_OS_MAC
   void checkOSXNotification(const QString &line);
@@ -180,6 +170,9 @@ private:
   QString m_secureSocketVersion = "";
   std::optional<ProcessMode> m_lastProcessMode = std::nullopt;
   QTimer m_retryTimer;
+  int m_connections = 0;
+  deskflow::gui::ipc::DaemonIpcClient *m_daemonIpcClient = nullptr;
+  FileTail *m_daemonFileTail = nullptr;
 };
 
 } // namespace deskflow::gui
