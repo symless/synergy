@@ -26,7 +26,6 @@ macro(configure_libs)
   endif()
 
   find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
-  list(APPEND libs Qt6::Core Qt6::Widgets Qt6::Network)
 
   configure_python()
   configure_qt()
