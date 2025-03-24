@@ -1,18 +1,7 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2024 Symless Ltd.
- *
- * This package is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * found in the file LICENSE that should have accompanied this file.
- *
- * This package is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-FileCopyrightText: (C) 2024 Symless Ltd.
+ * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
 #include "gui/config/IAppConfig.h"
@@ -79,12 +68,18 @@ class CoreProcessTests : public Test
 public:
   CoreProcessTests() : m_coreProcess(m_appConfig, m_serverConfig, m_pDeps)
   {
+    ON_CALL(m_appConfig, useExternalConfig()).WillByDefault(testing::Return(true));
+    ON_CALL(m_appConfig, configFile()).WillByDefault(testing::ReturnRef(m_configFile));
+    ON_CALL(m_appConfig, processMode()).WillByDefault(Return(ProcessMode::kDesktop));
   }
 
   NiceMock<AppConfigMock> m_appConfig;
   NiceMock<ServerConfigMock> m_serverConfig;
   std::shared_ptr<NiceMock<DepsMock>> m_pDeps = std::make_shared<NiceMock<DepsMock>>();
   CoreProcess m_coreProcess;
+
+private:
+  const QString m_configFile = "tmp/deskflow-server.conf";
 };
 
 } // namespace
