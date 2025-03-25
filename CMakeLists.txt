@@ -13,18 +13,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Why CMake 3.8?
-# This allows package maintainers to create reproducible builds:
-# > New in version 3.8: If the SOURCE_DATE_EPOCH environment variable is set,
-# > its value will be used instead of the current time.
-# > See https://reproducible-builds.org/specs/source-date-epoch/ for details.
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.24)
 
 project(deskflow C CXX)
 
-# Include first to control the cached variables.
 set(SYNERGY_EXTRA_ROOT "${CMAKE_SOURCE_DIR}/ext/synergy-extra")
-include("${SYNERGY_EXTRA_ROOT}/cmake/Extra.cmake")
+set(SYNERGY_EXTRA_FILE "${SYNERGY_EXTRA_ROOT}/cmake/Extra.cmake")
+if (NOT EXISTS ${SYNERGY_EXTRA_FILE})
+  execute_process(
+    COMMAND git submodule update --init
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE GIT_SUBMODULE_RESULT
+  )
+  if (NOT EXISTS ${SYNERGY_EXTRA_FILE})
+    message(FATAL_ERROR "Unable to init submodule. Run manually: git submodule update --init")
+  endif()
+endif()
+
+# Include 'Synergy Extra' first to control the cached variables.
+include(${SYNERGY_EXTRA_FILE})
 
 include(cmake/Version.cmake)
 include(cmake/Definitions.cmake)
