@@ -56,7 +56,8 @@ public:
     }
   };
 
-  App(IEventQueue *events, CreateTaskBarReceiverFunc createTaskBarReceiver, deskflow::ArgsBase *args);
+  App(IEventQueue *events, CreateTaskBarReceiverFunc createTaskBarReceiver, deskflow::ArgsBase *args,
+      bool runEventLoop = true);
   App(App const &) = delete;
   App(App &&) = delete;
   virtual ~App();

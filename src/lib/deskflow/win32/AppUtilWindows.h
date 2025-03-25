@@ -23,6 +23,10 @@
 #define WIN32_LEAN_AND_MEAN
 #include "Windows.h"
 
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+
 #define ARCH_APP_UTIL AppUtilWindows
 
 class IEventQueue;
@@ -36,7 +40,7 @@ enum AppExitMode
 class AppUtilWindows : public AppUtil
 {
 public:
-  AppUtilWindows(IEventQueue *events);
+  AppUtilWindows(IEventQueue *events, bool runEventLoop);
   virtual ~AppUtilWindows();
 
   static AppUtilWindows &instance();
@@ -56,6 +60,12 @@ public:
 private:
   AppExitMode m_exitMode;
   IEventQueue *m_events;
+  std::thread m_eventThread; // NOSONAR - No jthread on Windows
+  bool m_eventThreadRunning = false;
+  std::condition_variable m_eventThreadStartedCond;
+  std::mutex m_eventThreadStartedMutex;
+
+  void eventLoop();
 
   static BOOL WINAPI consoleHandler(DWORD Event);
 };

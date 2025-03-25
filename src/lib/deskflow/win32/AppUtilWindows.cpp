@@ -44,15 +44,31 @@
 #include "wintoastlib.h"
 #endif
 
-AppUtilWindows::AppUtilWindows(IEventQueue *events) : m_events(events), m_exitMode(kExitModeNormal)
+AppUtilWindows::AppUtilWindows(IEventQueue *events, bool runEventLoop) : m_events(events), m_exitMode(kExitModeNormal)
 {
   if (SetConsoleCtrlHandler((PHANDLER_ROUTINE)consoleHandler, TRUE) == FALSE) {
     throw XArch(new XArchEvalWindows());
+  }
+
+  if (runEventLoop) {
+    m_eventThread = std::thread(&AppUtilWindows::eventLoop, this); // NOSONAR - No jthread on Windows
+
+    // Waiting for the event loop start prevents race condition in fast fail scenario,
+    // where the dtor is called just before the event loop starts.
+    LOG_DEBUG("waiting for event thread to start");
+    std::unique_lock lock(m_eventThreadStartedMutex);
+    m_eventThreadStartedCond.wait(lock, [this] { return m_eventThreadRunning; });
+    LOG_DEBUG("event thread started");
   }
 }
 
 AppUtilWindows::~AppUtilWindows()
 {
+  if (m_eventThreadRunning) {
+    LOG_DEBUG("joining event thread");
+    m_eventThreadRunning = false;
+    m_eventThread.join();
+  }
 }
 
 BOOL WINAPI AppUtilWindows::consoleHandler(DWORD)
@@ -278,4 +294,40 @@ void AppUtilWindows::showNotification(const String &title, const String &text) c
 #else
   LOG((CLOG_INFO "toast notifications are not supported"));
 #endif
+}
+
+void AppUtilWindows::eventLoop()
+{
+  HANDLE hCloseEvent = CreateEventA(nullptr, TRUE, FALSE, kCloseEventName);
+  if (!hCloseEvent) {
+    LOG_CRIT("failed to create event for windows event loop");
+    throw XArch(new XArchEvalWindows());
+  }
+
+  LOG_DEBUG("windows event loop running");
+  {
+    std::lock_guard lock(m_eventThreadStartedMutex);
+    m_eventThreadRunning = true;
+  }
+  m_eventThreadStartedCond.notify_one();
+
+  while (m_eventThreadRunning) {
+    // Wait for 100ms at most so that we can stop the loop when the app is closing, if not already stopped.
+    DWORD closeEventResult = MsgWaitForMultipleObjects(1, &hCloseEvent, FALSE, 100, QS_ALLINPUT);
+
+    if (closeEventResult == WAIT_OBJECT_0) {
+      LOG_DEBUG("windows event loop received close event");
+      m_events->addEvent(Event(Event::kQuit));
+      m_eventThreadRunning = false;
+    } else if (closeEventResult == WAIT_OBJECT_0 + 1) {
+      MSG msg;
+      while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+      }
+    }
+  }
+
+  CloseHandle(hCloseEvent);
+  LOG_DEBUG("windows event loop finished");
 }

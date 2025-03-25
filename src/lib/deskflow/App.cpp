@@ -71,7 +71,9 @@ App *App::s_instance = nullptr;
 // App
 //
 
-App::App(IEventQueue *events, CreateTaskBarReceiverFunc createTaskBarReceiver, deskflow::ArgsBase *args)
+App::App(
+    IEventQueue *events, CreateTaskBarReceiverFunc createTaskBarReceiver, deskflow::ArgsBase *args, bool runEventLoop
+)
     : m_bye(&exit),
       m_taskBarReceiver(NULL),
       m_suspended(false),
@@ -79,7 +81,7 @@ App::App(IEventQueue *events, CreateTaskBarReceiverFunc createTaskBarReceiver, d
       m_args(args),
       m_fileLog(nullptr),
       m_createTaskBarReceiver(createTaskBarReceiver),
-      m_appUtil(events),
+      m_appUtil(events, runEventLoop),
       m_ipcClient(nullptr),
       m_socketMultiplexer(nullptr)
 {
@@ -280,7 +282,7 @@ void App::runEventsLoop(void *)
 // MinimalApp
 //
 
-MinimalApp::MinimalApp(IEventQueue *events) : App(events, NULL, new deskflow::ArgsBase())
+MinimalApp::MinimalApp(IEventQueue *events) : App(events, NULL, new deskflow::ArgsBase(), false)
 {
 }
 
