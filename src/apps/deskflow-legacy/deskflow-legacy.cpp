@@ -29,6 +29,12 @@ int main(int argc, char **argv)
   ArchMiscWindows::setInstanceWin32(GetModuleHandle(NULL));
 #endif
 
-  ToolApp app;
+  Arch arch;
+  arch.init();
+
+  Log log;
+  EventQueue events;
+
+  ToolApp app(&events);
   return app.run(argc, argv);
 }

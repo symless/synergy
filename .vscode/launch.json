@@ -108,6 +108,16 @@
       "preLaunchTask": "build-kill-core"
     },
     {
+      "name": "windows - legacy",
+      "type": "cppvsdbg",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-legacy",
+      "args": ["--get-profile-dir"],
+      "internalConsoleOptions": "openOnSessionStart",
+      "preLaunchTask": "build-kill-core"
+    },
+    {
       "name": "windows - active-desktop",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",

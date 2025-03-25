@@ -280,10 +280,8 @@ void App::runEventsLoop(void *)
 // MinimalApp
 //
 
-MinimalApp::MinimalApp() : App(NULL, NULL, new deskflow::ArgsBase())
+MinimalApp::MinimalApp(IEventQueue *events) : App(events, NULL, new deskflow::ArgsBase())
 {
-  m_arch.init();
-  setEvents(m_events);
 }
 
 MinimalApp::~MinimalApp()

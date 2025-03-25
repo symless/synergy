@@ -102,10 +102,6 @@ public:
   {
     initApp(argc, (const char **)argv);
   }
-  void setEvents(EventQueue &events)
-  {
-    m_events = &events;
-  }
   void setSocketMultiplexer(SocketMultiplexer *sm)
   {
     m_socketMultiplexer = sm;
@@ -154,7 +150,7 @@ private:
 class MinimalApp : public App
 {
 public:
-  MinimalApp();
+  MinimalApp(IEventQueue *events);
   virtual ~MinimalApp();
 
   // IApp overrides
@@ -177,11 +173,6 @@ public:
   {
     return "";
   }
-
-private:
-  Arch m_arch;
-  Log m_log;
-  EventQueue m_events;
 };
 
 #if WINAPI_MSWINDOWS

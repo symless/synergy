@@ -24,6 +24,9 @@
 class ToolApp : public MinimalApp
 {
 public:
+  ToolApp(IEventQueue *events) : MinimalApp(events)
+  {
+  }
   UInt32 run(int argc, char **argv);
   void help();
 
