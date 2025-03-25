@@ -64,7 +64,7 @@ AppUtilWindows::AppUtilWindows(IEventQueue *events, bool runEventLoop) : m_event
 
 AppUtilWindows::~AppUtilWindows()
 {
-  if (m_eventThreadRunning) {
+  if (m_eventThread.joinable()) {
     LOG_DEBUG("joining event thread");
     m_eventThreadRunning = false;
     m_eventThread.join();
