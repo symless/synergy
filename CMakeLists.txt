@@ -47,5 +47,3 @@ configure_packaging()
 
 add_subdirectory(${SYNERGY_EXTRA_ROOT})
 add_subdirectory(src)
-
-post_config_all()

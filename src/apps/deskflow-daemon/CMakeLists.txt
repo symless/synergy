@@ -37,6 +37,4 @@ if(WIN32)
     ${libs}
     Qt6::Core)
 
-  post_config()
-
 endif()

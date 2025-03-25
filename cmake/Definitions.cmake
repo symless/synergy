@@ -48,8 +48,6 @@ macro(configure_definitions)
     set(ADD_HEADERS_TO_SOURCES TRUE)
   endif()
 
-  set(BIN_TEMP_DIR ${PROJECT_BINARY_DIR}/temp/bin)
-
 endmacro()
 
 macro(configure_meta)

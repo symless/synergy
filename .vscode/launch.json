@@ -115,7 +115,7 @@
       "program": "${workspaceFolder}/build/bin-copy/synergy-legacy",
       "args": ["--get-profile-dir"],
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "build-kill-core"
+      "preLaunchTask": "build"
     },
     {
       "name": "windows - active-desktop",

@@ -116,5 +116,3 @@ elseif(WIN32)
   endif()
 
 endif()
-
-post_config()
