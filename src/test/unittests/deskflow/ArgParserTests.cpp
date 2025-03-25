@@ -215,7 +215,6 @@ TEST(ArgParserTests, parseToolArgs_matches_correspondingly)
 {
   ArgParser parser(nullptr);
   std::map<const char *, std::function<bool(ToolArgs const &)>> tests = {
-      {"--get-active-desktop", [](ToolArgs const &a) { return a.m_printActiveDesktopName; }},
       {"--get-installed-dir", [](ToolArgs const &a) { return a.m_getInstalledDir; }},
       {"--get-profile-dir", [](ToolArgs const &a) { return a.m_getProfileDir; }},
       {"--get-arch", [](ToolArgs const &a) { return a.m_getArch; }}

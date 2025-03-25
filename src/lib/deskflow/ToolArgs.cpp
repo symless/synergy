@@ -17,10 +17,6 @@
 
 #include "deskflow/ToolArgs.h"
 
-ToolArgs::ToolArgs()
-    : m_printActiveDesktopName(false),
-      m_getInstalledDir(false),
-      m_getProfileDir(false),
-      m_getArch(false)
+ToolArgs::ToolArgs() : m_getInstalledDir(false), m_getProfileDir(false), m_getArch(false)
 {
 }

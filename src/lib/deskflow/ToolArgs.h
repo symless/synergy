@@ -25,7 +25,6 @@ public:
   ToolArgs();
 
 public:
-  bool m_printActiveDesktopName;
   bool m_getInstalledDir;
   bool m_getProfileDir;
   bool m_getArch;

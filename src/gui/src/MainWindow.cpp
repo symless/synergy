@@ -191,6 +191,8 @@ void MainWindow::connectSlots()
 
   connect(&m_AppConfig, &AppConfig::invertConnectionChanged, this, &MainWindow::onAppConfigInvertConnection);
 
+  connect(&m_AppConfig, &AppConfig::logLevelChanged, this, [this]() { m_CoreProcess.applyLogLevel(); });
+
   connect(&m_CoreProcess, &CoreProcess::starting, this, &MainWindow::onCoreProcessStarting, Qt::DirectConnection);
 
   connect(&m_CoreProcess, &CoreProcess::error, this, &MainWindow::onCoreProcessError);
@@ -698,14 +700,16 @@ void MainWindow::checkFingerprint(const QString &line)
     messageBoxAlreadyShown = true;
     QMessageBox::StandardButton fingerprintReply = QMessageBox::information(
         this, QString("Security question"),
-        QString("<p>You are connecting to a server.</p>"
-                "<p>Here is it's TLS fingerprint:</p>"
-                "<p>%1</p>"
-                "<p>Compare this fingerprint to the one on your server's screen. "
-                "If the two don't match exactly, then it's probably not the server "
-                "you're expecting (it could be a malicious user).</p>"
-                "<p>Do you want to trust this fingerprint for future "
-                "connections? If you don't, a connection cannot be made.</p>")
+        QString(
+            "<p>You are connecting to a server.</p>"
+            "<p>Here is it's TLS fingerprint:</p>"
+            "<p>%1</p>"
+            "<p>Compare this fingerprint to the one on your server's screen. "
+            "If the two don't match exactly, then it's probably not the server "
+            "you're expecting (it could be a malicious user).</p>"
+            "<p>Do you want to trust this fingerprint for future "
+            "connections? If you don't, a connection cannot be made.</p>"
+        )
             .arg(fingerprint),
         QMessageBox::Yes | QMessageBox::No
     );
@@ -969,8 +973,10 @@ void MainWindow::autoAddScreen(const QString name)
       break;
 
     case kAutoAddScreenManualClient:
-      showConfigureServer(QString("Please drag the new client screen (%1) "
-                                  "to the desired position on the grid.")
+      showConfigureServer(QString(
+                              "Please drag the new client screen (%1) "
+                              "to the desired position on the grid."
+      )
                               .arg(name));
       break;
     }
@@ -998,8 +1004,10 @@ void MainWindow::secureSocket(bool secureSocket)
 
 void MainWindow::updateScreenName()
 {
-  m_pLabelComputerName->setText(QString("This computer's name: %1 "
-                                        R"((<a href="#" style="color: %2">change</a>))")
+  m_pLabelComputerName->setText(QString(
+                                    "This computer's name: %1 "
+                                    R"((<a href="#" style="color: %2">change</a>))"
+  )
                                     .arg(m_AppConfig.screenName())
                                     .arg(kColorSecondary));
   m_ServerConfig.updateServerName();

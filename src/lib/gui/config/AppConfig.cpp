@@ -705,6 +705,7 @@ void AppConfig::setNetworkInterface(const QString &s)
 void AppConfig::setLogLevel(int i)
 {
   m_LogLevel = i;
+  Q_EMIT logLevelChanged();
 }
 
 void AppConfig::setLogToFile(bool b)

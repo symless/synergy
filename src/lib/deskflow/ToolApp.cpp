@@ -51,19 +51,7 @@ UInt32 ToolApp::run(int argc, char **argv)
       m_bye(kExitArgs);
     }
 
-    if (m_args.m_printActiveDesktopName) {
-#if SYSAPI_WIN32
-      MSWindowsSession session;
-      String name = session.getActiveDesktopName();
-      if (name.empty()) {
-        LOG((CLOG_CRIT "failed to get active desktop name"));
-        return kExitFailed;
-      } else {
-        String output = deskflow::string::sprintf("activeDesktop:%s", name.c_str());
-        LOG((CLOG_INFO "%s", output.c_str()));
-      }
-#endif
-    } else if (m_args.m_getInstalledDir) {
+    if (m_args.m_getInstalledDir) {
       std::cout << ARCH->getInstalledDirectory() << std::endl;
     } else if (m_args.m_getProfileDir) {
       std::cout << ARCH->getProfileDirectory() << std::endl;

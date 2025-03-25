@@ -171,9 +171,17 @@ public:
   //! Returns true if we got the parent process name.
   static bool getParentProcessName(String &name);
 
+  //! Gets the window instance saved at program start.
+  /*!
+  e.g. Used by `GetModuleFileName` which is used when installing the daemon.
+  */
   static HINSTANCE instanceWin32();
 
+  //! Saves the window instance for later use.
   static void setInstanceWin32(HINSTANCE instance);
+
+  //! Get the name of the active input desktop.
+  static std::string getActiveDesktopName();
 
   static BOOL WINAPI getProcessEntry(PROCESSENTRY32 &entry, DWORD processID);
   static BOOL WINAPI getSelfProcessEntry(PROCESSENTRY32 &entry);

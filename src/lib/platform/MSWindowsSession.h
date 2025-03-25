@@ -48,8 +48,6 @@ public:
 
   void updateActiveSession();
 
-  String getActiveDesktopName();
-
 private:
   BOOL nextProcessEntry(HANDLE snapshot, LPPROCESSENTRY32 entry);
 

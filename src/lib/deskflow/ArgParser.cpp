@@ -169,10 +169,7 @@ bool ArgParser::parseToolArgs(ToolArgs &args, int argc, const char *const *argv)
 {
   // We support exactly one argument at a fix position
   static const int only_index{1};
-  if (isArg(only_index, argc, argv, nullptr, "--get-active-desktop", 0)) {
-    args.m_printActiveDesktopName = true;
-    return true;
-  } else if (isArg(only_index, argc, argv, nullptr, "--get-installed-dir", 0)) {
+  if (isArg(only_index, argc, argv, nullptr, "--get-installed-dir", 0)) {
     args.m_getInstalledDir = true;
     return true;
   } else if (isArg(only_index, argc, argv, nullptr, "--get-profile-dir", 0)) {
