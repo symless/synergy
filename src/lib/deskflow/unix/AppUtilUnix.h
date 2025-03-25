@@ -27,7 +27,7 @@ class IEventQueue;
 class AppUtilUnix : public AppUtil
 {
 public:
-  AppUtilUnix(IEventQueue *events);
+  AppUtilUnix(IEventQueue *events, bool runEventLoop);
   virtual ~AppUtilUnix();
 
   int run(int argc, char **argv) override;

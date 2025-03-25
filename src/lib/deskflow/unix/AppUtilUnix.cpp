@@ -36,7 +36,7 @@
 #include <libnotify/notify.h>
 #endif
 
-AppUtilUnix::AppUtilUnix(IEventQueue *events)
+AppUtilUnix::AppUtilUnix(IEventQueue *events, bool runEventLoop)
 {
 }
 
