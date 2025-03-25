@@ -3,20 +3,45 @@
   "tasks": [
     {
       "label": "build",
-      "type": "cmake",
-      "command": "build",
-      "targets": ["all"],
-      "preset": "${command:cmake.activeBuildPresetName}",
+      "type": "shell",
+      "dependsOn": ["build-cmake"],
+      "windows": {
+        "command": "robocopy ${workspaceFolder}/build/bin ${workspaceFolder}/build/bin-copy /R:0 /E /S /NJS /NJH /NFL /NDL; exit 0"
+      },
       "group": {
         "kind": "build",
         "isDefault": true
       },
+    },
+    {
+      "label": "build-cmake",
+      "type": "cmake",
+      "command": "build",
+      "targets": ["all"],
+      "preset": "${command:cmake.activeBuildPresetName}",
+      "group": "build",
       "problemMatcher": {
         "base": "$gcc",
         "fileLocation": ["absolute"]
       },
+    },
+    {
+      "label": "build-kill-core",
+      "dependsOn": ["kill-daemon", "kill-core", "build"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "build-kill-gui",
+      "dependsOn": ["kill-gui", "kill-core", "build"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "build-silent",
+      "type": "shell",
+      "dependsOn": ["build"],
+      "group": "build",
       "presentation": {
-        "revealProblems": "onProblem"
+        "reveal": "silent",
       }
     },
     {
@@ -65,47 +90,97 @@
       "problemMatcher": []
     },
     {
-      "label": "kill",
+      "label": "kill-all",
       "type": "shell",
-      "command": "killall synergy; killall synergy-client; killall synergy-server || true",
-      "windows": {
-        "command": "taskkill /F /IM synergy.exe /IM synergy-client.exe /IM synergy-client.exe; $true"
-      },
-      "presentation": {
-        "reveal": "silent"
-      }
+      "dependsOn": ["kill-gui", "kill-daemon", "kill-core"],
     },
     {
-      "label": "kill-build",
-      "dependsOn": ["kill", "build"],
-      "problemMatcher": []
+      "label": "kill-gui",
+      "type": "shell",
+      "command": "killall -9 synergy || true",
+      "windows": {
+        "command": "taskkill /F /IM synergy.exe; $true"
+      },
+    },
+    {
+      "label": "kill-daemon",
+      "type": "shell",
+      "command": "killall -9 synergy-daemon || true",
+      "windows": {
+        "command": "taskkill /F /IM synergy-daemon.exe; $true"
+      },
+      "dependsOn": ["daemon-stop"],
+    },
+    {
+      "label": "kill-core",
+      "type": "shell",
+      "command": "killall -9 synergy-core synergy-server synergy-client || true",
+      "windows": {
+        "command": "taskkill /F /IM synergy-core.exe; taskkill /F /IM synergy-server.exe; taskkill /F /IM synergy-client.exe; $true"
+      },
     },
     {
       "label": "gui",
       "type": "process",
       "command": "${workspaceFolder}/build/bin/synergy",
-      "dependsOn": ["build", "kill"],
       "problemMatcher": [],
+      "dependsOn": ["build"],
       "windows": {
-        "command": "${workspaceFolder}/build/bin/synergy.exe"
+        "dependsOn": ["build-kill-gui"],
+        "command": "${workspaceFolder}/build/bin-copy/synergy.exe"
       }
     },
     {
-      "label": "restart daemon",
+      "label": "daemon-stop",
       "type": "shell",
-      "command": "python scripts/daemon.py --restart",
-      "dependsOn": ["build"]
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "Stop-Service -Name 'Synergy' -Force; while ((Get-Service -Name 'Synergy').Status -ne 'Stopped') { Start-Sleep -Seconds 1 }",
+      },
     },
     {
-      "label": "reinstall daemon",
+      "label": "daemon-start",
       "type": "shell",
-      "command": "python scripts/daemon.py --reinstall",
-      "dependsOn": ["build"]
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "Start-Service -Name 'Synergy'; while ((Get-Service -Name 'Synergy').Status -ne 'Running') { Start-Sleep -Seconds 1 }",
+      },
     },
     {
-      "label": "stop daemon",
+      "label": "daemon-restart",
       "type": "shell",
-      "command": "python scripts/daemon.py --stop"
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "Restart-Service -Name 'Synergy'",
+      },
+    },
+    {
+      "label": "daemon-deploy",
+      "type": "shell",
+      "dependsOn": ["build-kill-core", "daemon-start"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "daemon-install",
+      "type": "shell",
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "${workspaceFolder}/build/bin-copy/synergy-daemon.exe --install"
+      }
+    },
+    {
+      "label": "daemon-uninstall",
+      "type": "shell",
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "${workspaceFolder}/build/bin-copy/synergy-daemon.exe --uninstall"
+      }
+    },
+    {
+      "label": "daemon-reinstall",
+      "type": "shell",
+      "dependsOn": ["build-kill-core", "daemon-stop", "daemon-uninstall", "daemon-install"],
+      "dependsOrder": "sequence",
     },
     {
       "label": "unittests (current)",

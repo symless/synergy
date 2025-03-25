@@ -7,7 +7,7 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-silent"
     },
     {
       "name": "unix - unittests",
@@ -15,7 +15,8 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/unittests",
-      "preLaunchTask": "build"
+      "args": [ "${input:gtest-args}" ],
+      "preLaunchTask": "build-silent"
     },
     {
       "name": "unix - integtests",
@@ -23,7 +24,8 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/integtests",
-      "preLaunchTask": "build"
+      "args": [ "${input:gtest-args}" ],
+      "preLaunchTask": "build-silent",
     },
     {
       "name": "unix - server",
@@ -32,7 +34,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-server",
       "args": ["--config-toml", "synergy-config.toml"],
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-silent"
     },
     {
       "name": "unix - client",
@@ -41,7 +43,16 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-client",
       "args": ["--config-toml", "synergy-config.toml"],
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-silent"
+    },
+    {
+      "name": "unix - daemon",
+      "type": "lldb",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin/synergy-daemon",
+      "args": ["-f"],
+      "preLaunchTask": "build-silent"
     },
     {
       "name": "unix - attach",
@@ -54,55 +65,85 @@
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/synergy",
+      "program": "${workspaceFolder}/build/bin-copy/synergy",
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-kill-gui"
     },
     {
       "name": "windows - unittests",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/unittests",
-      "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "build"
+      "program": "${workspaceFolder}/build/bin-copy/unittests",
+      "args": [ "${input:gtest-args}" ],
+      "internalConsoleOptions": "openOnSessionStart"
     },
     {
       "name": "windows - integtests",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/integtests",
-      "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "build"
+      "program": "${workspaceFolder}/build/bin-copy/integtests",
+      "args": [ "${input:gtest-args}" ],
+      "internalConsoleOptions": "openOnSessionStart"
     },
     {
       "name": "windows - server",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/synergy-server",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-server",
       "args": ["--config-toml", "synergy-config.toml"],
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-kill-core"
     },
     {
       "name": "windows - client",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/synergy-client",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-client",
       "args": ["--config-toml", "synergy-config.toml"],
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-kill-core"
     },
     {
-      "name": "windows - daemon",
+      "name": "windows - active-desktop",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/synergy-daemon",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-core",
+      "args": ["--active-desktop"],
+      "internalConsoleOptions": "openOnSessionStart",
+      "preLaunchTask": "build-kill-core"
+    },
+    {
+      "name": "windows - daemon foreground",
+      "type": "cppvsdbg",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-daemon",
       "args": ["-f"],
+      "internalConsoleOptions": "openOnSessionStart",
+      "preLaunchTask": "build-kill-core"
+    },
+    {
+      "name": "windows - daemon install",
+      "type": "cppvsdbg",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-daemon",
+      "args": ["--install"],
+      "internalConsoleOptions": "openOnSessionStart",
+      "preLaunchTask": "build"
+    },
+    {
+      "name": "windows - daemon uninstall",
+      "type": "cppvsdbg",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-daemon",
+      "args": ["--uninstall"],
       "internalConsoleOptions": "openOnSessionStart",
       "preLaunchTask": "build"
     },
@@ -110,14 +151,15 @@
       "name": "windows - attach",
       "type": "cppvsdbg",
       "request": "attach",
-      "processId": "${command:pickProcess}"
-    },
+      "processId": "${command:pickProcess}",
+    }
+  ],
+  "inputs": [
     {
-      "name": "install_deps.py",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "scripts/install_deps.py",
-      "console": "integratedTerminal"
+      "id": "gtest-args",
+      "type": "promptString",
+      "description": "Test arguments",
+      "default": "--gtest_filter=*"
     }
   ]
 }
