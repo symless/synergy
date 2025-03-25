@@ -5,12 +5,12 @@ config:
       # The Chocolatey mirror cannot be 100% reliable (according to docs) so it will often fail
       # with an error `503 (Service Unavailable: Back-end server is at capacity)` which causes
       # the nightly CI to fail intermittently.
-      command-elevated: if not defined CI (choco install Chocolatey.config -y)
+      # command-elevated: if not defined CI (choco install Chocolatey.config -y)
 
       # We only run `winget` when not in CI env; it's not available on the GitHub Windows runner.
       # It's simpler to solve dependencies like Ninja with a GitHub workflow action, and cmake is
       # already installed on the Windows runner.
-      command: if not defined CI (winget install ninja-build.ninja cmake)
+      # command: if not defined CI (winget install ninja-build.ninja cmake)
       qt:
         version: 6.7.2
         mirror: https://qt.mirror.constant.com/
