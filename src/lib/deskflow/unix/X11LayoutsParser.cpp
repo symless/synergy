@@ -129,6 +129,11 @@ void X11LayoutsParser::convertLayoutToISO639_2(
   }
   for (size_t i = 0; i < layoutNames.size(); i++) {
     const auto &layoutName = layoutNames[i];
+    if (layoutNames[i].empty()) {
+      LOG((CLOG_DEBUG "skip converting empty layout name"));
+      continue;
+    }
+
     auto langIter =
         std::find_if(allLang.begin(), allLang.end(), [&layoutName](const Lang &l) { return l.name == layoutName; });
     if (langIter == allLang.end()) {
@@ -184,7 +189,12 @@ std::vector<String> X11LayoutsParser::getX11LanguageList(const String &pathToEvd
 String
 X11LayoutsParser::convertLayotToISO(const String &pathToEvdevFile, const String &layoutLangCode, bool needToReloadFiles)
 {
-  std::vector<String> iso639_2Codes;
+  if (layoutLangCode.empty()) {
+    LOG((CLOG_DEBUG "skip converting empty layout lang code"));
+    return "";
+  }
+
+  std::vector<std::string> iso639_2Codes;
   convertLayoutToISO639_2(pathToEvdevFile, needToReloadFiles, {layoutLangCode}, {""}, iso639_2Codes);
   if (iso639_2Codes.empty()) {
     LOG((CLOG_WARN "failed to convert layout lang code: \"%s\"", layoutLangCode.c_str()));
