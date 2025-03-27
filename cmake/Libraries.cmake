@@ -112,8 +112,6 @@ macro(configure_unix_libs)
     configure_xorg_libs()
     configure_wayland_libs()
 
-    find_package(pugixml REQUIRED)
-
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
       pkg_check_modules(lib_glib REQUIRED IMPORTED_TARGET glib-2.0)
@@ -513,7 +511,7 @@ macro(configure_qt)
 
   find_package(
     Qt6
-    COMPONENTS Core Widgets Network
+    COMPONENTS Core Widgets Network Xml
     REQUIRED)
 
   message(STATUS "Qt version: ${Qt6_VERSION}")

@@ -53,7 +53,7 @@ if(UNIX)
     server)
 
   if(NOT APPLE)
-    target_link_libraries(synlib pugixml)
+    target_link_libraries(synlib Qt6::Xml)
 
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
