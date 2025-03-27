@@ -60,7 +60,7 @@ if(UNIX)
     ${tomlplusplus_lib})
 
   if(NOT APPLE)
-    target_link_libraries(${lib_name} PRIVATE pugixml)
+    target_link_libraries(${lib_name} PRIVATE Qt6::Xml)
 
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)

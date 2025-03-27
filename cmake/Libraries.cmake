@@ -140,8 +140,6 @@ macro(configure_unix_libs)
     configure_xorg_libs()
     configure_wayland_libs()
 
-    find_package(pugixml REQUIRED)
-
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
       pkg_check_modules(lib_glib REQUIRED IMPORTED_TARGET glib-2.0)

@@ -78,7 +78,6 @@ install_debian_deps() {
     libgtk-3-dev \
     libgtest-dev \
     libgmock-dev \
-    libpugixml-dev \
     libcli11-dev
 
   if [ $legacy = false ]; then
@@ -126,7 +125,6 @@ install_fedora_deps() {
     gtk3-devel \
     gtest-devel \
     gmock-devel \
-    pugixml-devel \
     libei-devel \
     libportal-devel \
     tomlplusplus-devel \
@@ -152,7 +150,6 @@ install_suse_deps() {
     gtk3-devel \
     googletest-devel \
     googlemock-devel \
-    pugixml-devel \
     libei-devel \
     libportal-devel \
     tomlplusplus-devel \
@@ -172,7 +169,6 @@ install_arch_deps() {
     libnotify \
     libxkbfile \
     gtest \
-    pugixml \
     libei \
     libportal \
     qt6-base \

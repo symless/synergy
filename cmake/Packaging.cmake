@@ -123,9 +123,9 @@ macro(configure_linux_packaging)
   set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
 
   # Manual deps for when shlibdeps/rpmbuild/rpmdeps doesn't detect them.
-  # Older versions of Debian/Ubuntu don't seem to detect the Qt dependencies or libpugixml.
+  # Older versions of Debian/Ubuntu don't seem to detect the Qt dependencies.
   # OpenSSL isn't detected because it's an executable dependency (not a library).
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, qt6-qpa-plugins, libqt6widgets6, libpugixml1v5")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, qt6-qpa-plugins, libqt6widgets6")
   set(CPACK_RPM_PACKAGE_REQUIRES "openssl")
 
   # The default for CMake seems to be /usr/local, which seems uncommon. While
