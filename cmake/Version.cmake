@@ -43,18 +43,6 @@ endmacro()
 
 macro(set_four_part_version)
 
-  string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" _ "${DESKFLOW_VERSION}")
-  set(VERSION_MAJOR "${CMAKE_MATCH_1}")
-  set(VERSION_MINOR "${CMAKE_MATCH_2}")
-  set(VERSION_PATCH "${CMAKE_MATCH_3}")
-
-  # Find the revision number, which is the number after the 'r'.
-  string(REGEX MATCH "r([0-9]+)$" _ "${DESKFLOW_VERSION}")
-  set(VERSION_REVISION "${CMAKE_MATCH_1}")
-  if(NOT VERSION_REVISION)
-    set(VERSION_REVISION "0")
-  endif()
-
   set(DESKFLOW_VERSION_FOUR_PART
       "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}.${VERSION_REVISION}")
 
