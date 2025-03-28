@@ -11,7 +11,7 @@ runs:
 
   steps:
       - name: Configure
-        run: cmake --log-level VERBOSE -P ext/synergy-extra/cmake/SaveVersion.cmake
+        run: cmake --log-level VERBOSE -DVERSION_FILE=build/VERSION -P ext/synergy-extra/cmake/SaveVersion.cmake
         shell: bash
 
       - name: Get version

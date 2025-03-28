@@ -19,8 +19,12 @@
 macro(set_version)
 
   include(${SYNERGY_EXTRA_ROOT}/cmake/Version.cmake)
-  version_from_git_tags(VERSION_MAJOR VERSION_MINOR VERSION_PATCH VERSION_REVISION)
-  set(DESKFLOW_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}+r${VERSION_REVISION}")
+  version_from_git_tags(VERSION VERSION_MAJOR VERSION_MINOR VERSION_PATCH VERSION_REVISION)
+  set(DESKFLOW_VERSION "${VERSION}")
+
+  set(version_file "${CMAKE_BINARY_DIR}/VERSION")
+  file(WRITE ${version_file} ${VERSION})
+  message(VERBOSE "Version file output: ${version_file}")
 
   message(STATUS "Version number (semver): " ${DESKFLOW_VERSION})
   add_definitions(-DDESKFLOW_VERSION="${DESKFLOW_VERSION}")

@@ -31,7 +31,7 @@ DEFAULT_PROJECT_BUILD_DIR = "build"
 DEFAULT_DIST_DIR = "dist"
 DEFAULT_TEST_CMD = "synergy-server --version"
 DEFAULT_PACKAGE_NAME = "synergy"
-VERSION_FILE = "VERSION"
+VERSION_FILE = "build/VERSION"
 
 
 def main():
