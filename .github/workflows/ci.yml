@@ -6,15 +6,16 @@ name: CI
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: Synergy version number
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
+  push:
+    branches:
+      - master
+      - release/**
+  # pull_request:
+  #   types:
+  #     - opened
+  #     - reopened
+  #     - synchronize
+  #     - ready_for_review
   schedule:
     - cron: "0 5 * * *" # 5am UTC
 

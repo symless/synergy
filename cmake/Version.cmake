@@ -18,13 +18,9 @@
 # On Windows, we also set a special 4-digit MSI version number.
 macro(set_version)
 
-  set(DESKFLOW_VERSION $ENV{DESKFLOW_VERSION})
-  string(STRIP "${DESKFLOW_VERSION}" DESKFLOW_VERSION)
-
-  if(NOT DESKFLOW_VERSION)
-    file(READ "${PROJECT_SOURCE_DIR}/VERSION" DESKFLOW_VERSION)
-    string(STRIP "${DESKFLOW_VERSION}" DESKFLOW_VERSION)
-  endif()
+  include(${SYNERGY_EXTRA_ROOT}/cmake/Version.cmake)
+  version_from_git_tags(VERSION_MAJOR VERSION_MINOR VERSION_PATCH VERSION_REVISION)
+  set(DESKFLOW_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}+r${VERSION_REVISION}")
 
   message(STATUS "Version number (semver): " ${DESKFLOW_VERSION})
   add_definitions(-DDESKFLOW_VERSION="${DESKFLOW_VERSION}")
