@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Configure
-        run: cmake -P ext/synergy-extra/cmake/SaveVersion.cmake
+        run: cmake -P ext/synergy-extra/cmake/SaveVersion.cmake --verbose
 
       - name: Set version env var
         run: |
