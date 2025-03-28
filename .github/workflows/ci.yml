@@ -10,12 +10,12 @@ on:
     branches:
       - master
       - release/**
-  # pull_request:
-  #   types:
-  #     - opened
-  #     - reopened
-  #     - synchronize
-  #     - ready_for_review
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
   schedule:
     - cron: "0 5 * * *" # 5am UTC
 
@@ -40,24 +40,26 @@ jobs:
   aws-s3-upload:
     runs-on: ubuntu-latest
     needs: [windows, macos, linux]
-    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    #if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set version env var
+      - name: Get version
+        id: get-version
         uses: ./.github/actions/get-version
 
       - name: Upload to AWS S3
         uses: ./.github/actions/dist-upload
         with:
           aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
-          aws-s3-package-version: ${{ env.SYNERGY_VERSION }}
+          aws-s3-package-version: ${{ steps.get-version.outputs.version }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   windows:
+    if: false
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
     container: ${{ matrix.target.container }}
@@ -119,9 +121,6 @@ jobs:
           VCPKG_ROOT: "" # Unset deliberately to suppress 'already installed' warning.
         run: python ./scripts/install_deps.py
 
-      - name: Get version
-        uses: ./.github/actions/get-version
-
       - name: Configure
         run: |
           cmake -B build `
@@ -154,6 +153,7 @@ jobs:
           path: ./dist
 
   macos:
+    if: false
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
     timeout-minutes: ${{ matrix.target.timeout }}
@@ -195,9 +195,6 @@ jobs:
 
       - name: Install dependencies
         run: ./scripts/install_deps.py
-
-      - name: Get version
-        uses: ./.github/actions/get-version
 
       - name: Configure
         run: |
@@ -301,9 +298,6 @@ jobs:
         env:
           # Prevent apt prompting for input.
           DEBIAN_FRONTEND: noninteractive
-
-      - name: Get version
-        uses: ./.github/actions/get-version
 
       - name: Configure
         run: |

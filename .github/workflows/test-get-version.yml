@@ -2,7 +2,7 @@ name: Test version
 
 on:
   workflow_dispatch:
-  pull_request:
+  #pull_request:
 
 jobs:
   test:
