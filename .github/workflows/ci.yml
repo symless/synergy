@@ -8,8 +8,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
-      - release/**
+      - master*
   pull_request:
     types:
       - opened
