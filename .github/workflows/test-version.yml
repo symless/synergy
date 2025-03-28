@@ -14,16 +14,10 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      - name: Configure
-        run: cmake --log-level VERBOSE -P ext/synergy-extra/cmake/SaveVersion.cmake
-
-      - name: Set version env var
+      - name: Get version
+        id: get-version
+        uses: ./.github/actions/get-version
+      
+      - name: Debug
         run: |
-          version=$(cat VERSION)
-          if [[ -z "$version" ]]; then
-            echo "File VERSION is empty"
-            exit 1
-          fi
-
-          echo "Version: $version"
-          echo "VERSION=$version" >> $GITHUB_ENV
+          echo "Version: ${{ steps.get-version.outputs.version }}"
