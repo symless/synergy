@@ -39,9 +39,8 @@ jobs:
 
   aws-s3-upload:
     runs-on: ubuntu-latest
-    #needs: [windows, macos, linux]
-    needs: [linux]
-    #if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
+    needs: [windows, macos, linux]
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'schedule' }}
 
     steps:
       - name: Checkout
@@ -63,7 +62,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
   windows:
-    if: false
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
     container: ${{ matrix.target.container }}
@@ -158,7 +156,6 @@ jobs:
           path: ./dist
 
   macos:
-    if: false
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
     timeout-minutes: ${{ matrix.target.timeout }}
