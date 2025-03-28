@@ -10,6 +10,7 @@
 /.venv
 aqtinstall.log
 Brewfile.lock.json
+VERSION
 
 # typical developer-created files
 deskflow-config.toml
