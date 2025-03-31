@@ -27,7 +27,8 @@ env:
   SYNERGY_PACKAGE_PREFIX: ${{ vars.SYNERGY_PACKAGE_PREFIX }}
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
-  SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
+  # SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
+  SYNERGY_RELEASE: ${{ startsWith('refs/tags/', 'refs/tags/') }}
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
