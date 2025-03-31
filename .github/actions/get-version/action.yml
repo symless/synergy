@@ -16,7 +16,7 @@ runs:
           echo "version-file=build/VERSION" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Configure
+      - name: Save version
         run: |
           cmake --log-level VERBOSE \
           -DVERSION_FILE=${{ steps.constants.outputs.version-file }} \
