@@ -10,15 +10,73 @@
 name: CI comment
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["CI"]
     types:
       - completed
 
 jobs:
-  summary:
-    if: github.event.workflow_run.event == 'pull_request'
+  version:
     runs-on: ubuntu-latest
+    if: startsWith(github.event.workflow_run.head_branch, 'master') || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Get version
+        id: get-version
+        uses: ./.github/actions/get-version
+
+      - name: Comment on merged PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const version = '${{ steps.get-version.outputs.version }}';
+            if (!version) {
+              console.log('No version found, skipping.');
+              return;
+            }
+
+            console.log(`Version: ${version}`);
+
+            const sha = '${{ github.event.inputs.sha }}' || github.sha;
+            if (!sha) {
+              console.log('No Git SHA found, skipping.');
+              return;
+            }
+
+            console.log(`SHA: ${sha}`);
+
+            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+            });
+            
+            if (pullRequests.length < 1) {
+              console.log('No PR found');
+              return;
+            }
+
+            console.log(`Found ${pullRequests.length} PR(s).`);
+            const prNumber = pullRequests[0].number;
+
+            console.log(`Commenting on first PR: ${prNumber}`);
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `✅ Merge successful. Version: ${version}`,
+            });
+
+  summary:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
 
     steps:
       - name: Download summaries
@@ -36,6 +94,7 @@ jobs:
       # the original workflow. The simplest way is to iterate through our open PRs and
       # find the one with the same head SHA as the triggering workflow.
       - name: Get PR number
+        if: github.event.workflow_run.event == 'pull_request'
         id: get-pr-number
         uses: actions/github-script@v6
         with:
