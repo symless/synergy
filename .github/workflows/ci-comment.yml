@@ -62,7 +62,7 @@ jobs:
             });
             
             if (pullRequests.length < 1) {
-              console.log('No PR found');
+              console.log('No PR found, skipping.');
               return;
             }
 
