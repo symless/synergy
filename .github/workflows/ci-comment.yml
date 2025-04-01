@@ -74,7 +74,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: `✅ Merge successful. Version: ${version}`,
+              body: '✅ Merge successful.\n' + 'Version: ' + '`${version}`',
             });
 
   summary:
