@@ -97,7 +97,6 @@ jobs:
       # the original workflow. The simplest way is to iterate through our open PRs and
       # find the one with the same head SHA as the triggering workflow.
       - name: Get PR number
-        if: github.event.workflow_run.event == 'pull_request'
         id: get-pr-number
         uses: actions/github-script@v6
         with:
