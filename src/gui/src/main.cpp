@@ -147,8 +147,8 @@ int main(int argc, char *argv[])
 
   mainWindow.open();
 
-#ifdef DESKFLOW_GUI_HOOK_START
-  DESKFLOW_GUI_HOOK_START
+#ifdef DESKFLOW_GUI_HOOK_APP_START
+  DESKFLOW_GUI_HOOK_APP_START
 #endif
 
 #ifdef SYNERGY_VERSION_CHECK

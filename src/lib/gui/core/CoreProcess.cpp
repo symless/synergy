@@ -11,6 +11,7 @@
 #include "gui/core/CoreTool.h"
 #include "gui/ipc/DaemonIpcClient.h"
 #include "gui/paths.h"
+#include "gui_config.h" // IWYU pragma: keep
 #include "tls/TlsUtility.h"
 
 #if defined(Q_OS_MAC)
@@ -25,6 +26,10 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTimer>
+
+#ifdef DESKFLOW_GUI_HOOK_HEADER
+#include DESKFLOW_GUI_HOOK_HEADER
+#endif
 
 namespace deskflow::gui {
 
@@ -347,6 +352,10 @@ void CoreProcess::handleLogLines(const QString &text)
 
 void CoreProcess::start(std::optional<ProcessMode> processModeOption)
 {
+#ifdef DESKFLOW_GUI_HOOK_CORE_START
+  DESKFLOW_GUI_HOOK_CORE_START
+#endif
+
   QMutexLocker locker(&m_processMutex);
 
   const auto processMode = processModeOption.value_or(m_appConfig.processMode());
