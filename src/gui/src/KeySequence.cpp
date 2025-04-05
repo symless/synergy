@@ -207,9 +207,15 @@ QString KeySequence::keyToString(int key) {
   }
 
   // representable in ucs2?
-  if (key < 0x10000)
+  if (key < 0x10000) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
+    const uint16_t keyHex = QChar(key).toLower().unicode();
+    return QString("\\u%1").arg(keyHex, kStrSize, kBase, kFillChar);
+#else
     return QString("\\u%1").arg(
-        QChar(key).toLower().unicode(), 4, 16, QChar('0'));
+        QChar(key).toLower().unicode(), kStrSize, kBase, kFillChar);
+#endif
+  }
 
   // give up, synergy probably won't handle this
   return "";
