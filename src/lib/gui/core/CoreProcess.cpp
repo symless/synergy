@@ -11,7 +11,6 @@
 #include "gui/core/CoreTool.h"
 #include "gui/ipc/DaemonIpcClient.h"
 #include "gui/paths.h"
-#include "gui_config.h" // IWYU pragma: keep
 #include "tls/TlsUtility.h"
 
 #if defined(Q_OS_MAC)

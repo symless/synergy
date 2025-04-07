@@ -28,7 +28,6 @@ macro(configure_build)
 
   warnings_as_errors()
   set_build_date()
-  configure_file_shared()
 
 endmacro()
 
@@ -49,9 +48,4 @@ macro(set_build_date)
   string(TIMESTAMP BUILD_DATE "%Y-%m-%d" UTC)
   message(STATUS "Build date: ${BUILD_DATE}")
   add_definitions(-DBUILD_DATE="${BUILD_DATE}")
-endmacro()
-
-macro(configure_file_shared)
-  configure_file(${PROJECT_SOURCE_DIR}/src/lib/gui/gui_config.h.in
-                 ${PROJECT_BINARY_DIR}/config/gui_config.h)
 endmacro()

@@ -27,12 +27,20 @@
 #include <filesystem>
 #include <gtest/gtest.h>
 
+#ifdef DESKFLOW_GUI_HOOK_HEADER
+#include DESKFLOW_GUI_HOOK_HEADER
+#endif
+
 using deskflow::test::ExitTimeout;
 
 const auto testDir = "tmp/test";
 
 int main(int argc, char **argv)
 {
+#ifdef DESKFLOW_GUI_HOOK_TEST_START
+  DESKFLOW_GUI_HOOK_TEST_START
+#endif
+
   // HACK: Unit tests should not use the filesystem.
   std::filesystem::create_directories(testDir);
 
