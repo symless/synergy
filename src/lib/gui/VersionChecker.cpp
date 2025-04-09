@@ -17,11 +17,11 @@
 
 #include "VersionChecker.h"
 
-#include "common/constants.h"
-
 #ifdef DESKFLOW_GUI_HOOK_HEADER
 #include DESKFLOW_GUI_HOOK_HEADER
 #endif
+
+#include "common/constants.h"
 
 #include <QLocale>
 #include <QNetworkAccessManager>

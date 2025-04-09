@@ -6,6 +6,10 @@
 
 #include "CoreProcess.h"
 
+#ifdef DESKFLOW_GUI_HOOK_HEADER
+#include DESKFLOW_GUI_HOOK_HEADER
+#endif
+
 #include "common/constants.h"
 #include "gui/config/IAppConfig.h"
 #include "gui/core/CoreTool.h"
@@ -25,10 +29,6 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTimer>
-
-#ifdef DESKFLOW_GUI_HOOK_HEADER
-#include DESKFLOW_GUI_HOOK_HEADER
-#endif
 
 namespace deskflow::gui {
 

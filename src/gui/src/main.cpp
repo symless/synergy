@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DESKFLOW_GUI_HOOK_HEADER
+#include DESKFLOW_GUI_HOOK_HEADER
+#endif
+
 #include "DeskflowApplication.h"
 #include "MainWindow.h"
 #include "SetupWizard.h"
@@ -29,10 +33,6 @@
 #include "gui/dotenv.h"
 #include "gui/messages.h"
 #include "gui/string_utils.h"
-
-#ifdef DESKFLOW_GUI_HOOK_HEADER
-#include DESKFLOW_GUI_HOOK_HEADER
-#endif
 
 #include <QApplication>
 #include <QDebug>

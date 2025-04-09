@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef DESKFLOW_GUI_HOOK_HEADER
+#include DESKFLOW_GUI_HOOK_HEADER
+#endif
+
 #include "arch/Arch.h"
 #include "base/Log.h"
 #include "shared/ExitTimeout.h"
@@ -26,10 +30,6 @@
 
 #include <filesystem>
 #include <gtest/gtest.h>
-
-#ifdef DESKFLOW_GUI_HOOK_HEADER
-#include DESKFLOW_GUI_HOOK_HEADER
-#endif
 
 using deskflow::test::ExitTimeout;
 

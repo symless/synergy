@@ -18,6 +18,10 @@
 
 #include "MainWindow.h"
 
+#ifdef DESKFLOW_GUI_HOOK_HEADER
+#include DESKFLOW_GUI_HOOK_HEADER
+#endif
+
 #include "AboutDialog.h"
 #include "ServerConfigDialog.h"
 #include "common/constants.h"
@@ -81,6 +85,9 @@ MainWindow::MainWindow(ConfigScopes &configScopes, AppConfig &appConfig)
       m_TlsUtility(appConfig),
       m_WindowSaveTimer(this)
 {
+#ifdef DESKFLOW_GUI_HOOK_MAIN_WINDOW
+  DESKFLOW_GUI_HOOK_MAIN_WINDOW
+#endif
 
   setupUi(this);
   createMenuBar();
