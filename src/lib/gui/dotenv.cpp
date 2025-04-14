@@ -70,7 +70,7 @@ void dotenv(const QString &filename)
     }
   }
 
-  qInfo("loading env vars from: %s", qPrintable(fileInfo.absolutePath()));
+  qInfo("loading env vars from: %s", qPrintable(filePath));
 
   QTextStream in(&file);
   while (!in.atEnd()) {
