@@ -99,9 +99,9 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           dir: "C:"
-          version: 6.7
+          version: 6.7.3
           cache: true
-          cache-key-prefix: windows-qt-6.7
+          cache-key-prefix: windows-qt-6.7.3
 
       - name: Cache deps dir
         uses: actions/cache@v4
