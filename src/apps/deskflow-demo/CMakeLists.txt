@@ -1,6 +1,5 @@
 # Deskflow -- mouse and keyboard sharing utility
-# Copyright (C) 2012-2024 Symless Ltd.
-# Copyright (C) 2009-2012 Nick Bolton
+# Copyright (C) 2024 Symless Ltd.
 #
 # This package is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -14,14 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-add_subdirectory(deskflow-daemon)
+set(target deskflow-demo)
 
-if(BUILD_UNIFIED)
-  add_subdirectory(deskflow-core)
-else()
-  add_subdirectory(deskflow-client)
-  add_subdirectory(deskflow-server)
-endif(BUILD_UNIFIED)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-add_subdirectory(deskflow-legacy)
-add_subdirectory(deskflow-demo)
+add_executable(${target} WIN32 deskflow-demo.cpp)
+
+target_link_libraries(
+  ${target}
+  Qt6::Core
+  Qt6::Widgets
+  Qt6::Network)

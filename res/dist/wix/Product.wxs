@@ -80,6 +80,8 @@
 					<util:ServiceConfig FirstFailureActionType="restart" ResetPeriodInDays="1" RestartServiceDelayInSeconds="1" SecondFailureActionType="restart" ThirdFailureActionType="restart"/>
 				</ServiceInstall>
 				<ServiceControl Id="ServiceControl" Name="$(var.Name)" Remove="uninstall" Start="install" Stop="both"/>
+				<File Source="$(var.BinDir)/deskflow-demo.exe">
+				</File>
 				<File Source="$(var.BinDir)/$(var.ServerBin)">
 					<fire:FirewallException Id="ServerFirewallException" IgnoreFailure="yes" Name="$(var.Name) Server" Scope="any"/>
 				</File>
