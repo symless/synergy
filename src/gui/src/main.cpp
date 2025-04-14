@@ -70,8 +70,6 @@ bool hasArg(const QString &arg, const QStringList &args)
 
 int main(int argc, char *argv[])
 {
-  qInfo() << QSysInfo::prettyProductName();
-
 #if defined(Q_OS_UNIX)
   // Fixes Fedora bug where qDebug() messages aren't printed.
   qputenv("QT_LOGGING_RULES", "*.debug=true;qt.*=false");

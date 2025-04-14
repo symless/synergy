@@ -94,6 +94,8 @@ MainWindow::MainWindow(ConfigScopes &configScopes, AppConfig &appConfig)
   setupControls();
   connectSlots();
 
+  m_pLogOutput->appendPlainText("OS: " + QSysInfo::prettyProductName());
+
   // handled by `onCreated`
   emit created();
 }
