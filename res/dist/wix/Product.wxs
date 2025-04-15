@@ -20,22 +20,7 @@
 		</Feature>
 		<DirectoryRef Id="TARGETDIR">
 			<Component Guid="7CF3564D-1F8E-4D3D-9781-E1EE22D5BD67" Id="RegistryEntryComponent">
-				<RegistryKey Id="$(var.AppId)_server" ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes" Key="Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" Root="HKLM">
-					<RegistryValue Name="[INSTALLFOLDER]$(var.ServerBin)" Type="string" Value="~ HIGHDPIAWARE WIN7RTM"/>
-				</RegistryKey>
-
-				<RegistryKey Id="$(var.AppId)_client" Root="HKLM"
-					Key="Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
-					ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
-					<RegistryValue Type="string" Name="[INSTALLFOLDER]$(var.ClientBin)" Value="~ HIGHDPIAWARE WIN7RTM"/>
-				</RegistryKey>
-
-				<RegistryKey Id="$(var.AppId)" Root="HKLM"
-					Key="Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
-					ForceCreateOnInstall="yes" ForceDeleteOnUninstall="yes">
-					<RegistryValue Type="string" Name="[INSTALLFOLDER]$(var.GuiBin)" Value="~ HIGHDPIAWARE WIN7RTM"/>
-				</RegistryKey>
-				<!-- Windows 8 and later only -->
+				<!-- Require Windows 8 and later -->
 				<Condition><![CDATA[Installed OR (VersionNT >= 602)]]></Condition>
 			</Component>
 			<Merge Id="VC_Redist" SourceFile="$(var.RedistMergeModulePath)" DiskId="1" Language="0"/>
