@@ -89,6 +89,8 @@ int main(int argc, char *argv[])
 
   DeskflowApplication app(argc, argv);
 
+  QMessageBox::information(nullptr, "OS name", QSysInfo::prettyProductName());
+
   qInstallMessageHandler(deskflow::gui::messages::messageHandler);
   QString version = QString::fromStdString(deskflow::version());
   qInfo(DESKFLOW_APP_NAME " v%s", qPrintable(version));
