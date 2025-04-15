@@ -153,7 +153,7 @@ void MSWindowsProcess::shutdown(HANDLE handle, DWORD pid, int timeout)
     }
   } else {
     XArchEvalWindows error;
-    LOG_ERR("failed to get process exit code for process %d, error:", pid, error.eval().c_str());
+    LOG_ERR("failed to get process exit code for process %d, error: %s", pid, error.eval().c_str());
   }
 
   // Wait for process to exit gracefully.
@@ -162,7 +162,7 @@ void MSWindowsProcess::shutdown(HANDLE handle, DWORD pid, int timeout)
   if (waitResult == WAIT_OBJECT_0) { // NOSONAR - Readability
     if (!GetExitCodeProcess(handle, &exitCode)) {
       XArchEvalWindows error;
-      LOG_ERR("failed to retrieve exit code after process exit for process %d, error:", pid, error.eval().c_str());
+      LOG_ERR("failed to get exit code after process exit for process %d, error: %s", pid, error.eval().c_str());
     }
 
     LOG_DEBUG("process %d was shutdown gracefully with exit code %d", pid, exitCode);
@@ -172,7 +172,7 @@ void MSWindowsProcess::shutdown(HANDLE handle, DWORD pid, int timeout)
     LOG_WARN("process %d did not exit within the expected time", pid);
   } else {
     XArchEvalWindows error;
-    LOG_ERR("error waiting for process %d to exit, error:", pid, error.eval().c_str());
+    LOG_ERR("error waiting for process %d to exit, error: %s", pid, error.eval().c_str());
   }
 
   // Last resort, terminate the process forcefully.
@@ -180,7 +180,7 @@ void MSWindowsProcess::shutdown(HANDLE handle, DWORD pid, int timeout)
     LOG_WARN("forcefully terminated process %d", pid);
   } else {
     XArchEvalWindows error;
-    LOG_ERR("failed to terminate process %d, error:", pid, error.eval().c_str());
+    LOG_ERR("failed to terminate process %d, error: %s", pid, error.eval().c_str());
   }
 }
 
