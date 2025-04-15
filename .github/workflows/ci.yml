@@ -207,7 +207,8 @@ jobs:
           --preset=macos-release \
           -DUSE_TOMLPLUSPLUS=OFF \
           -DUSE_CLI11=OFF \
-          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}
+          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} \
+          -DCMAKE_OSX_SYSROOT=/Applications/Xcode_15.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
 
       - name: Build
         run: cmake --build build -j8
