@@ -164,6 +164,8 @@ CoreProcess::CoreProcess(const IAppConfig &appConfig, const IServerConfig &serve
 {
   connect(m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, &CoreProcess::daemonIpcClientConnected);
 
+  connect(m_daemonIpcClient, &ipc::DaemonIpcClient::connectFailed, this, &CoreProcess::daemonIpcClientConnectFailed);
+
   connect(&m_pDeps->process(), &QProcessProxy::finished, this, &CoreProcess::onProcessFinished);
 
   connect(
@@ -246,7 +248,7 @@ void CoreProcess::applyLogLevel()
   if (m_appConfig.processMode() == ProcessMode::kService) {
     qDebug() << "setting daemon log level:" << m_appConfig.logLevelText();
     if (!m_daemonIpcClient->sendLogLevel(m_appConfig.logLevelText())) {
-      qCritical() << "failed to set daemon ipc log level";
+      qWarning() << "failed to set daemon ipc log level";
     }
   }
 }
@@ -287,7 +289,7 @@ void CoreProcess::startProcessFromDaemon(const QString &app, const QStringList &
   qInfo("running command: %s", qPrintable(commandQuoted));
 
   if (!m_daemonIpcClient->sendStartProcess(commandQuoted, m_appConfig.elevateMode())) {
-    qCritical("cannot start process, ipc command failed");
+    qWarning("cannot start process, ipc command failed");
     return;
   }
 
@@ -321,7 +323,7 @@ void CoreProcess::stopProcessFromDaemon()
   }
 
   if (!m_daemonIpcClient->sendStopProcess()) {
-    qCritical("cannot stop process, ipc command failed");
+    qWarning("cannot stop process, ipc command failed");
     return;
   }
 
@@ -787,6 +789,13 @@ void CoreProcess::clearSettings()
 
   qInfo("clearing core settings through daemon");
   m_daemonIpcClient->sendClearSettings();
+}
+
+void CoreProcess::retryDaemon()
+{
+  if (m_daemonIpcClient->connectToServer()) {
+    qInfo("successfully reconnected to daemon");
+  }
 }
 
 } // namespace deskflow::gui

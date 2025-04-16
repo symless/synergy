@@ -215,6 +215,8 @@ void MainWindow::connectSlots()
 
   connect(&m_CoreProcess, &CoreProcess::secureSocket, this, &MainWindow::onCoreProcessSecureSocket);
 
+  connect(&m_CoreProcess, &CoreProcess::daemonIpcClientConnectFailed, this, &MainWindow::daemonIpcClientConnectFailed);
+
   connect(m_pActionMinimize, &QAction::triggered, this, &MainWindow::hide);
 
   connect(
@@ -1092,5 +1094,12 @@ void MainWindow::autoStartCore()
 {
   if (m_AppConfig.startedBefore()) {
     m_CoreProcess.start();
+  }
+}
+
+void MainWindow::daemonIpcClientConnectFailed()
+{
+  if (deskflow::gui::messages::showDaemonOffline(this)) {
+    m_CoreProcess.retryDaemon();
   }
 }
