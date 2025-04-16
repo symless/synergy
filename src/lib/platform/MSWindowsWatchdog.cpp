@@ -55,7 +55,9 @@ HANDLE openProcessForKill(const PROCESSENTRY32 &entry)
   if (entry.th32ProcessID == 0)
     return nullptr;
 
-  if (_stricmp(entry.szExeFile, CLIENT_BINARY_NAME ".exe") != 0 && //
+  if (_stricmp(entry.szExeFile, "synergys.exe") != 0 &&            //
+      _stricmp(entry.szExeFile, "synergyc.exe") != 0 &&            //
+      _stricmp(entry.szExeFile, CLIENT_BINARY_NAME ".exe") != 0 && //
       _stricmp(entry.szExeFile, SERVER_BINARY_NAME ".exe") != 0 && //
       _stricmp(entry.szExeFile, CORE_BINARY_NAME ".exe") != 0) {
     return nullptr;
