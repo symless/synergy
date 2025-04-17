@@ -21,8 +21,10 @@ macro(configure_build)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/lib")
 
-  message(STATUS "Qt path: ${QT_PATH}")
-  set(CMAKE_PREFIX_PATH ${QT_PATH})
+  if (NOT ${QT_PATH} STREQUAL "")
+    message(STATUS "Qt path: ${QT_PATH}")
+    set(CMAKE_PREFIX_PATH ${QT_PATH})
+  endif()
 
   if(APPLE)
     message(STATUS "Configuring for Apple")
