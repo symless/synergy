@@ -231,7 +231,8 @@ class Dependencies:
 
     def windows(self):
         """Installs dependencies on Windows."""
-        # Obsolete
+        command = self.config.get_os_deps_command()
+        cmd_utils.run(command, shell=True, print_cmd=True)
 
     def mac(self):
         """Installs dependencies on macOS."""
