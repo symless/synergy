@@ -232,24 +232,7 @@ class Dependencies:
 
     def windows(self):
         """Installs dependencies on Windows."""
-        import lib.windows as windows
-
-        if not self.args.skip_elevated:
-            if windows.is_admin():
-
-                # The choco command should run from the elevated command.
-                choco = windows.WindowsChoco()
-                choco.ensure_choco_installed()
-                command_elevated = self.config.get_os_deps_command("command-elevated")
-                cmd_utils.run(command_elevated, shell=True, print_cmd=True)
-
-                if self.args.only_elevated:
-                    sys.exit(0)
-            else:
-                windows.run_elevated(__file__, "--only-elevated --skip-python")
-
         command = self.config.get_os_deps_command()
-
         cmd_utils.run(command, shell=True, print_cmd=True)
 
     def mac(self):
