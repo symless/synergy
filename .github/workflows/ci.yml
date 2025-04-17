@@ -21,6 +21,7 @@ on:
     - cron: "0 5 * * *" # 5am UTC
 
 env:
+  QT_VERSION: 6.8.3
   GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   SYNERGY_PRODUCT_NAME: ${{ vars.SYNERGY_PRODUCT_NAME }}
   SYNERGY_EDITION_TYPE: ${{ vars.SYNERGY_EDITION_TYPE }}
@@ -99,9 +100,9 @@ jobs:
           AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
         with:
           dir: "C:"
-          version: 6.8.3
+          version: ${{ env.QT_VERSION }}
           cache: true
-          cache-key-prefix: windows-qt-6.8.3
+          cache-key-prefix: windows-qt-${{ env.QT_VERSION }}
 
       - name: Cache deps dir
         uses: actions/cache@v4
@@ -207,9 +208,9 @@ jobs:
           AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
         with:
           dir: "/Users/runner"
-          version: 6.8.3
+          version: ${{ env.QT_VERSION }}
           cache: true
-          cache-key-prefix: macos-qt-6.8.3
+          cache-key-prefix: macos-qt-${{ env.QT_VERSION }}
 
       - name: Configure
         run: |

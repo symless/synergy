@@ -1,11 +1,13 @@
 config:
   windows:
     dependencies:
-      # Obsolete
+      command: python -m aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 --autodesktop --outputdir C:/Qt
 
   mac:
     dependencies:
-      command: brew bundle --file=Brewfile
+      command: |
+        brew bundle --file=Brewfile;
+        python -m aqt install-qt mac desktop 6.8.3 osx-clang_64 --autodesktop --outputdir ~/Qt
 
   linux:
     debian: &debian

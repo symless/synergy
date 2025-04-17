@@ -22,7 +22,6 @@ import lib.github as github
 import lib.meson as meson_utils
 
 path_env_var = "PATH"
-cmake_prefix_env_var = "CMAKE_PREFIX_PATH"
 
 
 def main():
