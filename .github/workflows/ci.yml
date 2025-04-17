@@ -97,12 +97,13 @@ jobs:
       - name: Install Qt
         if: ${{runner.os == 'Windows'}}
         uses: jurplel/install-qt-action@v4
+        env:
+          AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
         with:
           dir: "C:"
           version: 6.8.3
           cache: true
           cache-key-prefix: windows-qt-6.8.3
-          extra: '--base https://qt.mirror.constant.com'
 
       - name: Cache deps dir
         uses: actions/cache@v4
