@@ -11,18 +11,10 @@ config:
       # It's simpler to solve dependencies like Ninja with a GitHub workflow action, and cmake is
       # already installed on the Windows runner.
       command: if not defined CI (winget install ninja-build.ninja cmake)
-      qt:
-        version: 6.8.3
-        mirror: https://qt.mirror.constant.com/
-        base-dir: ./deps/qt
 
   mac:
     dependencies:
       command: brew bundle --file=Brewfile
-      qt:
-        version: 6.8.3
-        mirror: https://qt.mirror.constant.com/
-        base-dir: ./deps/qt
 
   linux:
     debian: &debian

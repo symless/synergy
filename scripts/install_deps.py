@@ -18,7 +18,6 @@
 import os, sys, argparse, traceback
 import lib.env as env
 import lib.cmd_utils as cmd_utils
-import lib.qt_utils as qt_utils
 import lib.github as github
 import lib.meson as meson_utils
 
@@ -247,18 +246,7 @@ class Dependencies:
                 if self.args.only_elevated:
                     sys.exit(0)
             else:
-                windows.run_elevated(
-                    __file__, "--only-elevated --skip-python"
-                )
-
-        # AQT seems broken on Windows CI, so let CI worry about that dep.
-        if self.ci_env:
-            qt_root_dir = os.getenv("QT_ROOT_DIR")
-            github.set_env_var(cmake_prefix_env_var, qt_root_dir)
-        else:
-            qt = qt_utils.WindowsQt(*self.config.get_qt_config())
-            qt.install()
-            windows.set_env_var(cmake_prefix_env_var, qt.get_install_dir())
+                windows.run_elevated(__file__, "--only-elevated --skip-python")
 
         command = self.config.get_os_deps_command()
 
@@ -266,30 +254,8 @@ class Dependencies:
 
     def mac(self):
         """Installs dependencies on macOS."""
-        import lib.mac as mac
-
-        # On macOS, brew does have a Qt package available, but it is always built against the
-        # current macOS version and the brew version also does some really weird stuff with the
-        # library symbols, which confuses the heck out of `macqtdeploy`. So, using the official
-        # Qt library binaries seems to be the most reliable option for distribution.
-        qt = qt_utils.MacQt(*self.config.get_qt_config())
-        qt.install()
-
-        qt_dir = qt.get_install_dir()
-        qt_bin_dir = os.path.join(qt_dir, "bin")
-        env_vars_set = 0
-        if self.ci_env:
-            github.set_env_var(cmake_prefix_env_var, qt_dir)
-            github.add_to_path(qt_bin_dir)
-        else:
-            env_vars_set += mac.set_env_var(cmake_prefix_env_var, qt_dir)
-            env_vars_set += mac.set_env_var(path_env_var, qt_bin_dir)
-
         command = self.config.get_os_deps_command()
         cmd_utils.run(command, shell=True, print_cmd=True)
-
-        if env_vars_set:
-            print(f"To load env vars, run: source {mac.shell_rc}")
 
     def linux(self):
         """Installs dependencies on Linux."""
