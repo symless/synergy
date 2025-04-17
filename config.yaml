@@ -10,9 +10,9 @@ config:
     dependencies:
       command: |
         brew bundle --file=Brewfile;
-        if not defined CI (python3 -m pip install --upgrade pip);
-        if not defined CI (python3 -m pip install --upgrade aqtinstall);
-        if not defined CI (python3 -m aqt install-qt mac desktop 6.8.3 osx-clang_64 --autodesktop --outputdir ~/Qt)
+        if [ -z "$CI" ]; then python3 -m pip install --upgrade pip; fi;
+        if [ -z "$CI" ]; then python3 -m pip install --upgrade aqtinstall; fi;
+        if [ -z "$CI" ]; then python3 -m aqt install-qt mac desktop 6.8.3 osx-clang_64 --autodesktop --outputdir ~/Qt; fi
 
   linux:
     debian: &debian
