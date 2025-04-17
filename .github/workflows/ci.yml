@@ -209,7 +209,7 @@ jobs:
           dir: "/Users/runner"
           version: 6.8.3
           cache: true
-          cache-key-prefix: windows-macos-6.8.3
+          cache-key-prefix: macos-qt-6.8.3
 
       - name: Configure
         run: |
