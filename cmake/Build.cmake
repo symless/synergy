@@ -21,6 +21,11 @@ elseif(UNIX)
   add_compile_options(-Werror)
 endif()
 
+if (NOT ${QT_PATH} STREQUAL "")
+  message(STATUS "Qt path: ${QT_PATH}")
+  set(CMAKE_PREFIX_PATH ${QT_PATH})
+endif()
+
 macro(post_config)
 
   # Build to a temp bin dir on Windows and then copy to the final bin dir

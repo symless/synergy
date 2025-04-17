@@ -51,7 +51,6 @@ macro(configure_windows_packaging)
   message(STATUS "Configuring Windows installer")
 
   set(CPACK_PACKAGE_VERSION ${SYNERGY_VERSION_MS})
-  set(QT_PATH $ENV{CMAKE_PREFIX_PATH})
 
   configure_files(${CMAKE_CURRENT_SOURCE_DIR}/res/dist/wix
                   ${CMAKE_BINARY_DIR}/installer)
