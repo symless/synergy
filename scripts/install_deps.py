@@ -18,12 +18,10 @@
 import os, sys, argparse, traceback
 import lib.env as env
 import lib.cmd_utils as cmd_utils
-import lib.qt_utils as qt_utils
 import lib.github as github
 import lib.meson as meson_utils
 
 path_env_var = "PATH"
-cmake_prefix_env_var = "CMAKE_PREFIX_PATH"
 
 
 def main():
@@ -233,65 +231,13 @@ class Dependencies:
 
     def windows(self):
         """Installs dependencies on Windows."""
-        import lib.windows as windows
-
-        command_elevated = self.config.get_os_deps_command(
-            "command-elevated", required=False
-        )
-        if command_elevated and not self.args.skip_elevated:
-            if windows.is_admin():
-
-                # The choco command should run from the elevated command.
-                choco = windows.WindowsChoco()
-                choco.ensure_choco_installed()
-
-                cmd_utils.run(command_elevated, shell=True, print_cmd=True)
-
-                if self.args.only_elevated:
-                    sys.exit(0)
-            else:
-                windows.run_elevated(
-                    __file__, "--only-elevated --skip-python", wait_for_exit=True
-                )
-
-        qt = qt_utils.WindowsQt(*self.config.get_qt_config())
-        qt.install()
-
-        if self.ci_env:
-            github.set_env_var(cmake_prefix_env_var, qt.get_install_dir())
-        else:
-            windows.set_env_var(cmake_prefix_env_var, qt.get_install_dir())
-
-        command = self.config.get_os_deps_command(required=False)
-        if command:
-            cmd_utils.run(command, shell=True, print_cmd=True)
-
-    def mac(self):
-        """Installs dependencies on macOS."""
-        import lib.mac as mac
-
-        # On macOS, brew does have a Qt package available, but it is always built against the
-        # current macOS version and the brew version also does some really weird stuff with the
-        # library symbols, which confuses the heck out of `macqtdeploy`. So, using the official
-        # Qt library binaries seems to be the most reliable option for distribution.
-        qt = qt_utils.MacQt(*self.config.get_qt_config())
-        qt.install()
-
-        qt_dir = qt.get_install_dir()
-        qt_bin_dir = os.path.join(qt_dir, "bin")
-        env_vars_set = 0
-        if self.ci_env:
-            github.set_env_var(cmake_prefix_env_var, qt_dir)
-            github.add_to_path(qt_bin_dir)
-        else:
-            env_vars_set += mac.set_env_var(cmake_prefix_env_var, qt_dir)
-            env_vars_set += mac.set_env_var(path_env_var, qt_bin_dir)
-
         command = self.config.get_os_deps_command()
         cmd_utils.run(command, shell=True, print_cmd=True)
 
-        if env_vars_set:
-            print(f"To load env vars, run: source {mac.SHELL_RC}")
+    def mac(self):
+        """Installs dependencies on macOS."""
+        command = self.config.get_os_deps_command()
+        cmd_utils.run(command, shell=True, print_cmd=True)
 
     def linux(self):
         """Installs dependencies on Linux."""

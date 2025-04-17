@@ -112,7 +112,8 @@ elseif(WIN32)
       POST_BUILD
       COMMAND set PATH=%PATH%$<SEMICOLON>${qt6_install_prefix}/bin
       COMMAND Qt6::windeployqt
-              "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${target}>")
+              "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${target}>"
+              -force-openssl)
   endif()
 
 endif()

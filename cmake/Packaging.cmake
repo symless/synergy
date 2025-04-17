@@ -53,7 +53,6 @@ macro(configure_windows_packaging)
   message(VERBOSE "Configuring Windows installer")
 
   set(CPACK_PACKAGE_VERSION ${DESKFLOW_VERSION_MS})
-  set(QT_PATH $ENV{CMAKE_PREFIX_PATH})
 
   set(DESKFLOW_MSI_64_GUID
       "027D1C8A-E7A5-4754-BB93-B2D45BFDBDC8"

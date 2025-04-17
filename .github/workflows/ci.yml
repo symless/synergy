@@ -21,6 +21,7 @@ on:
     - cron: "0 5 * * *" # 5am UTC
 
 env:
+  QT_VERSION: 6.8.3
   GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   SYNERGY_PRODUCT_NAME: ${{ vars.SYNERGY_PRODUCT_NAME }}
   SYNERGY_EDITION_TYPE: ${{ vars.SYNERGY_EDITION_TYPE }}
@@ -93,15 +94,15 @@ jobs:
             vcpkg_installed
           key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
 
-      # Install Qt with an action instead of AQT, which seems broken on Windows CI.
       - name: Install Qt
-        if: ${{runner.os == 'Windows'}}
         uses: jurplel/install-qt-action@v4
+        env:
+          AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
         with:
           dir: "C:"
-          version: 6.7
+          version: ${{ env.QT_VERSION }}
           cache: true
-          cache-key-prefix: windows-qt-6.7
+          cache-key-prefix: windows-qt-${{ env.QT_VERSION }}
 
       - name: Cache deps dir
         uses: actions/cache@v4
@@ -200,6 +201,16 @@ jobs:
 
       - name: Install dependencies
         run: ./scripts/install_deps.py
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        env:
+          AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
+        with:
+          dir: "/Users/runner"
+          version: ${{ env.QT_VERSION }}
+          cache: true
+          cache-key-prefix: macos-qt-${{ env.QT_VERSION }}
 
       - name: Configure
         run: |
