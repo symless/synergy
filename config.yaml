@@ -1,6 +1,7 @@
 config:
   windows:
-    # Obsolete
+    dependencies:
+      # Obsolete
 
   mac:
     dependencies:
