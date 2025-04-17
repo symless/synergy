@@ -93,9 +93,7 @@ jobs:
             vcpkg_installed
           key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
 
-      # Install Qt with an action instead of AQT, which seems broken on Windows CI.
       - name: Install Qt
-        if: ${{runner.os == 'Windows'}}
         uses: jurplel/install-qt-action@v4
         env:
           AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
@@ -202,6 +200,16 @@ jobs:
 
       - name: Install dependencies
         run: ./scripts/install_deps.py
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        env:
+          AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
+        with:
+          dir: "/Users/runner"
+          version: 6.8.3
+          cache: true
+          cache-key-prefix: windows-macos-6.8.3
 
       - name: Configure
         run: |
