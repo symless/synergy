@@ -236,8 +236,6 @@ class Dependencies:
 
     def mac(self):
         """Installs dependencies on macOS."""
-        import lib.mac as mac
-
         command = self.config.get_os_deps_command()
         cmd_utils.run(command, shell=True, print_cmd=True)
 
