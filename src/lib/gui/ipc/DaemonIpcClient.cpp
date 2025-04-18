@@ -55,7 +55,7 @@ bool DaemonIpcClient::connectToServer()
   m_connecting = false;
   m_connected = true;
 
-  qInfo() << "ipc client connected to server:" << kDaemonIpcName;
+  qDebug() << "ipc client connected to server:" << kDaemonIpcName;
   Q_EMIT connected();
 
   return true;
