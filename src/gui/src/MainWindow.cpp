@@ -198,7 +198,10 @@ void MainWindow::connectSlots()
 
   connect(&m_AppConfig, &AppConfig::invertConnectionChanged, this, &MainWindow::onAppConfigInvertConnection);
 
-  connect(&m_AppConfig, &AppConfig::logLevelChanged, this, [this]() { m_CoreProcess.applyLogLevel(); });
+  connect(&m_AppConfig, &AppConfig::logLevelChanged, this, [this]() {
+    m_CoreProcess.applyLogLevel();
+    Logger::instance().setLogLevel(m_AppConfig.logLevel());
+  });
 
   connect(&m_CoreProcess, &CoreProcess::starting, this, &MainWindow::onCoreProcessStarting, Qt::DirectConnection);
 

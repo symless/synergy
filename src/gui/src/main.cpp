@@ -123,10 +123,7 @@ int main(int argc, char *argv[])
 
   AppConfig appConfig(configScopes);
 
-  const auto kDebugLogLevel = 1;
-  if (appConfig.logLevel() >= kDebugLogLevel) {
-    Logger::instance().enableDebug();
-  }
+  Logger::instance().setLogLevel(appConfig.logLevel());
 
   QObject::connect(
       &configScopes, &ConfigScopes::saving, &appConfig, [&appConfig]() { appConfig.commit(); }, Qt::DirectConnection

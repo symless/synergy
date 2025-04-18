@@ -41,9 +41,10 @@ public:
   void handleMessage(const QtMsgType type, const QString &fileLine, const QString &message);
   void logVerbose(const QString &message) const;
 
-  void enableDebug()
+  void setLogLevel(int logLevel)
   {
-    m_debug = true;
+    const auto kDebugLogLevel = 1;
+    m_debug = logLevel >= kDebugLogLevel;
   }
 
 signals:
