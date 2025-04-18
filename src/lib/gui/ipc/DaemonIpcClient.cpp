@@ -27,6 +27,11 @@ DaemonIpcClient::DaemonIpcClient(QObject *parent)
 
 bool DaemonIpcClient::connectToServer()
 {
+  if (m_connected) {
+    qDebug() << "daemon ipc client already connected to server:" << kDaemonIpcName;
+    return true;
+  }
+
   if (m_connecting) {
     qDebug() << "daemon ipc client already connecting to server";
     return false;
