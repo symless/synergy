@@ -41,6 +41,11 @@ public:
   void handleMessage(const QtMsgType type, const QString &fileLine, const QString &message);
   void logVerbose(const QString &message) const;
 
+  void enableDebug()
+  {
+    m_debug = true;
+  }
+
 signals:
   void newLine(const QString &line);
 
