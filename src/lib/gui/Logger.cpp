@@ -40,7 +40,6 @@ Logger Logger::s_instance;
 
 QString printLine(FILE *out, const QString &type, const QString &message, const QString &fileLine = "")
 {
-
   auto datetime = QDateTime::currentDateTime().toString("yyyy-MM-ddTHH:mm:ss");
   auto logLine = QString("[%1] %2: %3").arg(datetime).arg(type).arg(message);
 
@@ -90,7 +89,6 @@ void Logger::logVerbose(const QString &message) const
 
 void Logger::handleMessage(const QtMsgType type, const QString &fileLine, const QString &message)
 {
-
   auto mutatedType = type;
   if (kForceDebugMessages.contains(message)) {
     mutatedType = QtDebugMsg;

@@ -210,7 +210,7 @@ void CoreProcess::daemonIpcClientConnected()
       m_daemonFileTail->deleteLater();
     }
 
-    qInfo() << "daemon log path:" << logPath;
+    qDebug() << "daemon log path:" << logPath;
     m_daemonFileTail = new FileTail(logPath, this);
     connect(m_daemonFileTail, &FileTail::newLine, this, &CoreProcess::handleLogLines);
   }
@@ -401,7 +401,7 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   qDebug("log level: %s", qPrintable(m_appConfig.logLevelText()));
 
   if (m_appConfig.logToFile())
-    qInfo("log file: %s", qPrintable(m_appConfig.logFilename()));
+    qDebug("log file: %s", qPrintable(m_appConfig.logFilename()));
 
   if (processMode == ProcessMode::kDesktop) {
     startForegroundProcess(app, args);
@@ -574,7 +574,7 @@ bool CoreProcess::addServerArgs(QStringList &args, QString &app)
   args << "--address" << correctedInterface();
 
   args << "-c" << configFilename;
-  qInfo("core config file: %s", qPrintable(configFilename));
+  qDebug("core config file: %s", qPrintable(configFilename));
   // bizarrely, the tls cert path arg was being given to the core client.
   // since it's not clear why (it is only needed for the server), this has now
   // been moved to server args.
