@@ -40,43 +40,24 @@ jobs:
         with:
           script: |
             const version = "${{ steps.get-version.outputs.version }}";
-            if (!version) {
-              console.log('No version found, skipping.');
-              return;
-            }
-
-            console.log(`Version: ${version}`);
-
             const sha = "${{ github.event.inputs.sha }}" || "${{ github.event.workflow_run.head_sha }}";
-            if (!sha) {
-              console.log('No Git SHA found, skipping.');
-              return;
-            }
+            const runId = "${{ github.event.workflow_run.id }}";
+            const runName = "${{ github.event.workflow_run.name }}";
+            const runResult = "${{ github.event.workflow_run.conclusion }}";
+            const repoUrl = "${{ github.server_url }}/${{ github.repository }}";
 
-            console.log(`SHA: ${sha}`);
-
-            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: sha,
+            const prMergeComment = require('./.github/scripts/pr-merge-comment.js');
+            await prMergeComment({
+              github,
+              context,
+              version,
+              sha,
+              runId,
+              runName,
+              runResult,
+              repoUrl
             });
-            
-            if (pullRequests.length < 1) {
-              console.log('No PR found, skipping.');
-              return;
-            }
-
-            console.log(`Found ${pullRequests.length} PR(s).`);
-            const prNumber = pullRequests[0].number;
-
-            console.log(`Commenting on first PR: ${prNumber}`);
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: 'Merge build complete.\n' + `Version: \`${version}\``,
-            });
-
+                
   summary:
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
