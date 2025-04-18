@@ -39,12 +39,11 @@ async function prMergeComment({github, context, version, sha, runId, runName, ru
   let body = 'Merge build complete.\n' + `Version: \`${version}\``;
 
   if (runId) {
-    console.log(`Run ID: ${runId}`);
+    console.log(`Appending result and URL for run ID: ${runId}`);
     const runUrl = `${repoUrl}/actions/runs/${runId}`;
     body += `\nRun: [${runName}](${runUrl}) (${runResult})`;
   } else {
-    console.log('No run ID found.');
-    return;
+    console.log('No run ID found, skipping run result and URL.');
   }
 
   console.log(`Commenting on first PR: ${prNumber}`);
