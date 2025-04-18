@@ -40,25 +40,23 @@ jobs:
         with:
           script: |
             const version = "${{ steps.get-version.outputs.version }}";
+            const sha = "${{ github.event.inputs.sha }}" || "${{ github.event.workflow_run.head_sha }}";
             const runId = "${{ github.event.workflow_run.id }}";
             const runName = "${{ github.event.workflow_run.name }}";
             const runResult = "${{ github.event.workflow_run.conclusion }}";
             const repoUrl = "${{ github.server_url }}/${{ github.repository }}";
-            const sha = "${{ github.event.inputs.sha }}" || "${{ github.event.workflow_run.head_sha }}";
 
-            const scriptPath = './.github/scripts/pr-merge-comment.js';
-            const prMergeComment = require(scriptPath);
-
-            await prMergeComment(
+            const prMergeComment = require('./.github/scripts/pr-merge-comment.js');
+            await prMergeComment({
               github,
               context,
               version,
+              sha,
               runId,
               runName,
               runResult,
-              repoUrl,
-              sha
-            );
+              repoUrl
+            });
                 
   summary:
     if: github.event.workflow_run.event == 'pull_request'

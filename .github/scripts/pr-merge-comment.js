@@ -1,7 +1,11 @@
-async function prMergeComment(github, version, sha, runId, runName, runResult) {
+async function prMergeComment({github, context, version, sha, runId, runName, runResult, repoUrl}) {
 
   if (!github) {
     throw new Error('GitHub not defined.');
+  }
+
+  if (!context) {
+    throw new Error('Context not defined.');
   }
 
   if (!version) {
