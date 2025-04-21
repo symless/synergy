@@ -171,15 +171,7 @@ def install(args):
     if not args.skip_system:
         deps = Dependencies(args)
         deps.install()
-
-    # Only install vcpkg dependencies on Windows, since on other OS it's not needed (yet).
-    # We probably won't ever need this on macOS and Linux since brew and apt/dnf/etc do a
-    # good job of providing dependencies. Where they don't, we can use Meson.
-    if env.is_windows() and not args.skip_vcpkg:
-        import lib.vcpkg as vcpkg
-
-        vcpkg.install(args.ci_env)
-
+        
     if not args.skip_meson:
         if args.subprojects:
             for subproject in args.meson_no_system or []:
@@ -231,8 +223,7 @@ class Dependencies:
 
     def windows(self):
         """Installs dependencies on Windows."""
-        command = self.config.get_os_deps_command()
-        cmd_utils.run(command, shell=True, print_cmd=True)
+        print("Obsolete; use documentation instead.")
 
     def mac(self):
         """Installs dependencies on macOS."""
