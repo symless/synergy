@@ -15,9 +15,8 @@
 
 namespace deskflow::gui::ipc {
 
-// At 1 second, we seem to be timing out on the first connection attempt, even though the server is
-// listening and responding. Let's try 2 seconds and see if that makes a difference.
-const auto kTimeout = 2000;
+const auto kTimeout = 1000;
+const auto kRetryLimit = 3;
 
 DaemonIpcClient::DaemonIpcClient(QObject *parent)
     : QObject(parent),
@@ -39,57 +38,75 @@ bool DaemonIpcClient::connectToServer()
     return true;
   }
 
+  if (m_state == State::Disconnecting) {
+    qWarning() << "daemon ipc client already disconnecting from server";
+    return false;
+  }
+
   if (m_socket->state() == QLocalSocket::ConnectedState) {
     qWarning() << "daemon ipc client underlying socket is already connected, reconnecting";
     disconnectFromServer();
   }
 
-  qDebug() << "daemon ipc client connecting to server:" << kDaemonIpcName;
-  m_state = State::Connecting;
-  m_socket->connectToServer(kDaemonIpcName);
+  for (int i = 0; i < kRetryLimit; ++i) {
+    if (i == 0) {
+      qDebug() << "daemon ipc client connecting to server:" << kDaemonIpcName;
+    } else {
+      qDebug() << "daemon ipc client retrying connection, attempt:" << i + 1;
+    }
 
-  if (!m_socket->waitForConnected(kTimeout)) {
-    qWarning() << "daemon ipc client failed to connect";
-    disconnectFromServer();
-    Q_EMIT connectFailed();
-    return false;
+    m_state = State::Connecting;
+    m_socket->connectToServer(kDaemonIpcName);
+
+    if (!m_socket->waitForConnected(kTimeout)) {
+      qWarning() << "daemon ipc client failed to connect";
+      disconnectFromServer();
+      continue;
+    }
+
+    if (!sendMessage("hello", "hello", false)) {
+      qWarning() << "daemon ipc client failed to send hello";
+      disconnectFromServer();
+      continue;
+    }
+
+    m_state = State::Connected;
+    qDebug() << "daemon ipc client connected";
+    Q_EMIT connected();
+    return true;
   }
 
-  if (!sendMessage("hello", "hello", false)) {
-    qWarning() << "daemon ipc client failed to send hello";
-    disconnectFromServer();
-    Q_EMIT connectFailed();
-    return false;
-  }
-
-  m_state = State::Connected;
-  qDebug() << "daemon ipc client connected";
-  Q_EMIT connected();
-
-  return true;
+  qWarning() << "daemon ipc client failed to connect after" << kRetryLimit << "attempts";
+  disconnectFromServer();
+  Q_EMIT connectFailed();
+  return false;
 }
 
 void DaemonIpcClient::disconnectFromServer()
 {
-  if (m_socket->state() == QLocalSocket::ConnectedState) {
-    qDebug() << "daemon ipc client disconnecting from server";
-    m_socket->disconnectFromServer();
+  m_state = State::Disconnecting;
+  qDebug() << "daemon ipc client disconnecting from server";
+  m_socket->disconnectFromServer();
+
+  if (m_socket->state() != QLocalSocket::UnconnectedState) {
+    qDebug() << "daemon ipc client waiting for socket to disconnect";
     m_socket->waitForDisconnected(kTimeout);
+    qDebug() << "daemon ipc client disconnected from server";
   } else {
-    qDebug() << "daemon ipc client already disconnected from server";
+    qDebug() << "daemon ipc client socket already disconnected";
   }
 
   m_state = State::Unconnected;
-  qDebug() << "daemon ipc client disconnected from server";
 }
 
 void DaemonIpcClient::handleDisconnected()
 {
-  qWarning() << "daemon ipc client disconnected from server";
+  qDebug() << "daemon ipc client disconnected from server";
   if (m_state == State::Connected) {
-    disconnectFromServer();
     Q_EMIT connectFailed();
   }
+
+  m_state = State::Unconnected;
 }
 
 void DaemonIpcClient::handleErrorOccurred()
@@ -135,7 +152,7 @@ bool DaemonIpcClient::sendMessage(const QString &message, const QString &expectA
       return false;
     }
 
-    if (responseData != expectAck + "x\n") {
+    if (responseData != expectAck + "\n") {
       qWarning() << "daemon ipc client got unexpected response: " << responseData;
       return false;
     }
