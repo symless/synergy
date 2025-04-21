@@ -28,23 +28,18 @@ DaemonIpcClient::DaemonIpcClient(QObject *parent)
 
 bool DaemonIpcClient::connectToServer()
 {
-  if (m_state == State::Connected) {
-    qDebug() << "daemon ipc client already connected to server";
-    return true;
-  }
-
   if (m_state == State::Connecting) {
     qWarning() << "daemon ipc client already connecting to server";
-    return true;
-  }
-
-  if (m_state == State::Disconnecting) {
-    qWarning() << "daemon ipc client already disconnecting from server";
     return false;
   }
 
-  if (m_socket->state() == QLocalSocket::ConnectedState) {
-    qWarning() << "daemon ipc client underlying socket is already connected, reconnecting";
+  if (m_state != State::Unconnected) {
+    qDebug() << "daemon ipc client not in unconnected state, disconnecting";
+    disconnectFromServer();
+  }
+
+  if (m_socket->state() != QLocalSocket::UnconnectedState) {
+    qWarning() << "daemon ipc client socket not in unconnected state, disconnecting";
     disconnectFromServer();
   }
 
