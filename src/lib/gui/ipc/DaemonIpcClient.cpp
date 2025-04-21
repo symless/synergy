@@ -111,12 +111,12 @@ bool DaemonIpcClient::sendMessage(const QString &message, const QString &expectA
   QByteArray messageData = message.toUtf8() + "\n";
   m_socket->write(messageData);
   if (!m_socket->waitForBytesWritten(kTimeout)) {
-    qWarning() << "ipc client failed to write command";
+    qWarning() << "daemon ipc client failed to write command";
     return false;
   }
 
   if (!expectAck.isEmpty()) {
-    qDebug() << "ipc client waiting for ack: " << expectAck;
+    qDebug() << "daemon ipc client waiting for ack: " << expectAck;
 
     if (!m_socket->waitForReadyRead(kTimeout)) {
       qWarning() << "daemon ipc client socket ready read timed out";
@@ -125,13 +125,13 @@ bool DaemonIpcClient::sendMessage(const QString &message, const QString &expectA
 
     QByteArray response = m_socket->readAll();
     if (response.isEmpty()) {
-      qWarning() << "ipc client got empty response";
+      qWarning() << "daemon ipc client got empty response";
       return false;
     }
 
     QString responseData = QString::fromUtf8(response);
     if (responseData.isEmpty()) {
-      qWarning() << "ipc client failed to convert response to string";
+      qWarning() << "daemon ipc client failed to convert response to string";
       return false;
     }
 
@@ -141,14 +141,14 @@ bool DaemonIpcClient::sendMessage(const QString &message, const QString &expectA
     }
   }
 
-  qDebug() << "ipc client sent message: " << messageData;
+  qDebug() << "daemon ipc client sent message: " << messageData;
   return true;
 }
 
 bool DaemonIpcClient::keepAlive()
 {
   if (!isConnected() && !connectToServer()) {
-    qWarning() << "ipc client keep alive failed to connect";
+    qWarning() << "daemon ipc client keep alive failed to connect";
     return false;
   }
 
@@ -201,31 +201,31 @@ QString DaemonIpcClient::requestLogPath()
   }
 
   if (!m_socket->waitForReadyRead(kTimeout)) {
-    qWarning() << "ipc client failed to read log path response";
+    qWarning() << "daemon ipc client failed to read log path response";
     return QString();
   }
 
   QByteArray response = m_socket->readAll();
   if (response.isEmpty()) {
-    qWarning() << "ipc client got empty log path response";
+    qWarning() << "daemon ipc client got empty log path response";
     return QString();
   }
 
   QString responseData = QString::fromUtf8(response);
   if (responseData.isEmpty()) {
-    qWarning() << "ipc client failed to convert log path response to string";
+    qWarning() << "daemon ipc client failed to convert log path response to string";
     return QString();
   }
 
   // Trimming removes newline from end of message.
   QStringList parts = responseData.trimmed().split("=");
   if (parts.size() != 2) {
-    qWarning() << "ipc client got invalid log path response: " << responseData;
+    qWarning() << "daemon ipc client got invalid log path response: " << responseData;
     return QString();
   }
 
   if (parts[0] != "logPath") {
-    qWarning() << "ipc client got unexpected log path response: " << responseData;
+    qWarning() << "daemon ipc client got unexpected log path response: " << responseData;
     return QString();
   }
 
