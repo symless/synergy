@@ -25,7 +25,7 @@
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "QT_PATH": "C:/Qt/6.8.3/msvc2022_64"
+        "QT_PATH": "$env{QT_PATH}"
       },
       "architecture": {
         "value": "x64",
