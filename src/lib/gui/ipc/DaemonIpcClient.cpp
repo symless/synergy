@@ -73,7 +73,7 @@ bool DaemonIpcClient::connectToServer()
 
   qWarning() << "daemon ipc client failed to connect after" << kRetryLimit << "attempts";
   disconnectFromServer();
-  Q_EMIT connectFailed();
+  Q_EMIT connectionFailed();
   return false;
 }
 
@@ -98,7 +98,7 @@ void DaemonIpcClient::handleDisconnected()
 {
   qDebug() << "daemon ipc client disconnected from server";
   if (m_state == State::Connected) {
-    Q_EMIT connectFailed();
+    Q_EMIT connectionFailed();
   }
 
   m_state = State::Unconnected;
@@ -107,9 +107,10 @@ void DaemonIpcClient::handleDisconnected()
 void DaemonIpcClient::handleErrorOccurred()
 {
   qWarning() << "daemon ipc client error:" << m_socket->errorString();
+  disconnectFromServer();
+
   if (m_state == State::Connected) {
-    disconnectFromServer();
-    Q_EMIT connectFailed();
+    Q_EMIT connectionFailed();
   }
 }
 

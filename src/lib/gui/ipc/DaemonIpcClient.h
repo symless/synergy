@@ -44,7 +44,7 @@ public:
 
 signals:
   void connected();
-  void connectFailed();
+  void connectionFailed();
 
 private slots:
   void handleDisconnected();

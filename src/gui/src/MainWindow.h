@@ -194,7 +194,7 @@ private:
   void showDevThanksMessage();
   void updateStatus();
   void showAndActivate();
-  void daemonIpcClientConnectFailed();
+  void daemonIpcClientconnectionFailed();
 
   VersionChecker m_VersionChecker;
   deskflow::gui::TrayIcon m_TrayIcon;

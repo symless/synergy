@@ -164,7 +164,9 @@ CoreProcess::CoreProcess(const IAppConfig &appConfig, const IServerConfig &serve
 {
   connect(m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, &CoreProcess::daemonIpcClientConnected);
 
-  connect(m_daemonIpcClient, &ipc::DaemonIpcClient::connectFailed, this, &CoreProcess::daemonIpcClientConnectFailed);
+  connect(
+      m_daemonIpcClient, &ipc::DaemonIpcClient::connectionFailed, this, &CoreProcess::daemonIpcClientconnectionFailed
+  );
 
   connect(&m_pDeps->process(), &QProcessProxy::finished, this, &CoreProcess::onProcessFinished);
 
