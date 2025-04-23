@@ -135,6 +135,8 @@ void QSettingsProxy::loadUser()
   // of an actual domain (e.g. deskflow.org).
   migrateLegacyUserSettings(*m_pSettings);
 #endif // Q_OS_MAC
+
+  qDebug() << "user settings filename:" << m_pSettings->fileName();
 }
 
 void QSettingsProxy::loadSystem()
@@ -163,6 +165,8 @@ void QSettingsProxy::loadSystem()
 #if defined(Q_OS_WIN)
   migrateLegacySystemSettings(*m_pSettings);
 #endif // Q_OS_WIN
+
+  qDebug() << "system settings filename:" << m_pSettings->fileName();
 }
 
 int QSettingsProxy::beginReadArray(const QString &prefix)
