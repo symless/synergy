@@ -206,6 +206,8 @@ void AppConfig::commit()
     setInCurrentScope(kElevateMode, static_cast<int>(m_ElevateMode));
     setInCurrentScope(kElevateModeLegacy, m_ElevateMode == ElevateMode::kAlways);
     setInCurrentScope(kTlsEnabled, m_TlsEnabled);
+    setInCurrentScope(kTlsCertPath, m_TlsCertPath);
+    setInCurrentScope(kTlsKeyLength, m_TlsKeyLength);
     setInCurrentScope(kAutoHide, m_AutoHide);
     setInCurrentScope(kLastVersion, m_LastVersion);
     setInCurrentScope(kUseExternalConfig, m_UseExternalConfig);
