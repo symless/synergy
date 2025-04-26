@@ -19,14 +19,24 @@ on:
     types:
       - completed
 
-env:
-  GH_WF_RUN_EVENT: ${{ github.event.workflow_run.event }}
-  GH_IS_MASTER: ${{ startsWith(github.event.workflow_run.head_branch, 'master') }}
-  GH_IS_WF_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
-
 jobs:
+  conditions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isNotSchedule = context.payload.workflow_run?.event !== 'schedule';
+            const isMaster = context.payload.workflow_run?.head_branch?.startsWith('master');
+            const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
+            const runVersion = isNotSchedule && (isMaster || isWorkflowDispatch);
+            core.setOutput('run_version', runVersion.toString());
+
   version: 
-    if: ${{ env.GH_WF_RUN_EVENT != 'schedule' && (env.GH_IS_MASTER || env.GH_IS_WF_DISPATCH}}
+    needs: conditions
+    if: steps.check.outputs.run_version == 'true'
     runs-on: ubuntu-latest
 
     steps:
