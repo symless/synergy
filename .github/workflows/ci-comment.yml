@@ -32,6 +32,10 @@ jobs:
             const isMaster = context.payload.workflow_run?.head_branch?.startsWith('master');
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
             const runVersion = isNotSchedule && (isMaster || isWorkflowDispatch);
+            console.log("isNotSchedule:", isNotSchedule);
+            console.log("isMaster:", isMaster);
+            console.log("isWorkflowDispatch:", isWorkflowDispatch);
+            console.log("runVersion:", runVersion);
             core.setOutput('run_version', runVersion.toString());
 
   version: 
