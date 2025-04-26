@@ -36,7 +36,7 @@ jobs:
 
   version: 
     needs: conditions
-    if: steps.check.outputs.run_version == 'true'
+    if: ${{ needs.conditions.outputs.run_version == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
