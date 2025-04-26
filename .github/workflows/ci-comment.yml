@@ -23,10 +23,10 @@ jobs:
   version: 
     if: |
       ${{
-        needs.conditions.outputs.run_version == 'true' &&
+        github.event_name != 'schedule' &&
         (
-          context.payload.workflow_run?.head_branch?.startsWith('master') ||
-          context.eventName === 'workflow_dispatch'
+          startsWith(github.event.workflow_run.head_branch, 'master')  ||
+          github.event_name == 'workflow_dispatch'
         )
       }}
     runs-on: ubuntu-latest
