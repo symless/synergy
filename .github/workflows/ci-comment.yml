@@ -20,12 +20,13 @@ on:
       - completed
 
 jobs:
-  env:
-    GH_WF_RUN_EVENT: ${{ github.event.workflow_run.event }}
-    GH_IS_MASTER: ${{ startsWith(github.event.workflow_run.head_branch, 'master') }}
-    GH_IS_WF_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
 
   version:
+    env:
+      GH_WF_RUN_EVENT: ${{ github.event.workflow_run.event }}
+      GH_IS_MASTER: ${{ startsWith(github.event.workflow_run.head_branch, 'master') }}
+      GH_IS_WF_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+      
     if: ${{ env.GH_WF_RUN_EVENT != 'schedule' && (env.GH_IS_MASTER || env.GH_IS_WF_DISPATCH}}
     runs-on: ubuntu-latest
 
