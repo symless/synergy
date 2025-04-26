@@ -22,6 +22,8 @@ on:
 jobs:
   conditions:
     runs-on: ubuntu-latest
+    outputs:
+      run_version: ${{ steps.check.outputs.run_version }}
     steps:
       - name: Check
         id: check
@@ -29,7 +31,7 @@ jobs:
         with:
           script: |
             const isNotSchedule = context.payload.workflow_run?.event !== 'schedule';
-            const isMaster = context.payload.workflow_run?.head_branch?.startsWith('master');
+            const isMaster = context.payload.workflow_run?.head_branch?.startsWith('master') || false;
             const isWorkflowDispatch = context.eventName === 'workflow_dispatch';
             const runVersion = isNotSchedule && (isMaster || isWorkflowDispatch);
             console.log("isNotSchedule:", isNotSchedule);
