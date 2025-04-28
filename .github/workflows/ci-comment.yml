@@ -23,7 +23,7 @@ jobs:
   version: 
     if: |
       ${{
-        github.event_name != 'schedule' &&
+        github.event.workflow_run.event != 'schedule' &&
         (
           startsWith(github.event.workflow_run.head_branch, 'master')  ||
           github.event_name == 'workflow_dispatch'
