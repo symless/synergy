@@ -44,7 +44,7 @@ jobs:
         with:
           script: |
             const { config } = require('./.github/scripts/ci-comment-config.js');
-            return config(github);
+            return config(github, context);
 
   # Breaking the condition logic into two steps jobs the workflow more complex; we need 2 functions
   # instead of one. However, it does make the execution result clearer in the GitHub UI;

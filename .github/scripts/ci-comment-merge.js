@@ -1,11 +1,6 @@
 async function prMergeComment(github, context, version) {
-  if (!github) {
-    throw new Error("GitHub not defined.");
-  }
-
-  if (!context) {
-    throw new Error("Context not defined.");
-  }
+  if (!github) throw new Error("Arg `github` not defined.");
+  if (!context) throw new Error("Arg `context` not defined.");
 
   if (!version) {
     console.log("No version found, skipping.");

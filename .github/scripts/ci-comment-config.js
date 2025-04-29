@@ -1,11 +1,9 @@
-function config(github, _context, _core) {
-  if (!github) {
-    throw new Error("GitHub not defined.");
-  }
+function config(_github, context) {
+  if (!context) throw new Error("Arg `context` not defined.");
 
-  const workflowRun = github.event.workflow_run;
+  const workflowRun = context.payload.workflow_run;
   const trigger = {
-    isWorkflowDispatch: github.event_name === "workflow_dispatch",
+    isWorkflowDispatch: context.eventName === "workflow_dispatch",
     workflowRun: {
       isPush: workflowRun.event === "push",
       isMaster: workflowRun.head_branch.startsWith("master"),
