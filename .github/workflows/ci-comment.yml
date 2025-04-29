@@ -37,7 +37,7 @@ jobs:
         uses: ./.github/actions/get-version
 
       - name: Comment on merged PR
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const { prMergeComment } = require('./.github/scripts/pr-merge-comment.js');
