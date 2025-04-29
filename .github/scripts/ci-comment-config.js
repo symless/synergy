@@ -4,7 +4,7 @@ function config(_github, context) {
   const workflowRun = context.payload.workflow_run;
   const trigger = {
     isWorkflowDispatch: context.eventName === "workflow_dispatch",
-    workflowRun: {
+    workflowRun: workflowRun && {
       isPush: workflowRun.event === "push",
       isMaster: workflowRun.head_branch.startsWith("master"),
     },
@@ -16,7 +16,7 @@ function config(_github, context) {
     // Always run if workflow dispatch, so we can test the workflow manually on CI.
     // Only run on push (i.e. not schedule) to prevent the last PR getting repeated comments.
     runMergeCommentJob:
-      trigger.isWorkflowDispatch || (trigger.workflowRun.isPush && trigger.workflowRun.isMaster),
+      trigger.isWorkflowDispatch || (trigger.workflowRun?.isPush && trigger.workflowRun?.isMaster),
   };
 
   console.log("Config:", output);
