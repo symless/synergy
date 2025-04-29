@@ -11,6 +11,7 @@ async function prMergeComment(github, context, version) {
 
   console.log(`Version: ${version}`);
 
+  const workflowRun = context.payload.workflow_run;
   const sha = context.payload.inputs.sha || workflowRun?.head_sha;
   if (!sha) {
     console.log("No Git SHA found, skipping.");
@@ -19,7 +20,6 @@ async function prMergeComment(github, context, version) {
 
   console.log(`SHA: ${sha}`);
 
-  const workflowRun = context.payload.workflow_run;
   const isMaster = workflowRun?.head_branch.startsWith("master");
   const pushToMaster = workflowRun?.event === "push" && isMaster;
 
