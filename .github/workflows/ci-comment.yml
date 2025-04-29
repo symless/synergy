@@ -12,7 +12,7 @@ name: CI comment
 on:
   workflow_dispatch:
     inputs:
-      sha:
+      test-sha:
         description: "Test Git SHA for PR to comment on"
   workflow_run:
     workflows: ["CI"]

@@ -12,7 +12,7 @@ async function prMergeComment(github, context, version) {
   console.log(`Version: ${version}`);
 
   const workflowRun = context.payload.workflow_run;
-  const sha = context.payload.inputs.sha || workflowRun?.head_sha;
+  const sha = context.payload.inputs["test-sha"] || workflowRun?.head_sha;
   if (!sha) {
     console.log("No Git SHA found, skipping.");
     return;
@@ -28,9 +28,10 @@ async function prMergeComment(github, context, version) {
     return;
   }
 
-  const runId = workflowRun?.id;
-  const runName = workflowRun?.name;
-  const runResult = workflowRun?.conclusion;
+  // Either use the run info from the workflow run or the context payload (for testing).
+  const runId = workflowRun?.id || context.payload.runId;
+  const runName = workflowRun?.name || "test";
+  const runResult = workflowRun?.conclusion || "test";
   const repoUrl = context.payload.repository.html_url;
 
   const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
