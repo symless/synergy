@@ -1,3 +1,5 @@
+const core = require("@actions/core");
+
 function config(_github, context) {
   if (!context) throw new Error("Arg `context` not defined.");
 
@@ -20,7 +22,7 @@ function config(_github, context) {
   };
 
   console.log("Output:", output);
-  return output;
+  core.setOutput("runMergeCommentJob", output.runMergeCommentJob);
 }
 
 module.exports = {

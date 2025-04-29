@@ -50,8 +50,8 @@ jobs:
         id: debug
         run: |
           echo "Config:"
-          echo "${{ steps.config.outputs.result }}"
-          echo "Run merge comment job: ${{ steps.config.outputs.result.runMergeCommentJob }}"
+          echo "${{ steps.config.outputs }}"
+          echo "Run merge comment job: ${{ steps.config.outputs.runMergeCommentJob }}"
 
   debug:
     runs-on: ubuntu-latest
