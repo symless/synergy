@@ -567,7 +567,7 @@ synergy::Screen *ServerApp::createScreen() {
     return new synergy::Screen(
         new synergy::EiScreen(true, m_events, true), m_events);
 #else
-    throw XNoEiSupport();
+    LOG((CLOG_WARN "libei is not supported, falling back to x windows"));
 #endif
   }
 #endif
