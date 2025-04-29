@@ -46,6 +46,13 @@ jobs:
             const { config } = require('./.github/scripts/ci-comment-config.js');
             return config(github, context);
 
+      - name: Debug
+        id: debug
+        run: |
+          echo "Config:"
+          echo "${{ steps.config.outputs.result }}"
+          echo "Run merge comment job: ${{ steps.config.outputs.result.runMergeCommentJob }}"
+
   debug:
     runs-on: ubuntu-latest
     needs: config
@@ -54,8 +61,8 @@ jobs:
       - name: Debug
         id: debug
         run: |
-          echo "Config outputs:"
-          echo "${{ toJson(needs.config.outputs) }}"
+          echo "Config:"
+          echo "${{ needs.config.outputs }}"
 
   # Breaking the condition logic into two steps jobs the workflow more complex; we need 2 functions
   # instead of one. However, it does make the execution result clearer in the GitHub UI;
