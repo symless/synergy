@@ -1,7 +1,8 @@
 async function prMergeComment(github, context, version) {
   if (!github) throw new Error("Arg `github` not defined.");
-  if (!context) throw new Error("Arg `context` not defined.");
+  console.log("GitHub:", github);
 
+  if (!context) throw new Error("Arg `context` not defined.");
   console.log("Context:", context);
 
   const workflowRun = context.payload.workflow_run;
