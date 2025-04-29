@@ -76,7 +76,7 @@ jobs:
             const version = "${{ steps.get-version.outputs.version }}";
             await prMergeComment(github, context, version);
 
-  summary:
+  summary-comment:
     runs-on: ubuntu-latest
     name: PR summary comment
 
