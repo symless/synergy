@@ -2,7 +2,7 @@ async function prMergeComment(github, context, version) {
   if (!github) throw new Error("Arg `github` not defined.");
   if (!context) throw new Error("Arg `context` not defined.");
 
-  console.log("Context:", context);
+  console.log(context);
 
   if (!version) {
     console.log("No version found, skipping.");
@@ -31,7 +31,7 @@ async function prMergeComment(github, context, version) {
   const runId = workflowRun?.id;
   const runName = workflowRun?.name;
   const runResult = workflowRun?.conclusion;
-  const repoUrl = github.event.repository.html_url;
+  const repoUrl = context.payload.repository.html_url;
 
   const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
     owner: context.repo.owner,
