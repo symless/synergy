@@ -29,7 +29,7 @@ async function prMergeComment(github, context, version) {
   }
 
   // Either use the run info from the workflow run or the context payload (for testing).
-  const runId = workflowRun?.id || context.payload.runId;
+  const runId = workflowRun?.id || context.runId;
   const runName = workflowRun?.name || "test";
   const runResult = workflowRun?.conclusion || "test";
   const repoUrl = context.payload.repository.html_url;
