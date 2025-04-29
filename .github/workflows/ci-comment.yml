@@ -35,6 +35,9 @@ jobs:
 
     # Decide whether to run other jobs in the workflow.
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Config
         id: config
         uses: actions/github-script@v7
@@ -74,8 +77,10 @@ jobs:
             await prMergeComment(github, context, version);
 
   summary:
-    if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
+    name: PR summary comment
+
+    if: github.event.workflow_run.event == 'pull_request'
 
     steps:
       - name: Download summaries
