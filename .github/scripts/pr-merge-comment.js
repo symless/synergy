@@ -12,7 +12,7 @@ async function prMergeComment(github, context, version) {
   console.log(`Version: ${version}`);
 
   const workflowRun = context.payload.workflow_run;
-  const sha = context.payload.inputs["test-sha"] || workflowRun?.head_sha;
+  const sha = context.payload.inputs?.["test-sha"] || workflowRun?.head_sha;
   if (!sha) {
     console.log("No Git SHA found, skipping.");
     return;
