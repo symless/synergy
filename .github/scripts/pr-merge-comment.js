@@ -2,15 +2,24 @@ async function prMergeComment(github, context, version) {
   if (!github) throw new Error("Arg `github` not defined.");
   if (!context) throw new Error("Arg `context` not defined.");
 
+  const workflowRun = context.payload.workflow_run;
+  console.log("Workflow run:", workflowRun);
+
+  const pushToMaster = workflowRun.event === "push" && workflowRun.head_branch.startsWith("master");
+  if (context.eventName !== "workflow_dispatch" && !pushToMaster) {
+    console.log("Skipping, not workflow dispatch or workflow run push to master.");
+    return;
+  }
+
   if (!version) {
     console.log("No version found, skipping.");
     return;
   }
 
-  const sha = github.event.inputs.sha || github.event.workflow_run.head_sha;
-  const runId = github.event.workflow_run.id;
-  const runName = github.event.workflow_run.name;
-  const runResult = github.event.workflow_run.conclusion;
+  const sha = github.event.inputs.sha || workflowRun.head_sha;
+  const runId = workflowRun.id;
+  const runName = workflowRun.name;
+  const runResult = workflowRun.conclusion;
   const repoUrl = github.event.repository.html_url;
 
   console.log(`Version: ${version}`);
