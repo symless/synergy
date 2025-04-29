@@ -1,22 +1,27 @@
-async function prMergeComment({github, context, version, sha, runId, runName, runResult, repoUrl}) {
-
+async function prMergeComment(github, context, version) {
   if (!github) {
-    throw new Error('GitHub not defined.');
+    throw new Error("GitHub not defined.");
   }
 
   if (!context) {
-    throw new Error('Context not defined.');
+    throw new Error("Context not defined.");
   }
 
   if (!version) {
-    console.log('No version found, skipping.');
+    console.log("No version found, skipping.");
     return;
   }
+
+  const sha = github.event.inputs.sha || github.event.workflow_run.head_sha;
+  const runId = github.event.workflow_run.id;
+  const runName = github.event.workflow_run.name;
+  const runResult = github.event.workflow_run.conclusion;
+  const repoUrl = github.event.repository.html_url;
 
   console.log(`Version: ${version}`);
 
   if (!sha) {
-    console.log('No Git SHA found, skipping.');
+    console.log("No Git SHA found, skipping.");
     return;
   }
 
@@ -29,21 +34,21 @@ async function prMergeComment({github, context, version, sha, runId, runName, ru
   });
 
   if (pullRequests.length < 1) {
-    console.log('No PR found, skipping.');
+    console.log("No PR found, skipping.");
     return;
   }
 
   console.log(`Found ${pullRequests.length} PR(s).`);
   const prNumber = pullRequests[0].number;
 
-  let body = 'Merge build complete.\n' + `Version: \`${version}\``;
+  let body = "Merge build complete.\n" + `Version: \`${version}\``;
 
   if (runId) {
     console.log(`Appending result and URL for run ID: ${runId}`);
     const runUrl = `${repoUrl}/actions/runs/${runId}`;
     body += `\nRun: [${runName}](${runUrl}) (${runResult})`;
   } else {
-    console.log('No run ID found, skipping run result and URL.');
+    console.log("No run ID found, skipping run result and URL.");
   }
 
   console.log(`Commenting on first PR: ${prNumber}`);
@@ -55,4 +60,6 @@ async function prMergeComment({github, context, version, sha, runId, runName, ru
   });
 }
 
-module.exports = prMergeComment;
+module.exports = {
+  prMergeComment,
+};

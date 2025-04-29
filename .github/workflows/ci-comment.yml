@@ -13,23 +13,46 @@ on:
   workflow_dispatch:
     inputs:
       sha:
-        description: 'Git SHA to comment on'
+        description: "Test Git SHA for PR to comment on"
   workflow_run:
     workflows: ["CI"]
     types:
       - completed
 
+# This workflow uses imported scripts, which has pros and cons.
+# Pros:
+# - We can use IDE language features (unavailable in JS when embedded in YAML).
+# - Far easier to debug (e.g. scripts can be run and tested locally, reducing trial and error).
+# Cons:
+# - The code is hidden; you have to leave the workflow which makes it harder to follow.
 jobs:
-  version: 
-    if: |
-      ${{
-        github.event.workflow_run.event != 'schedule' &&
-        (
-          startsWith(github.event.workflow_run.head_branch, 'master')  ||
-          github.event_name == 'workflow_dispatch'
-        )
-      }}
+  config:
     runs-on: ubuntu-latest
+    name: Config
+
+    outputs:
+      runMergeCommentJob: ${{ steps.config.outputs.result.runMergeCommentJob }}
+
+    # Decide whether to run other jobs in the workflow.
+    steps:
+      - name: Config
+        id: config
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { config } = require('./.github/scripts/ci-comment-config.js');
+            return config(github);
+
+  # Breaking the condition logic into two steps jobs the workflow more complex; we need 2 functions
+  # instead of one. However, it does make the execution result clearer in the GitHub UI;
+  # i.e. a job will show as skipped, whereas if we merge the functions, you need to dive into
+  # the debug output to see that the job was skipped.
+  merge-comment:
+    name: PR merge comment
+    runs-on: ubuntu-latest
+
+    needs: config
+    if: needs.config.outputs.runMergeCommentJob == 'true'
 
     steps:
       - name: Checkout
@@ -46,25 +69,10 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
+            const { prMergeComment } = require('./.github/scripts/ci-comment-merge.js');
             const version = "${{ steps.get-version.outputs.version }}";
-            const sha = "${{ github.event.inputs.sha }}" || "${{ github.event.workflow_run.head_sha }}";
-            const runId = "${{ github.event.workflow_run.id }}";
-            const runName = "${{ github.event.workflow_run.name }}";
-            const runResult = "${{ github.event.workflow_run.conclusion }}";
-            const repoUrl = "${{ github.server_url }}/${{ github.repository }}";
+            await prMergeComment(github, context, version);
 
-            const prMergeComment = require('./.github/scripts/pr-merge-comment.js');
-            await prMergeComment({
-              github,
-              context,
-              version,
-              sha,
-              runId,
-              runName,
-              runResult,
-              repoUrl
-            });
-                
   summary:
     if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
