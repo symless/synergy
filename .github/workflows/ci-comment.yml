@@ -46,6 +46,17 @@ jobs:
             const { config } = require('./.github/scripts/ci-comment-config.js');
             return config(github, context);
 
+  debug:
+    runs-on: ubuntu-latest
+    needs: config
+
+    steps:
+      - name: Debug
+        id: debug
+        run: |
+          echo "Config outputs:"
+          echo "${{ toJson(needs.config.outputs) }}"
+
   # Breaking the condition logic into two steps jobs the workflow more complex; we need 2 functions
   # instead of one. However, it does make the execution result clearer in the GitHub UI;
   # i.e. a job will show as skipped, whereas if we merge the functions, you need to dive into

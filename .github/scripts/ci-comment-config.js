@@ -19,7 +19,7 @@ function config(_github, context) {
       trigger.isWorkflowDispatch || (trigger.workflowRun?.isPush && trigger.workflowRun?.isMaster),
   };
 
-  console.log("Config:", output);
+  console.log("Output:", output);
   return output;
 }
 
