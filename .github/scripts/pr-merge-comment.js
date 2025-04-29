@@ -5,12 +5,22 @@ async function prMergeComment(github, context, version) {
   if (!context) throw new Error("Arg `context` not defined.");
   console.log("Context:", context);
 
-  const workflowRun = context.payload.workflow_run;
+  if (!version) {
+    console.log("No version found, skipping.");
+    return;
+  }
+
+  console.log(`Version: ${version}`);
+
   const sha = github.event.inputs?.sha || workflowRun?.head_sha;
-  const runId = workflowRun?.id;
-  const runName = workflowRun?.name;
-  const runResult = workflowRun?.conclusion;
-  const repoUrl = github.event.repository.html_url;
+  if (!sha) {
+    console.log("No Git SHA found, skipping.");
+    return;
+  }
+
+  console.log(`SHA: ${sha}`);
+
+  const workflowRun = context.payload.workflow_run;
   const isMaster = workflowRun?.head_branch.startsWith("master");
   const pushToMaster = workflowRun?.event === "push" && isMaster;
 
@@ -19,19 +29,10 @@ async function prMergeComment(github, context, version) {
     return;
   }
 
-  if (!version) {
-    console.log("No version found, skipping.");
-    return;
-  }
-
-  console.log(`Version: ${version}`);
-
-  if (!sha) {
-    console.log("No Git SHA found, skipping.");
-    return;
-  }
-
-  console.log(`SHA: ${sha}`);
+  const runId = workflowRun?.id;
+  const runName = workflowRun?.name;
+  const runResult = workflowRun?.conclusion;
+  const repoUrl = github.event.repository.html_url;
 
   const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
     owner: context.repo.owner,
