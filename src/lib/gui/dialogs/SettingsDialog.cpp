@@ -308,6 +308,9 @@ void SettingsDialog::updateControls()
     }
   }
 
+  m_pRadioSystemScope->setToolTip(m_appConfig.settings().getSystemSettings().fileName());
+  m_pRadioUserScope->setToolTip(m_appConfig.settings().getUserSettings().fileName());
+
   m_pLineEditScreenName->setEnabled(writable);
   m_pSpinBoxPort->setEnabled(writable);
   m_pLineEditInterface->setEnabled(writable);
