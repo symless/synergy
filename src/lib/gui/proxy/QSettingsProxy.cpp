@@ -29,57 +29,10 @@
 namespace deskflow::gui::proxy {
 
 const auto kLegacyOrgDomain = "http-symless-com";
-const auto kLegacySystemConfigFilename = "SystemConfig.ini";
-
-#if defined(Q_OS_UNIX)
-const auto kUnixSystemConfigPath = "/usr/local/etc/";
-#endif
 
 //
 // Free functions
 //
-
-/**
- * @brief The base dir for the system settings file.
- *
- * Important: Qt will append the org name as a dir, and the app name as the
- * settings filename, i.e.: `{base-dir}/Deskflow/Deskflow.ini`
- */
-QString getSystemSettingsBaseDir()
-{
-#if defined(Q_OS_WIN)
-  return QCoreApplication::applicationDirPath();
-#elif defined(Q_OS_UNIX)
-  // Qt already adds application and filename to the end of the path.
-  // On macOS, it would be nice to use /Library dir, but qt has no elevate
-  // system.
-  return kUnixSystemConfigPath;
-#else
-#error "unsupported platform"
-#endif
-}
-
-void migrateLegacySystemSettings(QSettings &settings)
-{
-  if (QFile(settings.fileName()).exists()) {
-    qDebug("system settings already exist, skipping migration");
-    return;
-  }
-
-  QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, kLegacySystemConfigFilename);
-  QSettings oldSystemSettings(
-      QSettings::IniFormat, QSettings::SystemScope, QCoreApplication::organizationName(),
-      QCoreApplication::applicationName()
-  );
-
-  if (QFile(oldSystemSettings.fileName()).exists()) {
-    for (const auto &key : oldSystemSettings.allKeys()) {
-      settings.setValue(key, oldSystemSettings.value(key));
-    }
-  }
-
-  QSettings::setPath(QSettings::IniFormat, QSettings::SystemScope, getSystemSettingsBaseDir());
-}
 
 void migrateLegacyUserSettings(QSettings &newSettings)
 {
@@ -121,28 +74,6 @@ void migrateLegacyUserSettings(QSettings &newSettings)
   newSettings.sync();
 }
 
-QString orgName()
-{
-  auto orgName = QCoreApplication::organizationName();
-  if (orgName.isEmpty()) {
-    qFatal("unable to load config, organization name is empty");
-  } else {
-    qDebug() << "org name for config:" << orgName;
-  }
-  return orgName;
-}
-
-QString appName()
-{
-  auto appName = QCoreApplication::applicationName();
-  if (appName.isEmpty()) {
-    qFatal("unable to load config, application name is empty");
-  } else {
-    qDebug() << "app name for config:" << appName;
-  }
-  return appName;
-}
-
 //
 // QSettingsProxy
 //
@@ -173,11 +104,11 @@ void QSettingsProxy::loadUser()
 
 void QSettingsProxy::loadSystem()
 {
-  QSettings::setPath(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, getSystemSettingsBaseDir());
-
   m_pSettings.reset();
-  m_pSettings =
-      std::make_unique<QSettings>(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, orgName(), appName());
+  m_pSettings = std::make_unique<QSettings>(
+      QSettings::Format::IniFormat, QSettings::Scope::SystemScope, QCoreApplication::organizationName(),
+      QCoreApplication::applicationName()
+  );
 
 #if defined(Q_OS_WIN)
   migrateLegacySystemSettings(*m_pSettings);
@@ -188,11 +119,13 @@ void QSettingsProxy::loadSystem()
 
 void QSettingsProxy::loadLocked()
 {
-  const auto orgDir = QDir(getSystemSettingsBaseDir()).filePath(orgName());
-  const auto filename = QDir(orgDir).filePath(appName() + ".locked.ini");
+  // Appending ".locked" to the app name should result in "[app-name].locked.ini"
+  const auto appName = QCoreApplication::applicationName() + ".locked";
 
   m_pSettings.reset();
-  m_pSettings = std::make_unique<QSettings>(filename, QSettings::Format::IniFormat);
+  m_pSettings = std::make_unique<QSettings>(
+      QSettings::Format::IniFormat, QSettings::Scope::SystemScope, QCoreApplication::organizationName(), appName
+  );
 
   qDebug() << "locked settings filename:" << m_pSettings->fileName();
 }
