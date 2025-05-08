@@ -110,10 +110,6 @@ void QSettingsProxy::loadSystem()
       QCoreApplication::organizationName(), QCoreApplication::applicationName()
   );
 
-#if defined(Q_OS_WIN)
-  migrateLegacySystemSettings(*m_pSettings);
-#endif // Q_OS_WIN
-
   qDebug() << "system settings filename:" << m_pSettings->fileName();
 }
 
