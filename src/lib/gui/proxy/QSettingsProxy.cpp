@@ -124,7 +124,8 @@ void QSettingsProxy::loadLocked()
 
   m_pSettings.reset();
   m_pSettings = std::make_unique<QSettings>(
-      QSettings::Format::IniFormat, QSettings::Scope::SystemScope, QCoreApplication::organizationName(), appName
+      QSettings::Format::IniFormat, QSettings::Scope::SystemScope, //
+      QCoreApplication::organizationName(), appName
   );
 
   qDebug() << "locked settings filename:" << m_pSettings->fileName();
