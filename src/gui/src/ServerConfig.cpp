@@ -209,12 +209,14 @@ void ServerConfig::recall()
   settings().endGroup();
 
   auto &locked = m_pAppConfig->settings().getLockedSettings();
+  locked.beginGroup("internalConfig");
   if (locked.contains("clipboardSharing")) {
     m_ClipboardSharing = locked.value("clipboardSharing").toBool();
   }
   if (locked.contains("clipboardSharingSize")) {
     m_ClipboardSharingSize = locked.value("clipboardSharingSize").toULongLong();
   }
+  locked.endGroup();
 }
 
 int ServerConfig::adjacentScreenIndex(int idx, int deltaColumn, int deltaRow) const
