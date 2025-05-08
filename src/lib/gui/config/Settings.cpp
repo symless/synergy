@@ -54,17 +54,21 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
     qDebug("loaded existing system settings");
     m_pActiveSettings = m_pSystemSettings;
     m_scope = Scope::System;
-    return;
-  }
-
-  if (m_pUserSettings->fileExists()) {
-    qDebug("loaded existing user settings");
   } else {
-    qDebug("defaulting to user new settings");
+    if (m_pUserSettings->fileExists()) {
+      qDebug("loaded existing user settings");
+    } else {
+      qDebug("defaulting to user new settings");
+    }
+    m_pActiveSettings = m_pUserSettings;
+    m_scope = Scope::User;
   }
 
-  m_pActiveSettings = m_pUserSettings;
-  m_scope = Scope::User;
+  m_pLockedSettings = m_deps->makeSettingsProxy();
+  m_pLockedSettings->loadLocked();
+  if (m_pLockedSettings->fileExists()) {
+    qDebug("loaded locked settings");
+  }
 }
 
 QSettingsProxy &Settings::getActiveSettings()
@@ -80,6 +84,11 @@ QSettingsProxy &Settings::getSystemSettings()
 QSettingsProxy &Settings::getUserSettings()
 {
   return *m_pUserSettings.get();
+}
+
+QSettingsProxy &Settings::getLockedSettings()
+{
+  return *m_pLockedSettings.get();
 }
 
 QString Settings::fileName() const

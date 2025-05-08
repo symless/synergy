@@ -348,4 +348,17 @@ void SettingsDialog::updateControls()
 #endif
 
   updateTlsControls();
+
+  auto &locked = m_appConfig.settings().getLockedSettings();
+  if (locked.contains("cryptoEnabled")) {
+    m_pCheckBoxEnableTls->setEnabled(false);
+  }
+  if (locked.contains("tlsCertPath")) {
+    m_pLineEditTlsCertPath->setEnabled(false);
+    m_pPushButtonTlsCertPath->setEnabled(false);
+    m_pPushButtonTlsRegenCert->setEnabled(false);
+  }
+  if (locked.contains("tlsKeyLength")) {
+    m_pComboBoxTlsKeyLength->setEnabled(false);
+  }
 }

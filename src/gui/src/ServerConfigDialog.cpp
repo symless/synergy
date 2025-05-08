@@ -95,6 +95,14 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   m_pButtonAddComputer->setEnabled(!model().isFull());
   connect(m_pTrashScreenWidget, SIGNAL(screenRemoved()), this, SLOT(onScreenRemoved()));
 
+  auto &locked = m_appConfig.settings().getLockedSettings();
+  if (locked.contains("clipboardSharing")) {
+    m_pCheckBoxEnableClipboard->setEnabled(false);
+  }
+  if (locked.contains("clipboardSharingSize")) {
+    m_pSpinBoxClipboardSizeLimit->setEnabled(false);
+  }
+
   onChange();
 
   // computers

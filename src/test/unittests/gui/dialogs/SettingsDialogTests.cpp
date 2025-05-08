@@ -23,6 +23,7 @@
 #include "shared/gui/TestQtFullApp.h"
 #include "shared/gui/mocks/AppConfigMock.h"
 #include "shared/gui/mocks/ServerConfigMock.h"
+#include "shared/gui/mocks/SettingsMock.h"
 
 #include <gtest/gtest.h>
 
@@ -36,6 +37,9 @@ TEST(SettingsDialogTests, ctor_getsScreenName)
   NiceMock<ServerConfigMock> serverConfig;
   auto cpDeps = std::make_shared<CoreProcess::Deps>();
   CoreProcess coreProcess(appConfig, serverConfig, cpDeps);
+
+  NiceMock<SettingsMock> mockSettings;
+  ON_CALL(appConfig, settings()).WillByDefault(ReturnRef(mockSettings));
 
   EXPECT_CALL(appConfig, screenName()).Times(1);
 

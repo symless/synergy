@@ -56,6 +56,7 @@ public:
   QSettingsProxy &getActiveSettings() override;
   QSettingsProxy &getSystemSettings() override;
   QSettingsProxy &getUserSettings() override;
+  QSettingsProxy &getLockedSettings() override;
 
 signals:
   void ready();
@@ -67,6 +68,7 @@ private:
   std::shared_ptr<QSettingsProxy> m_pActiveSettings;
   std::shared_ptr<QSettingsProxy> m_pSystemSettings;
   std::shared_ptr<QSettingsProxy> m_pUserSettings;
+  std::shared_ptr<QSettingsProxy> m_pLockedSettings;
 };
 
 } // namespace deskflow::gui

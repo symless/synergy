@@ -121,6 +121,28 @@ void migrateLegacyUserSettings(QSettings &newSettings)
   newSettings.sync();
 }
 
+QString orgName()
+{
+  auto orgName = QCoreApplication::organizationName();
+  if (orgName.isEmpty()) {
+    qFatal("unable to load config, organization name is empty");
+  } else {
+    qDebug() << "org name for config:" << orgName;
+  }
+  return orgName;
+}
+
+QString appName()
+{
+  auto appName = QCoreApplication::applicationName();
+  if (appName.isEmpty()) {
+    qFatal("unable to load config, application name is empty");
+  } else {
+    qDebug() << "app name for config:" << appName;
+  }
+  return appName;
+}
+
 //
 // QSettingsProxy
 //
@@ -151,33 +173,28 @@ void QSettingsProxy::loadUser()
 
 void QSettingsProxy::loadSystem()
 {
-  auto orgName = QCoreApplication::organizationName();
-  if (orgName.isEmpty()) {
-    qFatal("unable to load config, organization name is empty");
-    return;
-  } else {
-    qDebug() << "org name for config:" << orgName;
-  }
-
-  auto appName = QCoreApplication::applicationName();
-  if (appName.isEmpty()) {
-    qFatal("unable to load config, application name is empty");
-    return;
-  } else {
-    qDebug() << "app name for config:" << appName;
-  }
-
   QSettings::setPath(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, getSystemSettingsBaseDir());
 
   m_pSettings.reset();
   m_pSettings =
-      std::make_unique<QSettings>(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, orgName, appName);
+      std::make_unique<QSettings>(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, orgName(), appName());
 
 #if defined(Q_OS_WIN)
   migrateLegacySystemSettings(*m_pSettings);
 #endif // Q_OS_WIN
 
   qDebug() << "system settings filename:" << m_pSettings->fileName();
+}
+
+void QSettingsProxy::loadLocked()
+{
+  const auto orgDir = QDir(getSystemSettingsBaseDir()).filePath(orgName());
+  const auto filename = QDir(orgDir).filePath(appName() + ".locked.ini");
+
+  m_pSettings.reset();
+  m_pSettings = std::make_unique<QSettings>(filename, QSettings::Format::IniFormat);
+
+  qDebug() << "locked settings filename:" << m_pSettings->fileName();
 }
 
 void QSettingsProxy::clear()

@@ -148,6 +148,17 @@ void AppConfig::recall()
   m_EnableUpdateCheck = get<bool>(kEnableUpdateCheck, [](const QVariant &v) { return v.toBool(); });
   m_EnableDragAndDrop = get(kEnableDragAndDrop, m_EnableDragAndDrop).toBool();
   m_EnableLibei = get(kEnableLibei, m_EnableLibei).toBool();
+
+  auto &locked = m_Settings.getLockedSettings();
+  if (locked.contains(settingName(kTlsEnabled))) {
+    m_TlsEnabled = locked.value(settingName(kTlsEnabled)).toBool();
+  }
+  if (locked.contains(settingName(kTlsCertPath))) {
+    m_TlsCertPath = locked.value(settingName(kTlsCertPath)).toString();
+  }
+  if (locked.contains(settingName(kTlsKeyLength))) {
+    m_TlsKeyLength = locked.value(settingName(kTlsKeyLength)).toInt();
+  }
 }
 
 void AppConfig::recallScreenName()

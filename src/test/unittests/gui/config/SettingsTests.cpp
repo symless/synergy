@@ -17,6 +17,8 @@
 
 #include "gui/config/Settings.h"
 
+#include "test/shared/gui/mocks/QSettingsProxyMock.h"
+
 #include "gmock/gmock.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -27,21 +29,6 @@ using namespace deskflow::gui;
 using namespace deskflow::gui::proxy;
 
 namespace {
-
-class QSettingsProxyMock : public QSettingsProxy
-{
-public:
-  MOCK_METHOD(void, loadSystem, (), (override));
-  MOCK_METHOD(void, loadUser, (), (override));
-  MOCK_METHOD(bool, fileExists, (), (const, override));
-  MOCK_METHOD(QString, fileName, (), (const, override));
-  MOCK_METHOD(void, sync, (), (override));
-  MOCK_METHOD(bool, isWritable, (), (const, override));
-  MOCK_METHOD(bool, contains, (const QString &), (const, override));
-  MOCK_METHOD(QVariant, value, (const QString &), (const, override));
-  MOCK_METHOD(QVariant, value, (const QString &, const QVariant &), (const, override));
-  MOCK_METHOD(void, setValue, (const QString &, const QVariant &), (override));
-};
 
 struct DepsMock : public Settings::Deps
 {
@@ -61,9 +48,10 @@ TEST(SettingsTests, ctor_loadsBothScopes)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
 
-  EXPECT_CALL(*deps, makeSettingsProxy()).Times(2);
+  EXPECT_CALL(*deps, makeSettingsProxy()).Times(3);
   EXPECT_CALL(*deps->m_pMockSettings, loadUser()).Times(1);
   EXPECT_CALL(*deps->m_pMockSettings, loadSystem()).Times(1);
+  EXPECT_CALL(*deps->m_pMockSettings, loadLocked()).Times(1);
 
   Settings settings(deps);
 }

@@ -46,6 +46,7 @@ public:
   virtual QSettingsProxy &getActiveSettings() = 0;
   virtual QSettingsProxy &getSystemSettings() = 0;
   virtual QSettingsProxy &getUserSettings() = 0;
+  virtual QSettingsProxy &getLockedSettings() = 0;
 
   /**
    * @brief Signals to listeners that the settings that they should read.

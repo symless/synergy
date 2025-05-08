@@ -17,31 +17,14 @@
 
 #include "gui/config/Screen.h"
 
-#include "gui/proxy/QSettingsProxy.h"
 #include "shared/gui/TestQtCoreApp.h"
+#include "shared/gui/mocks/QSettingsProxyMock.h"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 using namespace deskflow::gui::proxy;
 using namespace testing;
-
-class QSettingsProxyMock : public QSettingsProxy
-{
-public:
-  MOCK_METHOD(int, beginReadArray, (const QString &prefix), (override));
-  MOCK_METHOD(void, beginWriteArray, (const QString &prefix), (override));
-  MOCK_METHOD(void, setArrayIndex, (int i), (override));
-  MOCK_METHOD(QVariant, value, (const QString &key), (const, override));
-  MOCK_METHOD(QVariant, value, (const QString &key, const QVariant &defaultValue), (const, override));
-  MOCK_METHOD(void, endArray, (), (override));
-  MOCK_METHOD(void, setValue, (const QString &key, const QVariant &value), (override));
-  MOCK_METHOD(void, beginGroup, (const QString &prefix), (override));
-  MOCK_METHOD(void, endGroup, (), (override));
-  MOCK_METHOD(void, remove, (const QString &key), (override));
-  MOCK_METHOD(bool, isWritable, (), (const, override));
-  MOCK_METHOD(bool, contains, (const QString &key), (const, override));
-};
 
 TEST(ScreenTests, loadSettings_whenHasSetting_readsArray)
 {

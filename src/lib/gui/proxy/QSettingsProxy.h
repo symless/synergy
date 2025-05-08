@@ -37,6 +37,7 @@ public:
   virtual bool fileExists() const;
   virtual void loadUser();
   virtual void loadSystem();
+  virtual void loadLocked();
 
   //
   // QSettings methods

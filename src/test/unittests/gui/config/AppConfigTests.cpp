@@ -17,7 +17,7 @@
 
 #include "gui/config/AppConfig.h"
 
-#include "gui/proxy/QSettingsProxy.h"
+#include "shared/gui/mocks/SettingsMock.h"
 
 #include "gmock/gmock.h"
 #include <gmock/gmock.h>
@@ -27,25 +27,6 @@ using namespace testing;
 using namespace deskflow::gui::proxy;
 
 namespace {
-
-class SettingsMock : public deskflow::gui::ISettings
-{
-  using QSettingsProxy = deskflow::gui::proxy::QSettingsProxy;
-
-public:
-  MOCK_METHOD(void, signalReady, (), (override));
-  MOCK_METHOD(bool, contains, (const QString &name), (const, override));
-  MOCK_METHOD(QVariant, get, (const QString &name, const QVariant &defaultValue), (const, override));
-  MOCK_METHOD(void, set, (const QString &name, const QVariant &value), (override));
-  MOCK_METHOD(Scope, scope, (), (const, override));
-  MOCK_METHOD(void, setScope, (Scope scope), (override));
-  MOCK_METHOD(bool, isWritable, (), (const, override));
-  MOCK_METHOD(QSettingsProxy &, getActiveSettings, (), (override));
-  MOCK_METHOD(QSettingsProxy &, getSystemSettings, (), (override));
-  MOCK_METHOD(QSettingsProxy &, getUserSettings, (), (override));
-  MOCK_METHOD(void, save, (bool), (override));
-  MOCK_METHOD(QString, fileName, (), (const, override));
-};
 
 struct DepsMock : public AppConfig::Deps
 {
