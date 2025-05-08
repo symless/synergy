@@ -31,6 +31,8 @@ public:
   SettingsMock()
   {
     ON_CALL(*this, getLockedSettings()).WillByDefault(ReturnRef(m_mockSettings));
+    ON_CALL(*this, getUserSettings()).WillByDefault(ReturnRef(m_mockSettings));
+    ON_CALL(*this, getSystemSettings()).WillByDefault(ReturnRef(m_mockSettings));
   }
 
   MOCK_METHOD(void, signalReady, (), (override));
