@@ -45,7 +45,7 @@ public:
   // Getters
   //
 
-  MOCK_METHOD(deskflow::gui::ISettings &, scopes, (), (const, override));
+  MOCK_METHOD(deskflow::gui::ISettings &, settings, (), (const, override));
   MOCK_METHOD(QString, tlsCertPath, (), (const, override));
   MOCK_METHOD(int, tlsKeyLength, (), (const, override));
   MOCK_METHOD(bool, tlsEnabled, (), (const, override));

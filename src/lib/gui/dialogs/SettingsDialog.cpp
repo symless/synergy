@@ -47,7 +47,6 @@ SettingsDialog::SettingsDialog(
       m_coreProcess(coreProcess),
       m_tlsUtility(appConfig)
 {
-
   setupUi(this);
 
   // force the first tab, since qt creator sets the active tab as the last one
@@ -201,7 +200,6 @@ void SettingsDialog::reject()
 
 void SettingsDialog::loadFromConfig()
 {
-
   m_pLineEditScreenName->setText(m_appConfig.screenName());
   m_pSpinBoxPort->setValue(m_appConfig.port());
   m_pLineEditInterface->setText(m_appConfig.networkInterface());
@@ -231,7 +229,6 @@ void SettingsDialog::loadFromConfig()
 
 void SettingsDialog::updateTlsControls()
 {
-
   if (QFile(m_appConfig.tlsCertPath()).exists()) {
     updateKeyLengthOnFile(m_appConfig.tlsCertPath());
   } else {
@@ -279,7 +276,6 @@ void SettingsDialog::updateKeyLengthOnFile(const QString &path)
 
 void SettingsDialog::updateControls()
 {
-
 #if defined(Q_OS_WIN)
   const auto serviceAvailable = true;
 #else

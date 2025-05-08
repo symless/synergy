@@ -34,14 +34,14 @@ class SettingsMock : public deskflow::gui::ISettings
 
 public:
   MOCK_METHOD(void, signalReady, (), (override));
-  MOCK_METHOD(bool, contains, (const QString &name, Scope scope), (const, override));
-  MOCK_METHOD(QVariant, get, (const QString &name, const QVariant &defaultValue, Scope scope), (const, override));
-  MOCK_METHOD(void, set, (const QString &name, const QVariant &value, Scope scope), (override));
+  MOCK_METHOD(bool, contains, (const QString &name), (const, override));
+  MOCK_METHOD(QVariant, get, (const QString &name, const QVariant &defaultValue), (const, override));
+  MOCK_METHOD(void, set, (const QString &name, const QVariant &value), (override));
   MOCK_METHOD(Scope, scope, (), (const, override));
   MOCK_METHOD(void, setScope, (Scope scope), (override));
   MOCK_METHOD(bool, isWritable, (), (const, override));
-  MOCK_METHOD(const QSettingsProxy &, activeSettings, (), (const, override));
-  MOCK_METHOD(QSettingsProxy &, activeSettings, (), (override));
+  MOCK_METHOD(const QSettingsProxy &, getProxy, (), (const, override));
+  MOCK_METHOD(QSettingsProxy &, getProxy, (), (override));
   MOCK_METHOD(void, save, (bool), (override));
   MOCK_METHOD(QString, fileName, (), (const, override));
 };
@@ -85,9 +85,9 @@ TEST_F(AppConfigTests, ctor_byDefault_getsFromScope)
   NiceMock<SettingsMock> settings;
   auto deps = DepsMock::makeNice();
 
-  ON_CALL(settings, contains(_, _)).WillByDefault(Return(true));
-  ON_CALL(settings, get(_, _, _)).WillByDefault(Return(QVariant("test screen")));
-  EXPECT_CALL(settings, get(_, _, _)).Times(AnyNumber());
+  ON_CALL(settings, contains(_)).WillByDefault(Return(true));
+  ON_CALL(settings, get(_, _)).WillByDefault(Return(QVariant("test screen")));
+  EXPECT_CALL(settings, get(_, _)).Times(AnyNumber());
 
   AppConfig appConfig(settings, deps);
 
@@ -101,7 +101,7 @@ TEST_F(AppConfigTests, commit_byDefault_setsToScope)
   AppConfig appConfig(settings, deps);
 
   ON_CALL(settings, isWritable()).WillByDefault(Return(true));
-  EXPECT_CALL(settings, set(_, _, _)).Times(AnyNumber());
+  EXPECT_CALL(settings, set(_, _)).Times(AnyNumber());
 
   appConfig.commit();
 }

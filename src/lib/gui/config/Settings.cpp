@@ -42,6 +42,8 @@ std::shared_ptr<QSettingsProxy> Settings::Deps::makeSettingsProxy()
 
 Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
 {
+  qDebug("loading settings");
+
   auto system = m_deps->makeSettingsProxy();
   system->loadSystem();
 
@@ -65,14 +67,19 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
   m_scope = Scope::User;
 }
 
-QSettingsProxy &Settings::activeSettings()
+QSettingsProxy &Settings::getProxy()
 {
   return *m_pSettingsProxy.get();
 }
 
-const QSettingsProxy &Settings::activeSettings() const
+const QSettingsProxy &Settings::getProxy() const
 {
   return *m_pSettingsProxy.get();
+}
+
+QString Settings::fileName() const
+{
+  return m_pSettingsProxy->fileName();
 }
 
 void Settings::clear()
@@ -123,22 +130,17 @@ Settings::Scope Settings::scope() const
   return m_scope;
 }
 
-bool Settings::contains(const QString &name, Scope scope) const
+bool Settings::contains(const QString &name) const
 {
   return m_pSettingsProxy->contains(name);
 }
 
-QString Settings::fileName() const
-{
-  return m_pSettingsProxy->fileName();
-}
-
-QVariant Settings::get(const QString &name, const QVariant &defaultValue, Scope scope) const
+QVariant Settings::get(const QString &name, const QVariant &defaultValue) const
 {
   return m_pSettingsProxy->value(name, defaultValue);
 }
 
-void Settings::set(const QString &name, const QVariant &value, Scope scope)
+void Settings::set(const QString &name, const QVariant &value)
 {
   m_pSettingsProxy->setValue(name, value);
 }

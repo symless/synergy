@@ -43,7 +43,7 @@ public:
   // Getters
   //
 
-  virtual ISettings &scopes() const = 0;
+  virtual ISettings &settings() const = 0;
   virtual QString tlsCertPath() const = 0;
   virtual int tlsKeyLength() const = 0;
   virtual bool tlsEnabled() const = 0;

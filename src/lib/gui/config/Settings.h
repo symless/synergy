@@ -46,16 +46,15 @@ public:
   void save(bool emitSaving = true) override;
   void clear();
   void signalReady() override;
-  bool contains(const QString &name, Scope scope = Scope::Current) const override;
+  bool contains(const QString &name) const override;
   bool isWritable() const override;
-  void set(const QString &name, const QVariant &value, Scope scope = Scope::Current) override;
-  QVariant
-  get(const QString &name, const QVariant &defaultValue = QVariant(), Scope scope = Scope::Current) const override;
+  void set(const QString &name, const QVariant &value) override;
+  QVariant get(const QString &name, const QVariant &defaultValue = QVariant()) const override;
   void setScope(Scope scope = Scope::User) override;
   Scope scope() const override;
   QString fileName() const override;
-  QSettingsProxy &activeSettings() override;
-  const QSettingsProxy &activeSettings() const override;
+  QSettingsProxy &getProxy() override;
+  const QSettingsProxy &getProxy() const override;
 
 signals:
   void ready();

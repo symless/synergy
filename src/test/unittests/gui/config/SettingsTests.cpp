@@ -79,16 +79,7 @@ TEST(SettingsTests, save_callsSync)
   settings.save();
 }
 
-TEST(SettingsTests, activeSettings_returnsUserSettingsByDefault)
-{
-  auto deps = std::make_shared<NiceMock<DepsMock>>();
-
-  Settings settings(deps);
-
-  EXPECT_EQ(&settings.activeSettings(), deps->m_pMockSettings.get());
-}
-
-TEST(SettingsTests, setScope_setsCurrentScope)
+TEST(SettingsTests, setScope_setsValue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
 
@@ -99,7 +90,7 @@ TEST(SettingsTests, setScope_setsCurrentScope)
   EXPECT_EQ(settings.scope(), Settings::Scope::System);
 }
 
-TEST(SettingsTests, isWritable_returnsTrueWhenUserSettingsWritable)
+TEST(SettingsTests, isWritable_returnsTrue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
 
@@ -110,7 +101,7 @@ TEST(SettingsTests, isWritable_returnsTrueWhenUserSettingsWritable)
   EXPECT_TRUE(settings.isWritable());
 }
 
-TEST(SettingsTests, contains_byDefault_returnsTrueWhenUserSettingsContainsKey)
+TEST(SettingsTests, contains_returnsTrue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
 
@@ -121,18 +112,7 @@ TEST(SettingsTests, contains_byDefault_returnsTrueWhenUserSettingsContainsKey)
   EXPECT_TRUE(settings.contains("stub"));
 }
 
-TEST(SettingsTests, contains_userScope_returnsTrueWhenUserSettingsContainsKey)
-{
-  auto deps = std::make_shared<NiceMock<DepsMock>>();
-
-  ON_CALL(*deps->m_pMockSettings, contains(_)).WillByDefault(Return(true));
-
-  Settings settings(deps);
-
-  EXPECT_TRUE(settings.contains("stub", Settings::Scope::User));
-}
-
-TEST(SettingsTests, fileName_returnsUserSettingsFileNameByDefault)
+TEST(SettingsTests, fileName_returnsValue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
   ON_CALL(*deps->m_pMockSettings, fileName()).WillByDefault(Return("test"));
@@ -142,7 +122,7 @@ TEST(SettingsTests, fileName_returnsUserSettingsFileNameByDefault)
   EXPECT_EQ(settings.fileName(), "test");
 }
 
-TEST(SettingsTests, get_byDefault_returnsValueFromActiveSettings)
+TEST(SettingsTests, get_getsValue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
   ON_CALL(*deps->m_pMockSettings, value(_, _)).WillByDefault(Return("test"));
@@ -152,7 +132,7 @@ TEST(SettingsTests, get_byDefault_returnsValueFromActiveSettings)
   EXPECT_EQ(settings.get("stub"), "test");
 }
 
-TEST(SettingsTests, set_byDefault_setsValueInActiveSettings)
+TEST(SettingsTests, set_setsvalue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
 
