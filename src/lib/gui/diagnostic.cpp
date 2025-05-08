@@ -17,7 +17,7 @@
 
 #include "diagnostic.h"
 
-#include "config/ConfigScopes.h"
+#include "config/Settings.h"
 #include "paths.h"
 
 #include <QApplication>
@@ -41,7 +41,7 @@ void restart()
   QApplication::exit();
 }
 
-void clearSettings(ConfigScopes &scopes, bool enableRestart)
+void clearSettings(Settings &scopes, bool enableRestart)
 {
   qDebug("clearing settings");
   scopes.clear();

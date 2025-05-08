@@ -25,7 +25,7 @@
 
 namespace deskflow::gui {
 
-class IConfigScopes
+class ISettings
 {
   using QSettingsProxy = deskflow::gui::proxy::QSettingsProxy;
 
@@ -37,14 +37,14 @@ public:
     User
   };
 
-  virtual ~IConfigScopes() = default;
+  virtual ~ISettings() = default;
 
-  virtual Scope activeScope() const = 0;
-  virtual void setActiveScope(Scope scope = Scope::User) = 0;
-  virtual bool isActiveScopeWritable() const = 0;
+  virtual Scope scope() const = 0;
+  virtual void setScope(Scope scope = Scope::User) = 0;
+  virtual bool isWritable() const = 0;
+  virtual QString fileName() const = 0;
   virtual QSettingsProxy &activeSettings() = 0;
   virtual const QSettingsProxy &activeSettings() const = 0;
-  virtual QString activeFilePath() const = 0;
 
   /**
    * @brief Signals to listeners that the settings that they should read.
@@ -63,18 +63,18 @@ public:
   /**
    * @brief Check a scope for a config value (default is current scope).
    */
-  virtual bool scopeContains(const QString &name, Scope scope = Scope::Current) const = 0;
+  virtual bool contains(const QString &name, Scope scope = Scope::Current) const = 0;
 
   /**
    * @brief Load a config value from a scope (default is current scope).
    */
   virtual QVariant
-  getFromScope(const QString &name, const QVariant &defaultValue = QVariant(), Scope scope = Scope::Current) const = 0;
+  get(const QString &name, const QVariant &defaultValue = QVariant(), Scope scope = Scope::Current) const = 0;
 
   /**
    * @brief Set a config value in a scope (default is current scope).
    */
-  virtual void setInScope(const QString &name, const QVariant &value, Scope scope = Scope::Current) = 0;
+  virtual void set(const QString &name, const QVariant &value, Scope scope = Scope::Current) = 0;
 };
 
 } // namespace deskflow::gui

@@ -19,7 +19,7 @@
 
 #include "ElevateMode.h"
 
-#include "gui/config/IConfigScopes.h"
+#include "gui/config/ISettings.h"
 
 #include <QString>
 
@@ -33,7 +33,7 @@ enum class ProcessMode
 
 class IAppConfig
 {
-  using IConfigScopes = deskflow::gui::IConfigScopes;
+  using ISettings = deskflow::gui::ISettings;
 
 public:
   virtual ~IAppConfig() = default;
@@ -43,7 +43,7 @@ public:
   // Getters
   //
 
-  virtual IConfigScopes &scopes() const = 0;
+  virtual ISettings &scopes() const = 0;
   virtual QString tlsCertPath() const = 0;
   virtual int tlsKeyLength() const = 0;
   virtual bool tlsEnabled() const = 0;
@@ -70,7 +70,7 @@ public:
   virtual bool enableService() const = 0;
   virtual bool closeToTray() const = 0;
   virtual bool isActiveScopeSystem() const = 0;
-  virtual bool isActiveScopeWritable() const = 0;
+  virtual bool isWritable() const = 0;
   virtual bool clientGroupChecked() const = 0;
   virtual bool enableDragAndDrop() const = 0;
   virtual bool enableLibei() const = 0;

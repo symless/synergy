@@ -17,10 +17,10 @@
 
 #pragma once
 
-#include "gui/config/ConfigScopes.h"
+#include "gui/config/Settings.h"
 
 namespace deskflow::gui::diagnostic {
 
-void clearSettings(ConfigScopes &scopes, bool enableRestart);
+void clearSettings(Settings &scopes, bool enableRestart);
 
 }

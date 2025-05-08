@@ -125,6 +125,16 @@ void migrateLegacyUserSettings(QSettings &newSettings)
 // QSettingsProxy
 //
 
+QSettings &QSettingsProxy::get() const
+{
+  return *m_pSettings;
+}
+
+bool QSettingsProxy::fileExists() const
+{
+  return QFile::exists(m_pSettings->fileName());
+}
+
 void QSettingsProxy::loadUser()
 {
   m_pSettings = std::make_unique<QSettings>();
@@ -159,6 +169,7 @@ void QSettingsProxy::loadSystem()
 
   QSettings::setPath(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, getSystemSettingsBaseDir());
 
+  m_pSettings.reset();
   m_pSettings =
       std::make_unique<QSettings>(QSettings::Format::IniFormat, QSettings::Scope::SystemScope, orgName, appName);
 
@@ -167,6 +178,21 @@ void QSettingsProxy::loadSystem()
 #endif // Q_OS_WIN
 
   qDebug() << "system settings filename:" << m_pSettings->fileName();
+}
+
+void QSettingsProxy::clear()
+{
+  m_pSettings->clear();
+}
+
+void QSettingsProxy::sync()
+{
+  m_pSettings->sync();
+}
+
+QString QSettingsProxy::fileName() const
+{
+  return m_pSettings->fileName();
 }
 
 int QSettingsProxy::beginReadArray(const QString &prefix)

@@ -21,23 +21,30 @@
 
 namespace deskflow::gui::proxy {
 
-QString getSystemSettingBaseDir();
-
+/**
+ * @brief Wrapper for faking settings in tests.
+ */
 class QSettingsProxy
 {
 public:
   virtual ~QSettingsProxy() = default;
 
+  //
+  // Custom methods
+  //
+
+  QSettings &get() const;
+  virtual bool fileExists() const;
   virtual void loadUser();
   virtual void loadSystem();
-  virtual void clear()
-  {
-    m_pSettings->clear();
-  }
-  virtual void sync()
-  {
-    m_pSettings->sync();
-  }
+
+  //
+  // QSettings methods
+  //
+
+  virtual void sync();
+  virtual void clear();
+  virtual QString fileName() const;
   virtual int beginReadArray(const QString &prefix);
   virtual void beginWriteArray(const QString &prefix);
   virtual void setArrayIndex(int i);
@@ -50,15 +57,6 @@ public:
   virtual void remove(const QString &key);
   virtual bool isWritable() const;
   virtual bool contains(const QString &key) const;
-  virtual QString fileName() const
-  {
-    return m_pSettings->fileName();
-  }
-
-  QSettings &get() const
-  {
-    return *m_pSettings;
-  }
 
 private:
   std::unique_ptr<QSettings> m_pSettings;

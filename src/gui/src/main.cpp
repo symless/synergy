@@ -27,7 +27,7 @@
 #include "common/version.h"
 #include "gui/Logger.h"
 #include "gui/config/AppConfig.h"
-#include "gui/config/ConfigScopes.h"
+#include "gui/config/Settings.h"
 #include "gui/constants.h"
 #include "gui/diagnostic.h"
 #include "gui/dotenv.h"
@@ -111,22 +111,22 @@ int main(int argc, char *argv[])
   }
 #endif
 
-  ConfigScopes configScopes;
+  Settings settings;
 
   // --no-reset
   QStringList arguments = QCoreApplication::arguments();
   const auto noReset = hasArg("--no-reset", arguments);
   const auto resetEnvVar = strToTrue(qEnvironmentVariable("SYNERGY_RESET_ALL"));
   if (resetEnvVar && !noReset) {
-    diagnostic::clearSettings(configScopes, false);
+    diagnostic::clearSettings(settings, false);
   }
 
-  AppConfig appConfig(configScopes);
+  AppConfig appConfig(settings);
 
   Logger::instance().setLogLevel(appConfig.logLevel());
 
   QObject::connect(
-      &configScopes, &ConfigScopes::saving, &appConfig, [&appConfig]() { appConfig.commit(); }, Qt::DirectConnection
+      &settings, &Settings::saving, &appConfig, [&appConfig]() { appConfig.commit(); }, Qt::DirectConnection
   );
 
   if (appConfig.wizardShouldRun()) {
@@ -137,10 +137,10 @@ int main(int argc, char *argv[])
       return 0;
     }
 
-    configScopes.save();
+    settings.save();
   }
 
-  MainWindow mainWindow(configScopes, appConfig);
+  MainWindow mainWindow(settings, appConfig);
 
   QObject::connect(&app, &DeskflowApplication::aboutToQuit, &mainWindow, &MainWindow::onAppAboutToQuit);
 

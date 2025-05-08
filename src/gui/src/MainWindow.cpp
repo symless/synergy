@@ -26,7 +26,7 @@
 #include "ServerConfigDialog.h"
 #include "common/constants.h"
 #include "gui/Logger.h"
-#include "gui/config/ConfigScopes.h"
+#include "gui/config/Settings.h"
 #include "gui/constants.h"
 #include "gui/core/CoreProcess.h"
 #include "gui/diagnostic.h"
@@ -75,8 +75,8 @@ const auto kLightIconFile = ":/icons/64x64/tray-light.png";
 const auto kDarkIconFile = ":/icons/64x64/tray-dark.png";
 #endif // Q_OS_MAC
 
-MainWindow::MainWindow(ConfigScopes &configScopes, AppConfig &appConfig)
-    : m_ConfigScopes(configScopes),
+MainWindow::MainWindow(Settings &configScopes, AppConfig &appConfig)
+    : m_Settings(configScopes),
       m_AppConfig(appConfig),
       m_ServerConfig(appConfig, *this),
       m_CoreProcess(appConfig, m_ServerConfig),
@@ -139,7 +139,7 @@ void MainWindow::saveWindow()
   qDebug("saving window size and position");
   m_AppConfig.setMainWindowSize(size());
   m_AppConfig.setMainWindowPosition(pos());
-  m_ConfigScopes.save();
+  m_Settings.save();
 }
 
 void MainWindow::setupControls()
@@ -190,7 +190,7 @@ void MainWindow::connectSlots()
 
   connect(this, &MainWindow::shown, this, &MainWindow::onShown, Qt::QueuedConnection);
 
-  connect(&m_ConfigScopes, &ConfigScopes::saving, this, &MainWindow::onConfigScopesSaving, Qt::DirectConnection);
+  connect(&m_Settings, &Settings::saving, this, &MainWindow::onSettingsSaving, Qt::DirectConnection);
 
   connect(&m_AppConfig, &AppConfig::tlsChanged, this, &MainWindow::onAppConfigTlsChanged);
 
@@ -253,7 +253,7 @@ void MainWindow::connectSlots()
 void MainWindow::onAppAboutToQuit()
 {
   if (m_SaveOnExit) {
-    m_ConfigScopes.save();
+    m_Settings.save();
   }
 }
 
@@ -262,7 +262,7 @@ void MainWindow::onCreated()
 
   setIcon();
 
-  m_ConfigScopes.signalReady();
+  m_Settings.signalReady();
 
   applyCloseToTray();
 
@@ -270,7 +270,7 @@ void MainWindow::onCreated()
   applyConfig();
   restoreWindow();
 
-  qDebug().noquote() << "active settings path:" << m_ConfigScopes.activeFilePath();
+  qDebug().noquote() << "active settings path:" << m_Settings.fileName();
 }
 
 void MainWindow::onShown()
@@ -286,7 +286,7 @@ void MainWindow::onShown()
   QTimer::singleShot(kCriticalDialogDelay, [] { messages::raiseCriticalDialog(); });
 }
 
-void MainWindow::onConfigScopesSaving()
+void MainWindow::onSettingsSaving()
 {
   m_ServerConfig.commit();
 }
@@ -380,7 +380,7 @@ void MainWindow::on_m_pActionClearSettings_triggered()
 
   m_Quitting = true;
   m_SaveOnExit = false;
-  diagnostic::clearSettings(m_ConfigScopes, true);
+  diagnostic::clearSettings(m_Settings, true);
 }
 
 bool MainWindow::on_m_pActionSave_triggered()
@@ -411,7 +411,7 @@ void MainWindow::on_m_pActionSettings_triggered()
   auto dialog = SettingsDialog(this, m_AppConfig, m_ServerConfig, m_CoreProcess);
 
   if (dialog.exec() == QDialog::Accepted) {
-    m_ConfigScopes.save();
+    m_Settings.save();
 
     applyConfig();
     applyCloseToTray();
@@ -467,14 +467,14 @@ void MainWindow::on_m_pRadioGroupServer_clicked(bool)
 {
   enableServer(true);
   enableClient(false);
-  m_ConfigScopes.save();
+  m_Settings.save();
 }
 
 void MainWindow::on_m_pRadioGroupClient_clicked(bool)
 {
   enableClient(true);
   enableServer(false);
-  m_ConfigScopes.save();
+  m_Settings.save();
 }
 
 void MainWindow::on_m_pButtonConnect_clicked()
@@ -610,7 +610,7 @@ void MainWindow::applyConfig()
   m_pLineEditHostname->setText(m_AppConfig.serverHostname());
   m_pLineEditClientIp->setText(m_ServerConfig.getClientAddress());
 
-  const auto writable = m_AppConfig.isActiveScopeWritable();
+  const auto writable = m_AppConfig.isWritable();
   m_pButtonConfigureServer->setEnabled(writable);
   m_pRadioGroupServer->setEnabled(writable);
   m_pRadioGroupClient->setEnabled(writable);
@@ -628,7 +628,7 @@ void MainWindow::saveSettings()
   m_AppConfig.setServerHostname(m_pLineEditHostname->text());
   m_ServerConfig.setClientAddress(m_pLineEditClientIp->text());
 
-  m_ConfigScopes.save();
+  m_Settings.save();
 }
 
 void MainWindow::setIcon()
@@ -767,7 +767,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     m_AppConfig.setShowCloseReminder(false);
   }
 
-  m_ConfigScopes.save();
+  m_Settings.save();
   qDebug("window should hide to tray");
 }
 
@@ -778,7 +778,7 @@ void MainWindow::showFirstConnectedMessage()
   }
 
   m_AppConfig.setStartedBefore(true);
-  m_ConfigScopes.save();
+  m_Settings.save();
 
   const auto isServer = m_CoreProcess.mode() == CoreMode::Server;
   messages::showFirstConnectedMessage(this, m_AppConfig.closeToTray(), m_AppConfig.enableService(), isServer);
@@ -792,7 +792,7 @@ void MainWindow::showDevThanksMessage()
   }
 
   m_AppConfig.setShowDevThanks(false);
-  m_ConfigScopes.save();
+  m_Settings.save();
 
   messages::showDevThanks(this, kAppName);
 }
@@ -866,7 +866,7 @@ void MainWindow::onCoreProcessStateChanged(CoreProcessState state)
   if (state == CoreProcessState::Started && !m_AppConfig.startedBefore()) {
     qDebug("recording that core has started");
     m_AppConfig.setStartedBefore(true);
-    m_ConfigScopes.save();
+    m_Settings.save();
     messages::showFirstServerStartMessage(this);
   }
 

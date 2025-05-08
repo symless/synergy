@@ -30,8 +30,8 @@
 #include "gui/TrayIcon.h"
 #include "gui/VersionChecker.h"
 #include "gui/config/AppConfig.h"
-#include "gui/config/ConfigScopes.h"
 #include "gui/config/ServerConfigDialogState.h"
+#include "gui/config/Settings.h"
 #include "gui/core/ClientConnection.h"
 #include "gui/core/CoreProcess.h"
 #include "gui/core/ServerConnection.h"
@@ -74,7 +74,7 @@ public:
   };
 
 public:
-  explicit MainWindow(deskflow::gui::ConfigScopes &configScopes, AppConfig &appConfig);
+  explicit MainWindow(deskflow::gui::Settings &configScopes, AppConfig &appConfig);
   ~MainWindow() override;
 
   void setVisible(bool visible) override;
@@ -105,7 +105,7 @@ private slots:
   //
   void onCreated();
   void onShown();
-  void onConfigScopesSaving();
+  void onSettingsSaving();
   void onAppConfigTlsChanged();
   void onAppConfigScreenNameChanged();
   void onAppConfigInvertConnection();
@@ -210,7 +210,7 @@ private:
   deskflow::gui::config::ServerConfigDialogState m_ServerConfigDialogState;
   bool m_SaveOnExit = true;
   deskflow::gui::core::WaylandWarnings m_WaylandWarnings;
-  deskflow::gui::ConfigScopes &m_ConfigScopes;
+  deskflow::gui::Settings &m_Settings;
   AppConfig &m_AppConfig;
   ServerConfig m_ServerConfig;
   deskflow::gui::CoreProcess m_CoreProcess;

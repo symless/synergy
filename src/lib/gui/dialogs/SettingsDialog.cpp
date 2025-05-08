@@ -109,7 +109,7 @@ void SettingsDialog::on_m_pRadioSystemScope_toggled(bool checked)
   loadFromConfig();
   updateControls();
 
-  if (!m_appConfig.isActiveScopeWritable()) {
+  if (!m_appConfig.isWritable()) {
     if (m_appConfig.isActiveScopeSystem()) {
       m_pRadioSystemScope->setText("All users (read-only)");
     } else {
@@ -239,14 +239,14 @@ void SettingsDialog::updateTlsControls()
     m_pComboBoxTlsKeyLength->setCurrentIndex(m_pComboBoxTlsKeyLength->findText(keyLengthText));
   }
 
-  m_pCheckBoxEnableTls->setEnabled(m_appConfig.isActiveScopeWritable());
+  m_pCheckBoxEnableTls->setEnabled(m_appConfig.isWritable());
   m_pCheckBoxEnableTls->setChecked(m_tlsUtility.isEnabled());
   m_pLineEditTlsCertPath->setText(m_appConfig.tlsCertPath());
 }
 
 void SettingsDialog::updateTlsControlsEnabled()
 {
-  const auto writable = m_appConfig.isActiveScopeWritable();
+  const auto writable = m_appConfig.isWritable();
   const auto clientMode = m_appConfig.clientGroupChecked();
   const auto tlsChecked = m_pCheckBoxEnableTls->isChecked();
 
@@ -288,7 +288,7 @@ void SettingsDialog::updateControls()
   m_pGroupService->setTitle("Service (Windows only)");
 #endif
 
-  const bool writable = m_appConfig.isActiveScopeWritable();
+  const bool writable = m_appConfig.isWritable();
   const bool serviceChecked = m_pCheckBoxServiceEnabled->isChecked();
   const bool logToFile = m_pCheckBoxLogToFile->isChecked();
 

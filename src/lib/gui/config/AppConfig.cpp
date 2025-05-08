@@ -18,7 +18,7 @@
 
 #include "AppConfig.h"
 
-#include "ConfigScopes.h"
+#include "Settings.h"
 
 #include <QApplication>
 #include <QMessageBox>
@@ -98,8 +98,8 @@ const char *const AppConfig::m_SettingsName[] = {
     "enableLibei",
 };
 
-AppConfig::AppConfig(deskflow::gui::IConfigScopes &scopes, std::shared_ptr<Deps> deps)
-    : m_Scopes(scopes),
+AppConfig::AppConfig(deskflow::gui::ISettings &scopes, std::shared_ptr<Deps> deps)
+    : m_Settings(scopes),
       m_pDeps(deps),
       m_ScreenName(deps->hostname()),
       m_TlsCertPath(deps->defaultTlsCertPath())
@@ -195,7 +195,7 @@ void AppConfig::commit()
   setInAllScopes(kServerGroupChecked, m_ServerGroupChecked);
   setInAllScopes(kEnableUpdateCheck, m_EnableUpdateCheck);
 
-  if (isActiveScopeWritable()) {
+  if (isWritable()) {
     setInCurrentScope(kScreenName, m_ScreenName);
     setInCurrentScope(kPort, m_Port);
     setInCurrentScope(kInterface, m_Interface);
@@ -241,10 +241,9 @@ void AppConfig::determineScope()
 
   // first, try to determine if the system scope should be used according to the
   // user scope...
-  if (m_Scopes.scopeContains(settingName(Setting::kLoadSystemSettings), ConfigScopes::Scope::User)) {
+  if (m_Settings.contains(settingName(Setting::kLoadSystemSettings), Settings::Scope::User)) {
     auto loadFromSystemScope =
-        m_Scopes
-            .getFromScope(settingName(Setting::kLoadSystemSettings), m_LoadFromSystemScope, ConfigScopes::Scope::User)
+        m_Settings.get(settingName(Setting::kLoadSystemSettings), m_LoadFromSystemScope, Settings::Scope::User)
             .toBool();
     if (loadFromSystemScope) {
       qDebug("user settings indicates system scope should be used");
@@ -257,7 +256,7 @@ void AppConfig::determineScope()
   // ...failing that, check the system scope instead to see if an arbitrary
   // required setting is present. if it is, then we can assume that the system
   // scope should be used.
-  else if (m_Scopes.scopeContains(settingName(Setting::kScreenName), ConfigScopes::Scope::System)) {
+  else if (m_Settings.contains(settingName(Setting::kScreenName), Settings::Scope::System)) {
     qDebug("system settings scope contains screen name, using system scope");
     setLoadFromSystemScope(true);
   }
@@ -267,7 +266,7 @@ void AppConfig::recallElevateMode()
 {
   using enum Setting;
 
-  if (!m_Scopes.scopeContains(settingName(kElevateMode))) {
+  if (!m_Settings.contains(settingName(kElevateMode))) {
     qDebug("elevate mode not set yet, skipping");
     return;
   }
@@ -290,39 +289,39 @@ QString AppConfig::settingName(Setting name)
 template <typename T> void AppConfig::setInCurrentScope(Setting name, const std::optional<T> &value)
 {
   if (value.has_value()) {
-    m_Scopes.setInScope(settingName(name), value.value());
+    m_Settings.set(settingName(name), value.value());
   }
 }
 
 template <typename T> void AppConfig::setInCurrentScope(Setting name, T value)
 {
-  m_Scopes.setInScope(settingName(name), value);
+  m_Settings.set(settingName(name), value);
 }
 
 template <typename T> void AppConfig::setInAllScopes(Setting name, const std::optional<T> &value)
 {
   if (value.has_value()) {
-    m_Scopes.setInScope(settingName(name), value.value(), ConfigScopes::Scope::User);
-    m_Scopes.setInScope(settingName(name), value.value(), ConfigScopes::Scope::System);
+    m_Settings.set(settingName(name), value.value(), Settings::Scope::User);
+    m_Settings.set(settingName(name), value.value(), Settings::Scope::System);
   }
 }
 
 template <typename T> void AppConfig::setInAllScopes(Setting name, T value)
 {
-  m_Scopes.setInScope(settingName(name), value, ConfigScopes::Scope::User);
-  m_Scopes.setInScope(settingName(name), value, ConfigScopes::Scope::System);
+  m_Settings.set(settingName(name), value, Settings::Scope::User);
+  m_Settings.set(settingName(name), value, Settings::Scope::System);
 }
 
 QVariant AppConfig::getFromCurrentScope(Setting name, const QVariant &defaultValue) const
 {
-  return m_Scopes.getFromScope(settingName(name), defaultValue);
+  return m_Settings.get(settingName(name), defaultValue);
 }
 
 template <typename T>
 std::optional<T> AppConfig::getFromCurrentScope(Setting name, std::function<T(const QVariant &)> toType) const
 {
-  if (m_Scopes.scopeContains(settingName(name))) {
-    return toType(m_Scopes.getFromScope(settingName(name)));
+  if (m_Settings.contains(settingName(name))) {
+    return toType(m_Settings.get(settingName(name)));
   } else {
     return std::nullopt;
   }
@@ -330,27 +329,27 @@ std::optional<T> AppConfig::getFromCurrentScope(Setting name, std::function<T(co
 
 QVariant AppConfig::findInAllScopes(Setting name, const QVariant &defaultValue) const
 {
-  using enum ConfigScopes::Scope;
+  using enum Settings::Scope;
 
   QVariant result(defaultValue);
   QString setting(settingName(name));
 
-  if (m_Scopes.scopeContains(setting)) {
-    result = m_Scopes.getFromScope(setting, defaultValue);
-  } else if (m_Scopes.activeScope() == System) {
-    if (m_Scopes.scopeContains(setting, User)) {
-      result = m_Scopes.getFromScope(setting, defaultValue, User);
+  if (m_Settings.contains(setting)) {
+    result = m_Settings.get(setting, defaultValue);
+  } else if (m_Settings.scope() == System) {
+    if (m_Settings.contains(setting, User)) {
+      result = m_Settings.get(setting, defaultValue, User);
     }
-  } else if (m_Scopes.scopeContains(setting, System)) {
-    result = m_Scopes.getFromScope(setting, defaultValue, System);
+  } else if (m_Settings.contains(setting, System)) {
+    result = m_Settings.get(setting, defaultValue, System);
   }
 
   return result;
 }
 
-void AppConfig::loadScope(ConfigScopes::Scope scope)
+void AppConfig::loadScope(Settings::Scope scope)
 {
-  using enum ConfigScopes::Scope;
+  using enum Settings::Scope;
 
   switch (scope) {
   case User:
@@ -365,19 +364,19 @@ void AppConfig::loadScope(ConfigScopes::Scope scope)
     qFatal("invalid scope");
   }
 
-  if (m_Scopes.activeScope() == scope) {
+  if (m_Settings.scope() == scope) {
     qDebug("already in required scope, skipping");
     return;
   }
 
-  m_Scopes.setActiveScope(scope);
+  m_Settings.setScope(scope);
 
-  qDebug("active scope file path: %s", qPrintable(m_Scopes.activeFilePath()));
+  qDebug("active scope file path: %s", qPrintable(m_Settings.fileName()));
 
   // only signal ready if there is at least one setting in the required scope.
   // this prevents the current settings from being set back to default.
-  if (m_Scopes.scopeContains(settingName(Setting::kScreenName), m_Scopes.activeScope())) {
-    m_Scopes.signalReady();
+  if (m_Settings.contains(settingName(Setting::kScreenName), m_Settings.scope())) {
+    m_Settings.signalReady();
   } else {
     qDebug("no screen name in scope, skipping");
   }
@@ -385,7 +384,7 @@ void AppConfig::loadScope(ConfigScopes::Scope scope)
 
 void AppConfig::setLoadFromSystemScope(bool value)
 {
-  using enum ConfigScopes::Scope;
+  using enum Settings::Scope;
 
   if (value) {
     loadScope(System);
@@ -397,14 +396,14 @@ void AppConfig::setLoadFromSystemScope(bool value)
   m_LoadFromSystemScope = value;
 }
 
-bool AppConfig::isActiveScopeWritable() const
+bool AppConfig::isWritable() const
 {
-  return m_Scopes.isActiveScopeWritable();
+  return m_Settings.isWritable();
 }
 
 bool AppConfig::isActiveScopeSystem() const
 {
-  return m_Scopes.activeScope() == ConfigScopes::Scope::System;
+  return m_Settings.scope() == Settings::Scope::System;
 }
 
 QString AppConfig::logDir() const
@@ -427,9 +426,9 @@ void AppConfig::persistLogDir() const
 // Begin getters
 ///////////////////////////////////////////////////////////////////////////////
 
-IConfigScopes &AppConfig::scopes() const
+ISettings &AppConfig::scopes() const
 {
-  return m_Scopes;
+  return m_Settings;
 }
 
 const QString &AppConfig::screenName() const

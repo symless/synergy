@@ -20,7 +20,7 @@
 
 #include "ElevateMode.h"
 #include "IAppConfig.h"
-#include "IConfigScopes.h"
+#include "ISettings.h"
 #include "gui/paths.h"
 
 #include <QDir>
@@ -69,7 +69,7 @@ const bool kDefaultEnableLibei = false;
 class AppConfig : public QObject, public deskflow::gui::IAppConfig
 {
   using ProcessMode = deskflow::gui::ProcessMode;
-  using IConfigScopes = deskflow::gui::IConfigScopes;
+  using ISettings = deskflow::gui::ISettings;
 
   Q_OBJECT
 
@@ -138,7 +138,7 @@ public:
     }
   };
 
-  explicit AppConfig(IConfigScopes &scopes, std::shared_ptr<Deps> deps = std::make_shared<Deps>());
+  explicit AppConfig(ISettings &scopes, std::shared_ptr<Deps> deps = std::make_shared<Deps>());
 
   void determineScope();
 
@@ -152,7 +152,7 @@ public:
   // Getters (overrides)
   //
 
-  IConfigScopes &scopes() const override;
+  ISettings &scopes() const override;
   ProcessMode processMode() const override;
   ElevateMode elevateMode() const override;
   bool tlsEnabled() const override;
@@ -174,7 +174,7 @@ public:
   const QString &configFile() const override;
   const QString &networkInterface() const override;
   const QString &serverHostname() const override;
-  bool isActiveScopeWritable() const override;
+  bool isWritable() const override;
   bool isActiveScopeSystem() const override;
   int logLevel() const override;
   bool autoHide() const override;
@@ -298,7 +298,7 @@ private:
 
   /// @brief This method loads config from specified scope
   /// @param [in] scope which should be loaded.
-  void loadScope(IConfigScopes::Scope scope);
+  void loadScope(ISettings::Scope scope);
 
   /**
    * @brief Gets a TLS certificate path based on the user's profile dir.
@@ -354,7 +354,7 @@ private:
    */
   bool m_TlsChanged = false;
 
-  deskflow::gui::IConfigScopes &m_Scopes;
+  deskflow::gui::ISettings &m_Settings;
   std::shared_ptr<Deps> m_pDeps;
   QString m_ScreenName;
   QString m_TlsCertPath;
