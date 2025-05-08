@@ -20,7 +20,6 @@
 #include "QSettingsProxyMock.h"
 #include "gui/config/ISettings.h"
 
-#include "gmock/gmock.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
