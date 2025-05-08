@@ -43,8 +43,9 @@ public:
   virtual void setScope(Scope scope) = 0;
   virtual bool isWritable() const = 0;
   virtual QString fileName() const = 0;
-  virtual QSettingsProxy &getProxy() = 0;
-  virtual const QSettingsProxy &getProxy() const = 0;
+  virtual QSettingsProxy &getActiveSettings() = 0;
+  virtual QSettingsProxy &getSystemSettings() = 0;
+  virtual QSettingsProxy &getUserSettings() = 0;
 
   /**
    * @brief Signals to listeners that the settings that they should read.

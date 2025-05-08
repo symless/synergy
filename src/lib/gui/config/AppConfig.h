@@ -277,7 +277,7 @@ private:
 
   /// @brief This method loads config from specified scope
   /// @param [in] scope which should be loaded.
-  void loadScope(ISettings::Scope scope);
+  void setScope(ISettings::Scope scope);
 
   /**
    * @brief Gets a TLS certificate path based on the user's profile dir.

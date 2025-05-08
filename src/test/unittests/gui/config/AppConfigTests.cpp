@@ -40,8 +40,9 @@ public:
   MOCK_METHOD(Scope, scope, (), (const, override));
   MOCK_METHOD(void, setScope, (Scope scope), (override));
   MOCK_METHOD(bool, isWritable, (), (const, override));
-  MOCK_METHOD(const QSettingsProxy &, getProxy, (), (const, override));
-  MOCK_METHOD(QSettingsProxy &, getProxy, (), (override));
+  MOCK_METHOD(QSettingsProxy &, getActiveSettings, (), (override));
+  MOCK_METHOD(QSettingsProxy &, getSystemSettings, (), (override));
+  MOCK_METHOD(QSettingsProxy &, getUserSettings, (), (override));
   MOCK_METHOD(void, save, (bool), (override));
   MOCK_METHOD(QString, fileName, (), (const, override));
 };

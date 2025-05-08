@@ -44,47 +44,52 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
 {
   qDebug("loading settings");
 
-  auto system = m_deps->makeSettingsProxy();
-  system->loadSystem();
+  m_pSystemSettings = m_deps->makeSettingsProxy();
+  m_pSystemSettings->loadSystem();
 
-  auto user = m_deps->makeSettingsProxy();
-  user->loadUser();
+  m_pUserSettings = m_deps->makeSettingsProxy();
+  m_pUserSettings->loadUser();
 
-  if (system->fileExists()) {
+  if (m_pSystemSettings->fileExists()) {
     qDebug("loaded existing system settings");
-    m_pSettingsProxy = system;
+    m_pActiveSettings = m_pSystemSettings;
     m_scope = Scope::System;
     return;
   }
 
-  if (user->fileExists()) {
+  if (m_pUserSettings->fileExists()) {
     qDebug("loaded existing user settings");
   } else {
     qDebug("defaulting to user new settings");
   }
 
-  m_pSettingsProxy = user;
+  m_pActiveSettings = m_pUserSettings;
   m_scope = Scope::User;
 }
 
-QSettingsProxy &Settings::getProxy()
+QSettingsProxy &Settings::getActiveSettings()
 {
-  return *m_pSettingsProxy.get();
+  return *m_pActiveSettings.get();
 }
 
-const QSettingsProxy &Settings::getProxy() const
+QSettingsProxy &Settings::getSystemSettings()
 {
-  return *m_pSettingsProxy.get();
+  return *m_pSystemSettings.get();
+}
+
+QSettingsProxy &Settings::getUserSettings()
+{
+  return *m_pUserSettings.get();
 }
 
 QString Settings::fileName() const
 {
-  return m_pSettingsProxy->fileName();
+  return m_pActiveSettings->fileName();
 }
 
 void Settings::clear()
 {
-  m_pSettingsProxy->clear();
+  m_pActiveSettings->clear();
 }
 
 void Settings::signalReady()
@@ -100,12 +105,12 @@ void Settings::save(bool emitSaving)
   }
 
   qDebug("writing config to filesystem");
-  m_pSettingsProxy->sync();
+  m_pActiveSettings->sync();
 }
 
 bool Settings::isWritable() const
 {
-  return m_pSettingsProxy->isWritable();
+  return m_pActiveSettings->isWritable();
 }
 
 void Settings::setScope(Settings::Scope scope)
@@ -114,15 +119,15 @@ void Settings::setScope(Settings::Scope scope)
     return;
   }
 
+  m_scope = scope;
+
   if (scope == Scope::User) {
-    m_pSettingsProxy->loadUser();
+    m_pActiveSettings = m_pUserSettings;
   } else if (scope == Scope::System) {
-    m_pSettingsProxy->loadSystem();
+    m_pActiveSettings = m_pSystemSettings;
   } else {
     qFatal("invalid scope");
   }
-
-  m_scope = scope;
 }
 
 Settings::Scope Settings::scope() const
@@ -132,17 +137,17 @@ Settings::Scope Settings::scope() const
 
 bool Settings::contains(const QString &name) const
 {
-  return m_pSettingsProxy->contains(name);
+  return m_pActiveSettings->contains(name);
 }
 
 QVariant Settings::get(const QString &name, const QVariant &defaultValue) const
 {
-  return m_pSettingsProxy->value(name, defaultValue);
+  return m_pActiveSettings->value(name, defaultValue);
 }
 
 void Settings::set(const QString &name, const QVariant &value)
 {
-  m_pSettingsProxy->setValue(name, value);
+  m_pActiveSettings->setValue(name, value);
 }
 
 } // namespace deskflow::gui

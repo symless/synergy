@@ -170,24 +170,28 @@ void AppConfig::recallScreenName()
 void AppConfig::commit()
 {
   using enum Setting;
+  using enum deskflow::gui::ISettings::Scope;
 
   qDebug("committing app config");
 
   // Only write the system scope setting to system config; if the user config is loaded it's either
   // because the system config doesn't exist or because the system config specifies to use the user config.
-  deskflow::gui::proxy::QSettingsProxy systemSettings;
-  systemSettings.loadSystem();
-  if (systemSettings.fileExists()) {
-    systemSettings.setValue(settingName(kLoadSystemSettings), m_LoadFromSystemScope);
-    systemSettings.sync();
+  if ((m_Settings.scope() == System) && isWritable()) {
+    set(kLoadSystemSettings, m_LoadFromSystemScope);
+  } else if (m_Settings.scope() == User) {
+    qDebug("writing scope setting to to system config");
+    auto &systemProxy = m_Settings.getSystemSettings();
+    if (systemProxy.fileExists() && systemProxy.isWritable()) {
+      systemProxy.setValue(settingName(kLoadSystemSettings), m_LoadFromSystemScope);
+      systemProxy.sync();
+    }
   }
 
-  set(kWizardLastRun, m_WizardLastRun);
-  set(kClientGroupChecked, m_ClientGroupChecked);
-  set(kServerGroupChecked, m_ServerGroupChecked);
-  set(kEnableUpdateCheck, m_EnableUpdateCheck);
-
   if (isWritable()) {
+    set(kWizardLastRun, m_WizardLastRun);
+    set(kClientGroupChecked, m_ClientGroupChecked);
+    set(kServerGroupChecked, m_ServerGroupChecked);
+    set(kEnableUpdateCheck, m_EnableUpdateCheck);
     set(kScreenName, m_ScreenName);
     set(kPort, m_Port);
     set(kInterface, m_Interface);
@@ -276,7 +280,7 @@ template <typename T> std::optional<T> AppConfig::get(Setting name, std::functio
   }
 }
 
-void AppConfig::loadScope(Settings::Scope scope)
+void AppConfig::setScope(Settings::Scope scope)
 {
   using enum Settings::Scope;
 
@@ -314,9 +318,9 @@ void AppConfig::setLoadFromSystemScope(bool value)
   using enum Settings::Scope;
 
   if (value) {
-    loadScope(System);
+    setScope(System);
   } else {
-    loadScope(User);
+    setScope(User);
   }
 
   // set after loading scope since it may have been overridden.

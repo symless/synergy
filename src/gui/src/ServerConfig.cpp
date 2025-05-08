@@ -548,5 +548,5 @@ QString ServerConfig::getClientAddress() const
 
 QSettingsProxy &ServerConfig::settings()
 {
-  return m_pAppConfig->settings().getProxy();
+  return m_pAppConfig->settings().getActiveSettings();
 }
