@@ -106,8 +106,8 @@ void QSettingsProxy::loadSystem()
 {
   m_pSettings.reset();
   m_pSettings = std::make_unique<QSettings>(
-      QSettings::Format::IniFormat, QSettings::Scope::SystemScope, QCoreApplication::organizationName(),
-      QCoreApplication::applicationName()
+      QSettings::Format::IniFormat, QSettings::Scope::SystemScope, //
+      QCoreApplication::organizationName(), QCoreApplication::applicationName()
   );
 
 #if defined(Q_OS_WIN)
