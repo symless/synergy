@@ -202,4 +202,14 @@ bool QSettingsProxy::contains(const QString &key) const
   return m_pSettings->contains(key);
 }
 
+void QSettingsProxy::copyFrom(QSettingsProxy &other)
+{
+  QStringList keys = other.get().allKeys();
+  for (const QString &key : keys) {
+    QVariant value = other.get().value(key);
+    m_pSettings->setValue(key, value);
+    logVerbose(QString("copying setting '%1' = '%2'").arg(key, value.toString()));
+  }
+}
+
 } // namespace deskflow::gui::proxy

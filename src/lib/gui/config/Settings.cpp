@@ -131,8 +131,16 @@ void Settings::setScope(Settings::Scope scope)
   m_scope = scope;
 
   if (scope == Scope::User) {
+    if (!m_pUserSettings->fileExists()) {
+      qDebug("user settings file is new, copying system settings file");
+      m_pUserSettings->copyFrom(*m_pSystemSettings);
+    }
     m_pActiveSettings = m_pUserSettings;
   } else if (scope == Scope::System) {
+    if (!m_pSystemSettings->fileExists()) {
+      qDebug("system settings file is new, copying user settings file");
+      m_pSystemSettings->copyFrom(*m_pUserSettings);
+    }
     m_pActiveSettings = m_pSystemSettings;
   } else {
     qFatal("invalid scope");
