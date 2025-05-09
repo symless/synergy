@@ -112,6 +112,14 @@ int main(int argc, char *argv[])
 #endif
 
   Settings settings;
+  if (settings.isUnavailable()) {
+    QMessageBox::critical(
+        NULL, DESKFLOW_APP_NAME,
+        "No settings exist and settings are not writable. "
+        "Please check your file permissions or contact your system administrator."
+    );
+    return 1;
+  }
 
   // --no-reset
   QStringList arguments = QCoreApplication::arguments();
