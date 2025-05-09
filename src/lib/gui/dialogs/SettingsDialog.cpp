@@ -284,28 +284,17 @@ void SettingsDialog::updateControls()
   const auto allUsersReadOnly = QStringLiteral("All users (read-only)");
   const auto currentUserReadOnly = QStringLiteral("Current user (read-only)");
 
-  // When the current scope is not writable, it shouldn't be possible change scope.
-  // Otherwise, where either other scope is not writable, disable that scope's radio button.
-  if (!writable) {
+  const auto &systemSettings = m_appConfig.settings().getSystemSettings();
+  const auto &userSettings = m_appConfig.settings().getUserSettings();
+
+  if (!systemSettings.isWritable()) {
+    m_pRadioSystemScope->setText(allUsersReadOnly);
     m_pRadioSystemScope->setEnabled(false);
     m_pRadioUserScope->setEnabled(false);
-    if (m_appConfig.isActiveScopeSystem()) {
-      m_pRadioSystemScope->setText(allUsersReadOnly);
-    } else {
-      m_pRadioUserScope->setText(currentUserReadOnly);
-    }
-  } else if (m_appConfig.settings().scope() == User) {
-    auto &systemSettings = m_appConfig.settings().getSystemSettings();
-    if (!systemSettings.isWritable()) {
-      m_pRadioSystemScope->setEnabled(false);
-      m_pRadioSystemScope->setText(allUsersReadOnly);
-    }
-  } else {
-    auto &userSettings = m_appConfig.settings().getUserSettings();
-    if (!userSettings.isWritable()) {
-      m_pRadioUserScope->setEnabled(false);
-      m_pRadioUserScope->setText(currentUserReadOnly);
-    }
+  }
+
+  if (!userSettings.isWritable()) {
+    m_pRadioUserScope->setText(currentUserReadOnly);
   }
 
   m_pRadioSystemScope->setToolTip(m_appConfig.settings().getSystemSettings().fileName());
