@@ -58,6 +58,11 @@ public:
   QSettingsProxy &getUserSettings() override;
   QSettingsProxy &getLockedSettings() override;
 
+  /**
+   * @returns true if no settings exist and settings are not writable.
+   */
+  bool isUnavailable() const;
+
 signals:
   void ready();
   void saving();

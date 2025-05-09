@@ -159,4 +159,9 @@ void Settings::set(const QString &name, const QVariant &value)
   m_pActiveSettings->setValue(name, value);
 }
 
+bool Settings::isUnavailable() const
+{
+  return !m_pUserSettings->fileExists() && !m_pSystemSettings->fileExists() && !m_pUserSettings->isWritable();
+}
+
 } // namespace deskflow::gui
