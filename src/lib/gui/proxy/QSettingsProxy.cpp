@@ -202,10 +202,15 @@ bool QSettingsProxy::contains(const QString &key) const
   return m_pSettings->contains(key);
 }
 
-void QSettingsProxy::copyFrom(const QSettingsProxy &other)
+void QSettingsProxy::copyFrom(const QSettingsProxy &other, bool overwrite)
 {
   QStringList keys = other.get().allKeys();
   for (const QString &key : keys) {
+    if (m_pSettings->contains(key) && !overwrite) {
+      qDebug("skipping existing key '%s'", qPrintable(key));
+      continue;
+    }
+
     QVariant value = other.get().value(key);
     m_pSettings->setValue(key, value);
     logVerbose(QString("copying setting '%1' = '%2'").arg(key, value.toString()));

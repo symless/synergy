@@ -1083,6 +1083,7 @@ void MainWindow::checkForUpdates()
   if (!m_AppConfig.enableUpdateCheck().has_value()) {
     m_AppConfig.setEnableUpdateCheck(messages::showUpdateCheckOption(this));
     m_AppConfig.commit();
+    m_Settings.save();
   }
 
   const QString fakeVersion = qEnvironmentVariable("SYNERGY_FAKE_REMOTE_VERSION");

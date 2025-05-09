@@ -130,17 +130,14 @@ void Settings::setScope(Settings::Scope scope)
 
   m_scope = scope;
 
+  // When switching scopes, we need to copy the settings from the other scope,
+  // but the default is not to overwrite the other scope (which is useful because
+  // the other scope may contain settings that we want to keep).
   if (scope == Scope::User) {
-    if (!m_pUserSettings->fileExists()) {
-      qDebug("user settings file is new, copying system settings file");
-      m_pUserSettings->copyFrom(*m_pSystemSettings);
-    }
+    m_pUserSettings->copyFrom(*m_pSystemSettings);
     m_pActiveSettings = m_pUserSettings;
   } else if (scope == Scope::System) {
-    if (!m_pSystemSettings->fileExists()) {
-      qDebug("system settings file is new, copying user settings file");
-      m_pSystemSettings->copyFrom(*m_pUserSettings);
-    }
+    m_pSystemSettings->copyFrom(*m_pUserSettings);
     m_pActiveSettings = m_pSystemSettings;
   } else {
     qFatal("invalid scope");

@@ -38,7 +38,7 @@ public:
   virtual void loadUser();
   virtual void loadSystem();
   virtual void loadLocked();
-  virtual void copyFrom(const QSettingsProxy &other);
+  virtual void copyFrom(const QSettingsProxy &other, bool overwrite = false);
 
   //
   // QSettings methods
