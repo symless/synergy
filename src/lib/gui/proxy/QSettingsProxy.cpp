@@ -202,7 +202,7 @@ bool QSettingsProxy::contains(const QString &key) const
   return m_pSettings->contains(key);
 }
 
-void QSettingsProxy::copyFrom(QSettingsProxy &other)
+void QSettingsProxy::copyFrom(const QSettingsProxy &other)
 {
   QStringList keys = other.get().allKeys();
   for (const QString &key : keys) {
