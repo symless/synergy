@@ -374,14 +374,17 @@ void SettingsDialog::updateControls()
 
   auto &locked = m_appConfig.settings().getLockedSettings();
   if (locked.contains("cryptoEnabled")) {
+    qDebug("locking tls");
     m_pCheckBoxEnableTls->setEnabled(false);
   }
   if (locked.contains("tlsCertPath")) {
+    qDebug("locking tls cert path");
     m_pLineEditTlsCertPath->setEnabled(false);
     m_pPushButtonTlsCertPath->setEnabled(false);
     m_pPushButtonTlsRegenCert->setEnabled(false);
   }
   if (locked.contains("tlsKeyLength")) {
+    qDebug("locking tls key length");
     m_pComboBoxTlsKeyLength->setEnabled(false);
   }
 }
