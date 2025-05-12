@@ -55,11 +55,7 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
     qDebug("loaded existing system settings");
     m_pActiveSettings = m_pSystemSettings;
   } else {
-    if (m_pUserSettings->fileExists()) {
-      qDebug("loaded existing user settings");
-    } else {
-      qDebug("defaulting to user new settings");
-    }
+    qDebug("loaded existing user settings");
     m_pActiveSettings = m_pUserSettings;
   }
 
@@ -139,7 +135,7 @@ void Settings::set(const QString &name, const QVariant &value)
 
 bool Settings::isUnavailable() const
 {
-  return !m_pUserSettings->fileExists() && !m_pSystemSettings->fileExists() && !m_pUserSettings->isWritable();
+  return !m_pUserSettings->isWritable() && !m_pSystemSettings->fileExists();
 }
 
 } // namespace deskflow::gui

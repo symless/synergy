@@ -43,8 +43,7 @@ void restart()
 
 void clearSettings(Settings &settings, bool enableRestart)
 {
-  qDebug("clearing settings");
-
+  qDebug("clearing user settings");
   auto &userSettings = settings.getUserSettings();
   if (userSettings.isWritable()) {
     userSettings.clear();
@@ -53,6 +52,7 @@ void clearSettings(Settings &settings, bool enableRestart)
     qCritical("user settings are not writable");
   }
 
+  qDebug("clearing system settings");
   auto &systemSettings = settings.getSystemSettings();
   if (systemSettings.isWritable()) {
     systemSettings.clear();
