@@ -48,11 +48,11 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
 
   m_pSystemSettings = m_deps->makeSettingsProxy();
   m_pSystemSettings->loadSystem();
-  logVerbose(tr("system settings keys: %1").arg(m_pSystemSettings->get().allKeys().join(", ")));
+  logVerbose(tr("system settings keys: %1").arg(m_pSystemSettings->allKeysCSV()));
 
   m_pUserSettings = m_deps->makeSettingsProxy();
   m_pUserSettings->loadUser();
-  logVerbose(tr("user settings keys: %1").arg(m_pUserSettings->get().allKeys().join(", ")));
+  logVerbose(tr("user settings keys: %1").arg(m_pUserSettings->allKeysCSV()));
 
   if (m_pSystemSettings->value(kSystemScopeSetting).toBool()) {
     qDebug("loaded existing system settings");
@@ -69,7 +69,7 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
 
   m_pLockedSettings = m_deps->makeSettingsProxy();
   m_pLockedSettings->loadLocked();
-  logVerbose(tr("locked settings keys: %1").arg(m_pLockedSettings->get().allKeys().join(", ")));
+  logVerbose(tr("locked settings keys: %1").arg(m_pLockedSettings->allKeysCSV()));
   if (m_pLockedSettings->fileExists()) {
     qDebug("loaded locked settings");
     m_pActiveSettings->copyFrom(*m_pLockedSettings);

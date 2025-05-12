@@ -227,4 +227,10 @@ void QSettingsProxy::copyFrom(const QSettingsProxy &other)
   }
 }
 
+QString QSettingsProxy::allKeysCSV() const
+{
+  QStringList keys = m_pSettings->allKeys();
+  return keys.isEmpty() ? "[none]" : keys.join(", ");
+}
+
 } // namespace deskflow::gui::proxy

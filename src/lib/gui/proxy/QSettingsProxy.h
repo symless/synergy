@@ -39,6 +39,7 @@ public:
   virtual void loadSystem();
   virtual void loadLocked();
   virtual void copyFrom(const QSettingsProxy &other);
+  virtual QString allKeysCSV() const;
 
   //
   // QSettings methods
