@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
       return 0;
     }
 
-    settings.save();
+    settings.sync();
   }
 
   MainWindow mainWindow(settings, appConfig);

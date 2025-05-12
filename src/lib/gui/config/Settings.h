@@ -43,7 +43,7 @@ public:
   explicit Settings(std::shared_ptr<Deps> deps = std::make_shared<Deps>());
   ~Settings() override = default;
 
-  void save() override;
+  void sync() override;
   void clear();
   void signalReady() override;
   bool contains(const QString &name) const override;

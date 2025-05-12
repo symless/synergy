@@ -102,12 +102,17 @@ void Settings::signalReady()
   emit ready();
 }
 
-void Settings::save()
+void Settings::sync()
 {
   qDebug() << "emitting save signal";
   emit saving();
 
-  qDebug().noquote() << "saving settings to:" << m_pActiveSettings->fileName();
+  if (m_pActiveSettings->isWritable()) {
+    qDebug().noquote() << "saving settings to:" << m_pActiveSettings->fileName();
+  } else {
+    qDebug() << "settings will not be saved, not writable";
+  }
+
   m_pActiveSettings->sync();
 }
 

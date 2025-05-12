@@ -64,7 +64,7 @@ TEST(SettingsTests, save_callsSync)
 
   EXPECT_CALL(*deps->m_pMockSettings, sync()).Times(1);
 
-  settings.save();
+  settings.sync();
 }
 
 TEST(SettingsTests, isWritable_returnsTrue)

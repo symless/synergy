@@ -58,7 +58,7 @@ public:
    * @param emitSaving Whether to emit the saving signal which typically
    * triggers listeners to write their current state to the config.
    */
-  virtual void save() = 0;
+  virtual void sync() = 0;
 
   /**
    * @brief Check a scope for a config value (default is current scope).
