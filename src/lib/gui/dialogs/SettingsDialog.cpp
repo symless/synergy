@@ -57,7 +57,6 @@ SettingsDialog::SettingsDialog(
   m_pTabWidget->setCurrentIndex(0);
 
   loadFromConfig();
-  m_wasOriginallySystemScope = m_appConfig.isSystemScope();
   updateControls();
 
   m_pScreenNameError = new validators::ValidationError(this);
