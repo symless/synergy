@@ -57,7 +57,6 @@ private slots:
 
 private:
   void accept() override;
-  void reject() override;
   void showEvent(QShowEvent *event) override;
   bool isClientMode() const;
   void updateTlsControls();

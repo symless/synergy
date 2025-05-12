@@ -69,7 +69,7 @@ public:
   virtual bool autoHide() const = 0;
   virtual bool enableService() const = 0;
   virtual bool closeToTray() const = 0;
-  virtual bool isActiveScopeSystem() const = 0;
+  virtual bool isSystemScope() const = 0;
   virtual bool isWritable() const = 0;
   virtual bool clientGroupChecked() const = 0;
   virtual bool enableDragAndDrop() const = 0;
@@ -79,7 +79,7 @@ public:
   // Setters
   //
 
-  virtual void setLoadFromSystemScope(bool loadFromSystemScope) = 0;
+  virtual void setIsSystemScope(bool loadFromSystemScope) = 0;
   virtual void setScreenName(const QString &screenName) = 0;
   virtual void setPort(int port) = 0;
   virtual void setNetworkInterface(const QString &networkInterface) = 0;

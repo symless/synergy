@@ -18,8 +18,6 @@
 
 #include "AppConfig.h"
 
-#include "Settings.h"
-
 #include <QApplication>
 #include <QMessageBox>
 #include <QPushButton>
@@ -105,7 +103,7 @@ AppConfig::AppConfig(deskflow::gui::ISettings &settings, std::shared_ptr<Deps> d
       m_TlsCertPath(deps->defaultTlsCertPath())
 {
   qDebug("determining config scope");
-  setLoadFromSystemScope(m_Settings.get(settingName(Setting::kLoadSystemSettings)).toBool());
+  setIsSystemScope(m_Settings.get(settingName(Setting::kLoadSystemSettings)).toBool());
 
   recall();
 }
@@ -184,19 +182,6 @@ void AppConfig::commit()
   using enum deskflow::gui::ISettings::Scope;
 
   qDebug("committing app config");
-
-  // Only write the system scope setting to system config; if the user config is loaded it's either
-  // because the system config doesn't exist or because the system config specifies to use the user config.
-  if ((m_Settings.scope() == System) && isWritable()) {
-    set(kLoadSystemSettings, m_LoadFromSystemScope);
-  } else if (m_Settings.scope() == User) {
-    qDebug("writing scope setting to to system config");
-    auto &systemProxy = m_Settings.getSystemSettings();
-    if (systemProxy.fileExists() && systemProxy.isWritable()) {
-      systemProxy.setValue(settingName(kLoadSystemSettings), m_LoadFromSystemScope);
-      systemProxy.sync();
-    }
-  }
 
   if (isWritable()) {
     set(kWizardLastRun, m_WizardLastRun);
@@ -291,61 +276,9 @@ template <typename T> std::optional<T> AppConfig::get(Setting name, std::functio
   }
 }
 
-void AppConfig::setScope(Settings::Scope scope)
-{
-  using enum Settings::Scope;
-
-  switch (scope) {
-  case User:
-    qDebug("loading user settings scope");
-    break;
-
-  case System:
-    qDebug("loading system settings scope");
-    break;
-
-  default:
-    qFatal("invalid scope");
-  }
-
-  if (m_Settings.scope() == scope) {
-    qDebug("already in required scope, skipping");
-    return;
-  }
-
-  m_Settings.setScope(scope);
-
-  // HACK: only signal ready if there is at least one setting in the required scope.
-  // this prevents the current settings from being set back to default.
-  if (m_Settings.contains(settingName(Setting::kScreenName))) {
-    m_Settings.signalReady();
-  } else {
-    qDebug("no screen name in scope, skipping");
-  }
-}
-
-void AppConfig::setLoadFromSystemScope(bool value)
-{
-  using enum Settings::Scope;
-
-  if (value) {
-    setScope(System);
-  } else {
-    setScope(User);
-  }
-
-  // set after loading scope since it may have been overridden.
-  m_LoadFromSystemScope = value;
-}
-
 bool AppConfig::isWritable() const
 {
   return m_Settings.isWritable();
-}
-
-bool AppConfig::isActiveScopeSystem() const
-{
-  return m_Settings.scope() == Settings::Scope::System;
 }
 
 QString AppConfig::logDir() const
@@ -558,6 +491,11 @@ bool AppConfig::enableLibei() const
   return m_EnableLibei;
 }
 
+bool AppConfig::isSystemScope() const
+{
+  return m_IsSystemScope;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // End getters
 ///////////////////////////////////////////////////////////////////////////////
@@ -745,6 +683,11 @@ void AppConfig::setEnableDragAndDrop(bool value)
 void AppConfig::setEnableLibei(bool value)
 {
   m_EnableLibei = value;
+}
+
+void AppConfig::setIsSystemScope(bool value)
+{
+  m_IsSystemScope = value;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
