@@ -55,6 +55,11 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
     qDebug("loaded existing system settings");
     m_pActiveSettings = m_pSystemSettings;
   } else {
+    // Remove system scope setting from user settings, which will exist on configs from older
+    // versions before we moved the setting to system scope. If we were to leave it in, then
+    // this would cause a bug in the GUI, since the settings dialog checks this value in all scopes.
+    m_pUserSettings->remove(kSystemScopeSetting);
+
     qDebug("loaded existing user settings");
     m_pActiveSettings = m_pUserSettings;
   }
