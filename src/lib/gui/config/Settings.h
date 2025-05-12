@@ -63,7 +63,7 @@ public:
 
 signals:
   void ready();
-  void saving();
+  void beforeSync();
 
 private:
   std::shared_ptr<Deps> m_deps;

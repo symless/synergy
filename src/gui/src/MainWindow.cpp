@@ -190,7 +190,7 @@ void MainWindow::connectSlots()
 
   connect(this, &MainWindow::shown, this, &MainWindow::onShown, Qt::QueuedConnection);
 
-  connect(&m_Settings, &Settings::saving, this, &MainWindow::onSettingsSaving, Qt::DirectConnection);
+  connect(&m_Settings, &Settings::beforeSync, this, &MainWindow::onSettingsSaving, Qt::DirectConnection);
 
   connect(&m_AppConfig, &AppConfig::tlsChanged, this, &MainWindow::onAppConfigTlsChanged);
 
