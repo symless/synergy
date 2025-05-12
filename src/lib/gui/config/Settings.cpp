@@ -28,6 +28,24 @@ namespace deskflow::gui {
 using namespace proxy;
 
 //
+// Free functions
+//
+
+QString getScopeName(Settings::Scope scope)
+{
+  switch (scope) {
+  case Settings::Scope::None:
+    return "None";
+  case Settings::Scope::System:
+    return "System";
+  case Settings::Scope::User:
+    return "User";
+  default:
+    return "Unknown";
+  }
+}
+
+//
 // Settings::Deps
 //
 
@@ -67,7 +85,9 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
   m_pLockedSettings = m_deps->makeSettingsProxy();
   m_pLockedSettings->loadLocked();
   if (m_pLockedSettings->fileExists()) {
-    qDebug("loaded locked settings");
+    qDebug("loaded locked settings, overriding settings");
+    m_pSystemSettings->copyFrom(*m_pLockedSettings, true);
+    m_pUserSettings->copyFrom(*m_pLockedSettings, true);
   }
 }
 
@@ -128,19 +148,20 @@ void Settings::setScope(Settings::Scope scope)
     return;
   }
 
+  qDebug() << "switching settings scope from" << getScopeName(m_scope) << "to" << getScopeName(scope);
   m_scope = scope;
 
   // When switching scopes, we need to copy the settings from the other scope,
   // but the default is not to overwrite the other scope (which is useful because
   // the other scope may contain settings that we want to keep).
-  if (scope == Scope::User) {
+  if (scope == Scope::User && m_scope == Scope::System && m_pSystemSettings->fileExists()) {
+    qDebug() << "copying settings from system to user scope";
     m_pUserSettings->copyFrom(*m_pSystemSettings);
     m_pActiveSettings = m_pUserSettings;
-  } else if (scope == Scope::System) {
+  } else if (scope == Scope::System && m_scope == Scope::User && m_pUserSettings->fileExists()) {
+    qDebug() << "copying settings from user to system scope";
     m_pSystemSettings->copyFrom(*m_pUserSettings);
     m_pActiveSettings = m_pSystemSettings;
-  } else {
-    qFatal("invalid scope");
   }
 }
 

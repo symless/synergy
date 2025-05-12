@@ -26,6 +26,9 @@
 #include <QSettings>
 #include <memory>
 
+const auto existsText = QStringLiteral("(exists)");
+const auto notExistsText = QStringLiteral("(does not exist)");
+
 namespace deskflow::gui::proxy {
 
 const auto kLegacyOrgDomain = "http-symless-com";
@@ -99,7 +102,8 @@ void QSettingsProxy::loadUser()
   migrateLegacyUserSettings(*m_pSettings);
 #endif // Q_OS_MAC
 
-  qDebug() << "user settings filename:" << m_pSettings->fileName();
+  qDebug().noquote() << "user settings filename:" << m_pSettings->fileName()
+                     << (fileExists() ? existsText : notExistsText);
 }
 
 void QSettingsProxy::loadSystem()
@@ -110,7 +114,8 @@ void QSettingsProxy::loadSystem()
       QCoreApplication::organizationName(), QCoreApplication::applicationName()
   );
 
-  qDebug() << "system settings filename:" << m_pSettings->fileName();
+  qDebug().noquote() << "system settings filename:" << m_pSettings->fileName()
+                     << (fileExists() ? existsText : notExistsText);
 }
 
 void QSettingsProxy::loadLocked()
@@ -124,7 +129,8 @@ void QSettingsProxy::loadLocked()
       QCoreApplication::organizationName(), appName
   );
 
-  qDebug() << "locked settings filename:" << m_pSettings->fileName();
+  qDebug().noquote() << "locked settings filename:" << m_pSettings->fileName()
+                     << (fileExists() ? existsText : notExistsText);
 }
 
 void QSettingsProxy::clear()
@@ -207,7 +213,7 @@ void QSettingsProxy::copyFrom(const QSettingsProxy &other, bool overwrite)
   QStringList keys = other.get().allKeys();
   for (const QString &key : keys) {
     if (m_pSettings->contains(key) && !overwrite) {
-      qDebug("skipping existing key '%s'", qPrintable(key));
+      logVerbose(QString("setting '%1' already exists, skipping").arg(key));
       continue;
     }
 
