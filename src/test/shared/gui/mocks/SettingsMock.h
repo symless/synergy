@@ -44,7 +44,7 @@ public:
   MOCK_METHOD(QSettingsProxy &, getSystemSettings, (), (override));
   MOCK_METHOD(QSettingsProxy &, getUserSettings, (), (override));
   MOCK_METHOD(QSettingsProxy &, getLockedSettings, (), (override));
-  MOCK_METHOD(void, save, (bool), (override));
+  MOCK_METHOD(void, save, (), (override));
   MOCK_METHOD(QString, fileName, (), (const, override));
 
   testing::NiceMock<QSettingsProxyMock> m_mockSettings;

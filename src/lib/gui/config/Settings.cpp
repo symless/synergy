@@ -102,14 +102,11 @@ void Settings::signalReady()
   emit ready();
 }
 
-void Settings::save(bool emitSaving)
+void Settings::save()
 {
-  if (emitSaving) {
-    qDebug("emitting config saving signal");
-    emit saving();
-  }
+  emit saving();
 
-  qDebug("writing config to filesystem");
+  qDebug() << "saving settings to:" << m_pActiveSettings->fileName();
   m_pActiveSettings->sync();
 }
 
