@@ -17,6 +17,7 @@
 
 #include "Settings.h"
 
+#include "constants.h"
 #include "proxy/QSettingsProxy.h"
 
 #include <QCoreApplication>
@@ -50,10 +51,9 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
   m_pUserSettings = m_deps->makeSettingsProxy();
   m_pUserSettings->loadUser();
 
-  if (m_pSystemSettings->fileExists()) {
+  if (m_pSystemSettings->value(kSystemScopeSetting).toBool()) {
     qDebug("loaded existing system settings");
     m_pActiveSettings = m_pSystemSettings;
-    m_scope = Scope::System;
   } else {
     if (m_pUserSettings->fileExists()) {
       qDebug("loaded existing user settings");
@@ -61,13 +61,13 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
       qDebug("defaulting to user new settings");
     }
     m_pActiveSettings = m_pUserSettings;
-    m_scope = Scope::User;
   }
 
   m_pLockedSettings = m_deps->makeSettingsProxy();
   m_pLockedSettings->loadLocked();
   if (m_pLockedSettings->fileExists()) {
     qDebug("loaded locked settings");
+    m_pActiveSettings->copyFrom(*m_pLockedSettings);
   }
 }
 
@@ -120,33 +120,6 @@ void Settings::save(bool emitSaving)
 bool Settings::isWritable() const
 {
   return m_pActiveSettings->isWritable();
-}
-
-void Settings::setScope(Settings::Scope scope)
-{
-  if (scope == m_scope) {
-    return;
-  }
-
-  m_scope = scope;
-
-  // When switching scopes, we need to copy the settings from the other scope,
-  // but the default is not to overwrite the other scope (which is useful because
-  // the other scope may contain settings that we want to keep).
-  if (scope == Scope::User) {
-    m_pUserSettings->copyFrom(*m_pSystemSettings);
-    m_pActiveSettings = m_pUserSettings;
-  } else if (scope == Scope::System) {
-    m_pSystemSettings->copyFrom(*m_pUserSettings);
-    m_pActiveSettings = m_pSystemSettings;
-  } else {
-    qFatal("invalid scope");
-  }
-}
-
-Settings::Scope Settings::scope() const
-{
-  return m_scope;
 }
 
 bool Settings::contains(const QString &name) const

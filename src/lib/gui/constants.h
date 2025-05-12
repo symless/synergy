@@ -37,4 +37,6 @@ const auto kUrlDownload = QString("%1/download?%2").arg(kUrlApp, kUrlSourceQuery
 const auto kUrlGnomeTrayFix = "https://extensions.gnome.org/extension/2890/tray-icons-reloaded/";
 #endif
 
+const auto kSystemScopeSetting = "loadFromSystemScope";
+
 } // namespace deskflow::gui

@@ -17,6 +17,7 @@
  */
 
 #include "AppConfig.h"
+#include "constants.h"
 
 #include <QApplication>
 #include <QMessageBox>
@@ -67,7 +68,7 @@ const char *const AppConfig::m_SettingsName[] = {
     "", // 16 = activationHasRun, obsolete
     "", // 17 = minimizeToTray, obsolete
     "", // 18 = ActivateEmail, obsolete
-    "loadFromSystemScope",
+    kSystemScopeSetting,
     "groupServerChecked", // kServerGroupChecked
     "useExternalConfig",
     "configFile",

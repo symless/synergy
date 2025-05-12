@@ -39,8 +39,6 @@ public:
 
   virtual ~ISettings() = default;
 
-  virtual Scope scope() const = 0;
-  virtual void setScope(Scope scope) = 0;
   virtual bool isWritable() const = 0;
   virtual QString fileName() const = 0;
   virtual QSettingsProxy &getActiveSettings() = 0;

@@ -39,8 +39,6 @@ public:
   MOCK_METHOD(bool, contains, (const QString &name), (const, override));
   MOCK_METHOD(QVariant, get, (const QString &name, const QVariant &defaultValue), (const, override));
   MOCK_METHOD(void, set, (const QString &name, const QVariant &value), (override));
-  MOCK_METHOD(Scope, scope, (), (const, override));
-  MOCK_METHOD(void, setScope, (Scope scope), (override));
   MOCK_METHOD(bool, isWritable, (), (const, override));
   MOCK_METHOD(QSettingsProxy &, getActiveSettings, (), (override));
   MOCK_METHOD(QSettingsProxy &, getSystemSettings, (), (override));

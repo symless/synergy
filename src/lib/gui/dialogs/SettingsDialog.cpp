@@ -17,6 +17,7 @@
  */
 
 #include "SettingsDialog.h"
+#include "constants.h"
 
 #ifdef DESKFLOW_GUI_HOOK_HEADER
 #include DESKFLOW_GUI_HOOK_HEADER
@@ -115,9 +116,15 @@ void SettingsDialog::on_m_pRadioSystemScope_toggled(bool checked)
   );
 
   if (result == QMessageBox::Yes) {
-    QSettingsProxy systemSettings;
+    auto &systemSettings = m_appConfig.settings().getSystemSettings();
     systemSettings.loadSystem();
-    systemSettings.setValue("loadFromSystemScope", checked);
+
+    if (!systemSettings.fileExists()) {
+      qDebug("system settings are new, copying user settings");
+      systemSettings.copyFrom(m_appConfig.settings().getUserSettings());
+    }
+
+    systemSettings.setValue(kSystemScopeSetting, checked);
     systemSettings.sync();
 
     // This seems rather clumsy and un-elegant at first glance, but actually when you consider
@@ -301,6 +308,12 @@ void SettingsDialog::updateControls()
 
   const auto &systemSettings = m_appConfig.settings().getSystemSettings();
   const auto &userSettings = m_appConfig.settings().getUserSettings();
+
+  const auto saveButton = m_pButtonBox->button(QDialogButtonBox::Save);
+  if (!saveButton) {
+    qFatal("save button not found");
+  }
+  saveButton->setEnabled(writable);
 
   if (!systemSettings.isWritable()) {
     m_pRadioSystemScope->setText(allUsersReadOnly);

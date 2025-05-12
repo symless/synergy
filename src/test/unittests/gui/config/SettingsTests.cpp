@@ -67,17 +67,6 @@ TEST(SettingsTests, save_callsSync)
   settings.save();
 }
 
-TEST(SettingsTests, setScope_setsValue)
-{
-  auto deps = std::make_shared<NiceMock<DepsMock>>();
-
-  Settings settings(deps);
-
-  settings.setScope(Settings::Scope::System);
-
-  EXPECT_EQ(settings.scope(), Settings::Scope::System);
-}
-
 TEST(SettingsTests, isWritable_returnsTrue)
 {
   auto deps = std::make_shared<NiceMock<DepsMock>>();
