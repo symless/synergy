@@ -107,7 +107,7 @@ void Settings::save()
   qDebug() << "emitting save signal";
   emit saving();
 
-  qDebug() << "saving settings to:" << m_pActiveSettings->fileName();
+  qDebug().noquote() << "saving settings to:" << m_pActiveSettings->fileName();
   m_pActiveSettings->sync();
 }
 
