@@ -132,7 +132,11 @@ void SettingsDialog::on_m_pRadioSystemScope_toggled(bool checked)
     deskflow::gui::diagnostic::restart();
   } else {
     m_pRadioSystemScope->blockSignals(true);
-    m_pRadioSystemScope->setChecked(!checked);
+    if (checked) {
+      m_pRadioUserScope->setChecked(true);
+    } else {
+      m_pRadioSystemScope->setChecked(true);
+    }
     m_pRadioSystemScope->blockSignals(false);
   }
 }
