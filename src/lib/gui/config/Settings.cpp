@@ -104,6 +104,7 @@ void Settings::signalReady()
 
 void Settings::save()
 {
+  qDebug() << "emitting save signal";
   emit saving();
 
   qDebug() << "saving settings to:" << m_pActiveSettings->fileName();
