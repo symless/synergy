@@ -44,11 +44,22 @@ void restart()
 void clearSettings(Settings &settings, bool enableRestart)
 {
   qDebug("clearing settings");
-  settings.clear();
 
-  // save but do not emit saving signal which will prevent the current state of
-  // the app config and server configs from being applied.
-  settings.save(false);
+  auto &userSettings = settings.getUserSettings();
+  if (userSettings.isWritable()) {
+    userSettings.clear();
+    userSettings.sync();
+  } else {
+    qCritical("user settings are not writable");
+  }
+
+  auto &systemSettings = settings.getSystemSettings();
+  if (systemSettings.isWritable()) {
+    systemSettings.clear();
+    systemSettings.sync();
+  } else {
+    qCritical("system settings are not writable");
+  }
 
   auto configDir = paths::configDir();
   qDebug("removing config dir: %s", qPrintable(configDir.absolutePath()));

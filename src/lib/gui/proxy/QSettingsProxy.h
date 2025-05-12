@@ -59,6 +59,7 @@ public:
   virtual void remove(const QString &key);
   virtual bool isWritable() const;
   virtual bool contains(const QString &key) const;
+  virtual bool isIniFormat() const;
 
 private:
   std::unique_ptr<QSettings> m_pSettings;

@@ -87,7 +87,16 @@ QSettings &QSettingsProxy::get() const
 
 bool QSettingsProxy::fileExists() const
 {
+  if (!isIniFormat()) {
+    qCritical("settings format is not ini, cannot check for file existence");
+  }
+
   return QFile::exists(m_pSettings->fileName());
+}
+
+bool QSettingsProxy::isIniFormat() const
+{
+  return m_pSettings->format() == QSettings::IniFormat;
 }
 
 void QSettingsProxy::loadUser()
@@ -101,8 +110,9 @@ void QSettingsProxy::loadUser()
   migrateLegacyUserSettings(*m_pSettings);
 #endif // Q_OS_MAC
 
-  qDebug().noquote() << "user settings filename:" << m_pSettings->fileName()
-                     << (fileExists() ? existsText : notExistsText);
+  // Do not show exists/not exists message for user settings, as it is always created,
+  // and native settings do not always have a file that exists on disk.
+  qDebug().noquote() << "user settings filename:" << m_pSettings->fileName();
 }
 
 void QSettingsProxy::loadSystem()
