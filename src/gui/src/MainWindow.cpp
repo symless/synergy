@@ -75,6 +75,29 @@ const auto kLightIconFile = ":/icons/64x64/tray-light.png";
 const auto kDarkIconFile = ":/icons/64x64/tray-dark.png";
 #endif // Q_OS_MAC
 
+//
+// Free functions
+//
+
+QString formatFingerprint(const QString &fingerprint)
+{
+  const auto parts = fingerprint.split(':');
+
+  const auto partsPerLine = 8;
+  QStringList lines;
+  for (int i = 0; i < parts.size(); i += partsPerLine) {
+    QStringList lineParts = parts.mid(i, partsPerLine);
+    QString line = lineParts.join(' ');
+    lines.append(line);
+  }
+
+  return lines.join('\n');
+}
+
+//
+// MainWindow
+//
+
 MainWindow::MainWindow(Settings &configScopes, AppConfig &appConfig)
     : m_Settings(configScopes),
       m_AppConfig(appConfig),
@@ -465,12 +488,12 @@ void MainWindow::on_m_pLabelFingerprint_linkActivated(const QString &)
       this, "TLS fingerprint",
       QString(
           "<p>This is the TLS fingerprint of this computer:</p>"
-          "<code>%1</code>"
+          "<pre>%1</pre>"
           "<p>Compare this fingerprint to the one on your client's screen. "
           "If the two don't match exactly, then it's probably not this server "
           "you're connecting to (it could be a malicious user).</p>"
       )
-          .arg(fingerprint.insert(fingerprint.length() / 2, "\n"))
+          .arg(formatFingerprint(fingerprint))
   );
 }
 
@@ -735,7 +758,7 @@ void MainWindow::checkFingerprint(const QString &line)
             "<p>Do you want to trust this fingerprint for future "
             "connections? If you don't, a connection cannot be made.</p>"
         )
-            .arg(fingerprint.insert(fingerprint.length() / 2, "\n")),
+            .arg(formatFingerprint(fingerprint)),
         QMessageBox::Yes | QMessageBox::No
     );
 
