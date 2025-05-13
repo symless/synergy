@@ -100,47 +100,6 @@ void SettingsDialog::on_m_pCheckBoxEnableTls_clicked(bool)
   updateTlsControlsEnabled();
 }
 
-void SettingsDialog::on_m_pRadioSystemScope_toggled(bool checked)
-{
-  const auto userScope = QStringLiteral("current user");
-  const auto systemScope = QStringLiteral("all users");
-  const auto from = checked ? userScope : systemScope;
-  const auto to = checked ? systemScope : userScope;
-  const auto result = QMessageBox::information(
-      this, tr("Switch settings profile"),
-      tr("Switching settings from %1 to %2 requires %3 to restart.\n\n"
-         "Would you like to restart the application now?")
-          .arg(from, to, qApp->applicationName()),
-      QMessageBox::Yes | QMessageBox::Cancel
-  );
-
-  if (result == QMessageBox::Yes) {
-    auto &systemSettings = m_appConfig.settings().getSystemSettings();
-    systemSettings.loadSystem();
-
-    if (systemSettings.isEmpty()) {
-      qDebug("system settings are empty, copying user settings");
-      systemSettings.copyFrom(m_appConfig.settings().getUserSettings());
-    }
-
-    systemSettings.setValue(kSystemScopeSetting, checked);
-    systemSettings.sync();
-
-    // This seems rather clumsy and un-elegant at first glance, but actually when you consider
-    // the complexities of hot-switching the settings scope while the application is running,
-    // restarting the applocation is actually the lowest maintenance solution.
-    deskflow::gui::diagnostic::restart();
-  } else {
-    m_pRadioSystemScope->blockSignals(true);
-    if (checked) {
-      m_pRadioUserScope->setChecked(true);
-    } else {
-      m_pRadioSystemScope->setChecked(true);
-    }
-    m_pRadioSystemScope->blockSignals(false);
-  }
-}
-
 void SettingsDialog::on_m_pPushButtonTlsCertPath_clicked()
 {
   QString fileName = QFileDialog::getSaveFileName(
