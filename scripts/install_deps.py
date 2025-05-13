@@ -109,11 +109,6 @@ def parse_args(is_ci):
 
     if env.is_windows():
         parser.add_argument(
-            "--skip-vcpkg",
-            action="store_true",
-            help="Windows only: Do not install vcpkg dependencies",
-        )
-        parser.add_argument(
             "--skip-elevated",
             action="store_true",
             help="Windows only: Do not run elevated command",
@@ -171,7 +166,7 @@ def install(args):
     if not args.skip_system:
         deps = Dependencies(args)
         deps.install()
-        
+
     if not args.skip_meson:
         if args.subprojects:
             for subproject in args.meson_no_system or []:
