@@ -504,7 +504,7 @@ macro(configure_windows_libs)
 endmacro()
 
 macro(configure_windows_openssl)
-  set(OPENSSL_ROOT_DIR ${PROJECT_SOURCE_DIR}/vcpkg_installed/x64-windows)
+  set(OPENSSL_ROOT_DIR ${PROJECT_SOURCE_DIR}/vcpkg/installed/x64-windows)
   set(OPENSSL_EXE_DIR ${OPENSSL_ROOT_DIR}/tools/openssl)
 
   if(EXISTS ${OPENSSL_EXE_DIR})
