@@ -66,10 +66,7 @@ enum
   kDeskflowMouseScrollAxisY = 'saxy'
 };
 
-enum
-{
-  kCarbonLoopWaitTimeout = 10
-};
+static const double kCarbonLoopWaitTimeout = 10.0;
 
 int getSecureInputEventPID();
 String getProcessName(int pid);
