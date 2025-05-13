@@ -504,7 +504,7 @@ macro(configure_windows_libs)
 endmacro()
 
 macro(configure_windows_openssl)
-  if ("${VCPKG_ROOT}" STREQUAL "")
+  if ("$ENV{VCPKG_ROOT}" STREQUAL "")
     message(FATAL_ERROR "VCPKG_ROOT environment variable not set")
   endif()
 
