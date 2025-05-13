@@ -131,7 +131,8 @@ jobs:
           --preset=windows-release `
           -DUSE_TOMLPLUSPLUS=OFF `
           -DUSE_CLI11=OFF `
-          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}
+          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} `
+          ${{ steps.vcpkg.outputs.vcpkg-cmake-config }}
 
       - name: Build
         run: cmake --build build -j8
