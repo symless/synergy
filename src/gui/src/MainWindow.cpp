@@ -867,7 +867,10 @@ void MainWindow::onCoreProcessStateChanged(CoreProcessState state)
     qDebug("recording that core has started");
     m_AppConfig.setStartedBefore(true);
     m_Settings.sync();
-    messages::showFirstServerStartMessage(this);
+
+    if (m_CoreProcess.mode() == CoreMode::Server) {
+      messages::showFirstServerStartMessage(this);
+    }
   }
 
   if (state == CoreProcessState::Started || state == CoreProcessState::Starting ||
