@@ -350,6 +350,7 @@ void MainWindow::on_m_pActionStartCore_triggered()
 {
   m_ClientConnection.setShowMessage();
   m_CoreProcess.start();
+  updateLocalFingerprint();
 }
 
 void MainWindow::on_m_pActionStopCore_triggered()
@@ -459,7 +460,18 @@ void MainWindow::on_m_pLabelComputerName_linkActivated(const QString &)
 
 void MainWindow::on_m_pLabelFingerprint_linkActivated(const QString &)
 {
-  QMessageBox::information(this, "SSL/TLS fingerprint", TlsFingerprint::local().readFirst());
+  auto fingerprint = TlsFingerprint::local().readFirst();
+  QMessageBox::information(
+      this, "TLS fingerprint",
+      QString(
+          "<p>This is the TLS fingerprint of this computer:</p>"
+          "<code>%1</code>"
+          "<p>Compare this fingerprint to the one on your client's screen. "
+          "If the two don't match exactly, then it's probably not this server "
+          "you're connecting to (it could be a malicious user).</p>"
+      )
+          .arg(fingerprint.insert(fingerprint.length() / 2, "\n"))
+  );
 }
 
 void MainWindow::on_m_pRadioGroupServer_clicked(bool)
@@ -716,14 +728,14 @@ void MainWindow::checkFingerprint(const QString &line)
         QString(
             "<p>You are connecting to a server.</p>"
             "<p>Here is it's TLS fingerprint:</p>"
-            "<p>%1</p>"
+            "<code>%1</code>"
             "<p>Compare this fingerprint to the one on your server's screen. "
             "If the two don't match exactly, then it's probably not the server "
             "you're expecting (it could be a malicious user).</p>"
             "<p>Do you want to trust this fingerprint for future "
             "connections? If you don't, a connection cannot be made.</p>"
         )
-            .arg(fingerprint),
+            .arg(fingerprint.insert(fingerprint.length() / 2, "\n")),
         QMessageBox::Yes | QMessageBox::No
     );
 
@@ -1047,6 +1059,7 @@ void MainWindow::enableServer(bool enable)
     if (!m_AppConfig.startedBefore()) {
       qDebug("auto-starting core server for first time");
       m_CoreProcess.start();
+      updateLocalFingerprint();
     }
   }
 }
@@ -1100,6 +1113,7 @@ void MainWindow::autoStartCore()
 {
   if (m_AppConfig.startedBefore()) {
     m_CoreProcess.start();
+    updateLocalFingerprint();
   }
 }
 
