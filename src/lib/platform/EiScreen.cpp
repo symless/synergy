@@ -789,6 +789,7 @@ void EiScreen::handleSystemEvent(const Event &sysevent, void *)
       }
       break;
     case EI_EVENT_DISCONNECT:
+#if HAVE_LIBPORTAL_INPUTCAPTURE
       // We're using libei which emulates the various seat/device remove events
       // so by the time we get here our EiScreen should be in a neutral state.
       //
@@ -805,6 +806,7 @@ void EiScreen::handleSystemEvent(const Event &sysevent, void *)
           portal_input_capture_ = new PortalInputCapture(this, this->events_);
         }
       }
+#endif // HAVE_LIBPORTAL_INPUTCAPTURE
       this->handle_portal_session_closed(sysevent, nullptr);
       break;
     case EI_EVENT_DEVICE_PAUSED:
