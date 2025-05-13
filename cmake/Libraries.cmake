@@ -504,7 +504,11 @@ macro(configure_windows_libs)
 endmacro()
 
 macro(configure_windows_openssl)
-  set(OPENSSL_ROOT_DIR ${PROJECT_SOURCE_DIR}/vcpkg/installed/x64-windows)
+  if ("${VCPKG_ROOT}" STREQUAL "")
+    message(FATAL_ERROR "VCPKG_ROOT environment variable not set")
+  endif()
+
+  set(OPENSSL_ROOT_DIR $ENV{VCPKG_ROOT}/installed/x64-windows)
   set(OPENSSL_EXE_DIR ${OPENSSL_ROOT_DIR}/tools/openssl)
 
   if(EXISTS ${OPENSSL_EXE_DIR})
