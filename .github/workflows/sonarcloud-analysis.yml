@@ -13,6 +13,8 @@ jobs:
     container: debian:trixie-slim
     timeout-minutes: 20
 
+    if: vars.SONARCLOUD_ENABLED
+
     env:
       CPU_CORE_COUNT: 16
 
