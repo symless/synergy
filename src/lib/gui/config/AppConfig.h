@@ -173,7 +173,7 @@ public:
   const QString &networkInterface() const override;
   const QString &serverHostname() const override;
   bool isWritable() const override;
-  bool isActiveScopeSystem() const override;
+  bool isSystemScope() const override;
   int logLevel() const override;
   bool autoHide() const override;
   bool enableService() const override;
@@ -246,7 +246,7 @@ public:
   ///             True - This will set the variable and load the global scope
   ///             settings. False - This will set the variable and load the user
   ///             scope settings.
-  void setLoadFromSystemScope(bool value) override;
+  void setIsSystemScope(bool value) override;
 
 private:
   static QString settingName(AppConfig::Setting name);
@@ -274,10 +274,6 @@ private:
   template <typename T> void set(AppConfig::Setting name, T value);
 
   QVariant get(AppConfig::Setting name, const QVariant &defaultValue = QVariant()) const;
-
-  /// @brief This method loads config from specified scope
-  /// @param [in] scope which should be loaded.
-  void setScope(ISettings::Scope scope);
 
   /**
    * @brief Gets a TLS certificate path based on the user's profile dir.
@@ -321,7 +317,7 @@ private:
   std::optional<QSize> m_MainWindowSize;
   std::optional<QPoint> m_MainWindowPosition;
   bool m_ShowDevThanks = deskflow::gui::kDefaultShowDevThanks;
-  bool m_LoadFromSystemScope = false;
+  bool m_IsSystemScope = false;
   bool m_ShowCloseReminder = true;
   std::optional<bool> m_EnableUpdateCheck;
   bool m_EnableDragAndDrop = false;

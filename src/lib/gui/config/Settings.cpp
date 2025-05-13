@@ -17,6 +17,8 @@
 
 #include "Settings.h"
 
+#include "Logger.h"
+#include "constants.h"
 #include "proxy/QSettingsProxy.h"
 
 #include <QCoreApplication>
@@ -46,28 +48,31 @@ Settings::Settings(std::shared_ptr<Deps> deps) : m_deps(deps)
 
   m_pSystemSettings = m_deps->makeSettingsProxy();
   m_pSystemSettings->loadSystem();
+  logVerbose(tr("system settings keys: %1").arg(m_pSystemSettings->allKeysCSV()));
 
   m_pUserSettings = m_deps->makeSettingsProxy();
   m_pUserSettings->loadUser();
+  logVerbose(tr("user settings keys: %1").arg(m_pUserSettings->allKeysCSV()));
 
-  if (m_pSystemSettings->fileExists()) {
+  if (m_pSystemSettings->value(kSystemScopeSetting).toBool()) {
     qDebug("loaded existing system settings");
     m_pActiveSettings = m_pSystemSettings;
-    m_scope = Scope::System;
   } else {
-    if (m_pUserSettings->fileExists()) {
-      qDebug("loaded existing user settings");
-    } else {
-      qDebug("defaulting to user new settings");
-    }
+    // Remove system scope setting from user settings, which will exist on configs from older
+    // versions before we moved the setting to system scope. If we were to leave it in, then
+    // this would cause a bug in the GUI, since the settings dialog checks this value in all scopes.
+    m_pUserSettings->remove(kSystemScopeSetting);
+
+    qDebug("loaded existing user settings");
     m_pActiveSettings = m_pUserSettings;
-    m_scope = Scope::User;
   }
 
   m_pLockedSettings = m_deps->makeSettingsProxy();
   m_pLockedSettings->loadLocked();
+  logVerbose(tr("locked settings keys: %1").arg(m_pLockedSettings->allKeysCSV()));
   if (m_pLockedSettings->fileExists()) {
     qDebug("loaded locked settings");
+    m_pActiveSettings->copyFrom(*m_pLockedSettings);
   }
 }
 
@@ -106,47 +111,22 @@ void Settings::signalReady()
   emit ready();
 }
 
-void Settings::save(bool emitSaving)
+void Settings::sync()
 {
-  if (emitSaving) {
-    qDebug("emitting config saving signal");
-    emit saving();
+  qDebug() << "emitting before sync signal";
+  emit beforeSync();
+
+  qDebug().noquote() << "settings sync, filename:" << m_pActiveSettings->fileName();
+  if (m_pActiveSettings->isWritable()) {
+    qDebug() << "setting save will be skipped, not writable";
   }
 
-  qDebug("writing config to filesystem");
   m_pActiveSettings->sync();
 }
 
 bool Settings::isWritable() const
 {
   return m_pActiveSettings->isWritable();
-}
-
-void Settings::setScope(Settings::Scope scope)
-{
-  if (scope == m_scope) {
-    return;
-  }
-
-  m_scope = scope;
-
-  // When switching scopes, we need to copy the settings from the other scope,
-  // but the default is not to overwrite the other scope (which is useful because
-  // the other scope may contain settings that we want to keep).
-  if (scope == Scope::User) {
-    m_pUserSettings->copyFrom(*m_pSystemSettings);
-    m_pActiveSettings = m_pUserSettings;
-  } else if (scope == Scope::System) {
-    m_pSystemSettings->copyFrom(*m_pUserSettings);
-    m_pActiveSettings = m_pSystemSettings;
-  } else {
-    qFatal("invalid scope");
-  }
-}
-
-Settings::Scope Settings::scope() const
-{
-  return m_scope;
 }
 
 bool Settings::contains(const QString &name) const
@@ -166,7 +146,7 @@ void Settings::set(const QString &name, const QVariant &value)
 
 bool Settings::isUnavailable() const
 {
-  return !m_pUserSettings->fileExists() && !m_pSystemSettings->fileExists() && !m_pUserSettings->isWritable();
+  return !m_pUserSettings->isWritable() && !m_pSystemSettings->fileExists();
 }
 
 } // namespace deskflow::gui

@@ -21,6 +21,7 @@
 
 namespace deskflow::gui::diagnostic {
 
+void restart();
 void clearSettings(Settings &scopes, bool enableRestart);
 
-}
+} // namespace deskflow::gui::diagnostic

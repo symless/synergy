@@ -17,12 +17,14 @@
  */
 
 #include "SettingsDialog.h"
+#include "constants.h"
 
 #ifdef DESKFLOW_GUI_HOOK_HEADER
 #include DESKFLOW_GUI_HOOK_HEADER
 #endif
 
 #include "gui/core/CoreProcess.h"
+#include "gui/diagnostic.h"
 #include "gui/messages.h"
 #include "gui/tls/TlsCertificate.h"
 #include "gui/tls/TlsUtility.h"
@@ -36,6 +38,7 @@
 #include <QtGui>
 
 using namespace deskflow::gui;
+using namespace deskflow::gui::proxy;
 
 SettingsDialog::SettingsDialog(
     QWidget *parent, IAppConfig &appConfig, const IServerConfig &serverConfig, const CoreProcess &coreProcess
@@ -54,7 +57,6 @@ SettingsDialog::SettingsDialog(
   m_pTabWidget->setCurrentIndex(0);
 
   loadFromConfig();
-  m_wasOriginallySystemScope = m_appConfig.isActiveScopeSystem();
   updateControls();
 
   m_pScreenNameError = new validators::ValidationError(this);
@@ -100,13 +102,43 @@ void SettingsDialog::on_m_pCheckBoxEnableTls_clicked(bool)
 
 void SettingsDialog::on_m_pRadioSystemScope_toggled(bool checked)
 {
-  // We only need to test the System scoped radio, since the user scope radio
-  // toggles when the system scope radio is toggled.
-  m_appConfig.setLoadFromSystemScope(checked);
-  m_appConfig.recall();
+  const auto userScope = QStringLiteral("current user");
+  const auto systemScope = QStringLiteral("all users");
+  const auto from = checked ? userScope : systemScope;
+  const auto to = checked ? systemScope : userScope;
+  const auto result = QMessageBox::information(
+      this, tr("Switch settings profile"),
+      tr("Switching settings from %1 to %2 requires %3 to restart.\n\n"
+         "Would you like to restart the application now?")
+          .arg(from, to, qApp->applicationName()),
+      QMessageBox::Yes | QMessageBox::Cancel
+  );
 
-  loadFromConfig();
-  updateControls();
+  if (result == QMessageBox::Yes) {
+    auto &systemSettings = m_appConfig.settings().getSystemSettings();
+    systemSettings.loadSystem();
+
+    if (systemSettings.isEmpty()) {
+      qDebug("system settings are empty, copying user settings");
+      systemSettings.copyFrom(m_appConfig.settings().getUserSettings());
+    }
+
+    systemSettings.setValue(kSystemScopeSetting, checked);
+    systemSettings.sync();
+
+    // This seems rather clumsy and un-elegant at first glance, but actually when you consider
+    // the complexities of hot-switching the settings scope while the application is running,
+    // restarting the applocation is actually the lowest maintenance solution.
+    deskflow::gui::diagnostic::restart();
+  } else {
+    m_pRadioSystemScope->blockSignals(true);
+    if (checked) {
+      m_pRadioUserScope->setChecked(true);
+    } else {
+      m_pRadioSystemScope->setChecked(true);
+    }
+    m_pRadioSystemScope->blockSignals(false);
+  }
 }
 
 void SettingsDialog::on_m_pPushButtonTlsCertPath_clicked()
@@ -179,16 +211,6 @@ void SettingsDialog::accept()
   QDialog::accept();
 }
 
-void SettingsDialog::reject()
-{
-  // restore original system scope value on reject.
-  if (m_appConfig.isActiveScopeSystem() != m_wasOriginallySystemScope) {
-    m_appConfig.setLoadFromSystemScope(m_wasOriginallySystemScope);
-  }
-
-  QDialog::reject();
-}
-
 void SettingsDialog::loadFromConfig()
 {
   m_pLineEditScreenName->setText(m_appConfig.screenName());
@@ -207,11 +229,14 @@ void SettingsDialog::loadFromConfig()
   m_pCheckBoxDragAndDrop->setChecked(m_appConfig.enableDragAndDrop());
   m_pCheckBoxUseLibei->setChecked(m_appConfig.enableLibei());
 
-  if (m_appConfig.isActiveScopeSystem()) {
+  // Toggle handler is not meant for programmatic changes.
+  m_pRadioSystemScope->blockSignals(true);
+  if (m_appConfig.isSystemScope()) {
     m_pRadioSystemScope->setChecked(true);
   } else {
     m_pRadioUserScope->setChecked(true);
   }
+  m_pRadioSystemScope->blockSignals(false);
 
   m_pCheckBoxInvertConnection->setChecked(m_appConfig.invertConnection());
 
@@ -287,6 +312,12 @@ void SettingsDialog::updateControls()
   const auto &systemSettings = m_appConfig.settings().getSystemSettings();
   const auto &userSettings = m_appConfig.settings().getUserSettings();
 
+  const auto saveButton = m_pButtonBox->button(QDialogButtonBox::Save);
+  if (!saveButton) {
+    qFatal("save button not found");
+  }
+  saveButton->setEnabled(writable);
+
   if (!systemSettings.isWritable()) {
     m_pRadioSystemScope->setText(allUsersReadOnly);
     m_pRadioSystemScope->setEnabled(false);
@@ -343,14 +374,17 @@ void SettingsDialog::updateControls()
 
   auto &locked = m_appConfig.settings().getLockedSettings();
   if (locked.contains("cryptoEnabled")) {
+    qDebug("locking tls setting");
     m_pCheckBoxEnableTls->setEnabled(false);
   }
   if (locked.contains("tlsCertPath")) {
+    qDebug("locking tls cert path setting");
     m_pLineEditTlsCertPath->setEnabled(false);
     m_pPushButtonTlsCertPath->setEnabled(false);
     m_pPushButtonTlsRegenCert->setEnabled(false);
   }
   if (locked.contains("tlsKeyLength")) {
+    qDebug("locking tls key length setting");
     m_pComboBoxTlsKeyLength->setEnabled(false);
   }
 }

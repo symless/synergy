@@ -57,7 +57,6 @@ private slots:
 
 private:
   void accept() override;
-  void reject() override;
   void showEvent(QShowEvent *event) override;
   bool isClientMode() const;
   void updateTlsControls();
@@ -77,12 +76,6 @@ private:
 
   [[no_unique_address]] CoreTool m_coreTool;
   validators::ValidationError *m_pScreenNameError;
-
-  /// @brief Stores settings scope at start of settings dialog
-  /// This is necessary to restore state if user changes
-  /// the scope and doesn't save changes
-  bool m_wasOriginallySystemScope = false;
-
   IAppConfig &m_appConfig;
   const IServerConfig &m_serverConfig;
   const CoreProcess &m_coreProcess;

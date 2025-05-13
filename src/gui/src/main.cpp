@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
   Logger::instance().setLogLevel(appConfig.logLevel());
 
   QObject::connect(
-      &settings, &Settings::saving, &appConfig, [&appConfig]() { appConfig.commit(); }, Qt::DirectConnection
+      &settings, &Settings::beforeSync, &appConfig, [&appConfig]() { appConfig.commit(); }, Qt::DirectConnection
   );
 
   if (appConfig.wizardShouldRun()) {
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
       return 0;
     }
 
-    settings.save();
+    settings.sync();
   }
 
   MainWindow mainWindow(settings, appConfig);

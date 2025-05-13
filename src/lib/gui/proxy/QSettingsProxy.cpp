@@ -29,6 +29,8 @@
 namespace deskflow::gui::proxy {
 
 const auto kLegacyOrgDomain = "http-symless-com";
+const auto existsText = QStringLiteral("(exists)");
+const auto notExistsText = QStringLiteral("(does not exist)");
 
 //
 // Free functions
@@ -85,7 +87,16 @@ QSettings &QSettingsProxy::get() const
 
 bool QSettingsProxy::fileExists() const
 {
+  if (!isIniFormat()) {
+    qCritical("settings format is not ini, cannot check for file existence");
+  }
+
   return QFile::exists(m_pSettings->fileName());
+}
+
+bool QSettingsProxy::isIniFormat() const
+{
+  return m_pSettings->format() == QSettings::IniFormat;
 }
 
 void QSettingsProxy::loadUser()
@@ -99,7 +110,9 @@ void QSettingsProxy::loadUser()
   migrateLegacyUserSettings(*m_pSettings);
 #endif // Q_OS_MAC
 
-  qDebug() << "user settings filename:" << m_pSettings->fileName();
+  // Do not show exists/not exists message for user settings, as it is always created,
+  // and native settings do not always have a file that exists on disk.
+  qDebug().noquote() << "user settings filename:" << m_pSettings->fileName();
 }
 
 void QSettingsProxy::loadSystem()
@@ -110,7 +123,8 @@ void QSettingsProxy::loadSystem()
       QCoreApplication::organizationName(), QCoreApplication::applicationName()
   );
 
-  qDebug() << "system settings filename:" << m_pSettings->fileName();
+  qDebug().noquote() << "system settings filename:" << m_pSettings->fileName()
+                     << (fileExists() ? existsText : notExistsText);
 }
 
 void QSettingsProxy::loadLocked()
@@ -124,7 +138,8 @@ void QSettingsProxy::loadLocked()
       QCoreApplication::organizationName(), appName
   );
 
-  qDebug() << "locked settings filename:" << m_pSettings->fileName();
+  qDebug().noquote() << "locked settings filename:" << m_pSettings->fileName()
+                     << (fileExists() ? existsText : notExistsText);
 }
 
 void QSettingsProxy::clear()
@@ -202,19 +217,25 @@ bool QSettingsProxy::contains(const QString &key) const
   return m_pSettings->contains(key);
 }
 
-void QSettingsProxy::copyFrom(const QSettingsProxy &other, bool overwrite)
+void QSettingsProxy::copyFrom(const QSettingsProxy &other)
 {
   QStringList keys = other.get().allKeys();
   for (const QString &key : keys) {
-    if (m_pSettings->contains(key) && !overwrite) {
-      qDebug("skipping existing key '%s'", qPrintable(key));
-      continue;
-    }
-
     QVariant value = other.get().value(key);
     m_pSettings->setValue(key, value);
     logVerbose(QString("copying setting '%1' = '%2'").arg(key, value.toString()));
   }
+}
+
+QString QSettingsProxy::allKeysCSV() const
+{
+  QStringList keys = m_pSettings->allKeys();
+  return keys.isEmpty() ? "[none]" : keys.join(", ");
+}
+
+bool QSettingsProxy::isEmpty() const
+{
+  return m_pSettings->allKeys().isEmpty();
 }
 
 } // namespace deskflow::gui::proxy

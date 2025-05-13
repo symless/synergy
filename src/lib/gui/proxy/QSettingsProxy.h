@@ -38,7 +38,9 @@ public:
   virtual void loadUser();
   virtual void loadSystem();
   virtual void loadLocked();
-  virtual void copyFrom(const QSettingsProxy &other, bool overwrite = false);
+  virtual void copyFrom(const QSettingsProxy &other);
+  virtual QString allKeysCSV() const;
+  virtual bool isEmpty() const;
 
   //
   // QSettings methods
@@ -59,6 +61,7 @@ public:
   virtual void remove(const QString &key);
   virtual bool isWritable() const;
   virtual bool contains(const QString &key) const;
+  virtual bool isIniFormat() const;
 
 private:
   std::unique_ptr<QSettings> m_pSettings;

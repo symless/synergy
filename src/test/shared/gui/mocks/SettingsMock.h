@@ -39,14 +39,12 @@ public:
   MOCK_METHOD(bool, contains, (const QString &name), (const, override));
   MOCK_METHOD(QVariant, get, (const QString &name, const QVariant &defaultValue), (const, override));
   MOCK_METHOD(void, set, (const QString &name, const QVariant &value), (override));
-  MOCK_METHOD(Scope, scope, (), (const, override));
-  MOCK_METHOD(void, setScope, (Scope scope), (override));
   MOCK_METHOD(bool, isWritable, (), (const, override));
   MOCK_METHOD(QSettingsProxy &, getActiveSettings, (), (override));
   MOCK_METHOD(QSettingsProxy &, getSystemSettings, (), (override));
   MOCK_METHOD(QSettingsProxy &, getUserSettings, (), (override));
   MOCK_METHOD(QSettingsProxy &, getLockedSettings, (), (override));
-  MOCK_METHOD(void, save, (bool), (override));
+  MOCK_METHOD(void, sync, (), (override));
   MOCK_METHOD(QString, fileName, (), (const, override));
 
   testing::NiceMock<QSettingsProxyMock> m_mockSettings;

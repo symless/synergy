@@ -43,15 +43,13 @@ public:
   explicit Settings(std::shared_ptr<Deps> deps = std::make_shared<Deps>());
   ~Settings() override = default;
 
-  void save(bool emitSaving = true) override;
+  void sync() override;
   void clear();
   void signalReady() override;
   bool contains(const QString &name) const override;
   bool isWritable() const override;
   void set(const QString &name, const QVariant &value) override;
   QVariant get(const QString &name, const QVariant &defaultValue = QVariant()) const override;
-  void setScope(Scope scope = Scope::User) override;
-  Scope scope() const override;
   QString fileName() const override;
   QSettingsProxy &getActiveSettings() override;
   QSettingsProxy &getSystemSettings() override;
@@ -65,11 +63,10 @@ public:
 
 signals:
   void ready();
-  void saving();
+  void beforeSync();
 
 private:
   std::shared_ptr<Deps> m_deps;
-  Scope m_scope = Scope::User;
   std::shared_ptr<QSettingsProxy> m_pActiveSettings;
   std::shared_ptr<QSettingsProxy> m_pSystemSettings;
   std::shared_ptr<QSettingsProxy> m_pUserSettings;

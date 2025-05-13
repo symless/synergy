@@ -98,9 +98,11 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   auto &locked = m_appConfig.settings().getLockedSettings();
   locked.beginGroup("internalConfig");
   if (locked.contains("clipboardSharing")) {
+    qDebug() << "locking clipboard setting";
     m_pCheckBoxEnableClipboard->setEnabled(false);
   }
   if (locked.contains("clipboardSharingSize")) {
+    qDebug() << "locking clipboard size setting";
     m_pSpinBoxClipboardSizeLimit->setEnabled(false);
   }
   locked.endGroup();

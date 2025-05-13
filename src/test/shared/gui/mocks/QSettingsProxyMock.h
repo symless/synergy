@@ -29,7 +29,9 @@ public:
   MOCK_METHOD(void, loadSystem, (), (override));
   MOCK_METHOD(void, loadUser, (), (override));
   MOCK_METHOD(void, loadLocked, (), (override));
-  MOCK_METHOD(void, copyFrom, (const QSettingsProxy &, bool), (override));
+  MOCK_METHOD(void, copyFrom, (const QSettingsProxy &), (override));
+  MOCK_METHOD(QString, allKeysCSV, (), (const, override));
+  MOCK_METHOD(bool, isEmpty, (), (const, override));
   MOCK_METHOD(bool, fileExists, (), (const, override));
   MOCK_METHOD(QString, fileName, (), (const, override));
   MOCK_METHOD(void, sync, (), (override));

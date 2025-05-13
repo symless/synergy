@@ -64,18 +64,7 @@ TEST(SettingsTests, save_callsSync)
 
   EXPECT_CALL(*deps->m_pMockSettings, sync()).Times(1);
 
-  settings.save();
-}
-
-TEST(SettingsTests, setScope_setsValue)
-{
-  auto deps = std::make_shared<NiceMock<DepsMock>>();
-
-  Settings settings(deps);
-
-  settings.setScope(Settings::Scope::System);
-
-  EXPECT_EQ(settings.scope(), Settings::Scope::System);
+  settings.sync();
 }
 
 TEST(SettingsTests, isWritable_returnsTrue)

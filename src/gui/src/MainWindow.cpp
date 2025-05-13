@@ -139,7 +139,7 @@ void MainWindow::saveWindow()
   qDebug("saving window size and position");
   m_AppConfig.setMainWindowSize(size());
   m_AppConfig.setMainWindowPosition(pos());
-  m_Settings.save();
+  m_Settings.sync();
 }
 
 void MainWindow::setupControls()
@@ -190,7 +190,7 @@ void MainWindow::connectSlots()
 
   connect(this, &MainWindow::shown, this, &MainWindow::onShown, Qt::QueuedConnection);
 
-  connect(&m_Settings, &Settings::saving, this, &MainWindow::onSettingsSaving, Qt::DirectConnection);
+  connect(&m_Settings, &Settings::beforeSync, this, &MainWindow::onSettingsSaving, Qt::DirectConnection);
 
   connect(&m_AppConfig, &AppConfig::tlsChanged, this, &MainWindow::onAppConfigTlsChanged);
 
@@ -253,7 +253,7 @@ void MainWindow::connectSlots()
 void MainWindow::onAppAboutToQuit()
 {
   if (m_SaveOnExit) {
-    m_Settings.save();
+    m_Settings.sync();
   }
 }
 
@@ -411,7 +411,7 @@ void MainWindow::on_m_pActionSettings_triggered()
   auto dialog = SettingsDialog(this, m_AppConfig, m_ServerConfig, m_CoreProcess);
 
   if (dialog.exec() == QDialog::Accepted) {
-    m_Settings.save();
+    m_Settings.sync();
 
     applyConfig();
     applyCloseToTray();
@@ -467,14 +467,14 @@ void MainWindow::on_m_pRadioGroupServer_clicked(bool)
 {
   enableServer(true);
   enableClient(false);
-  m_Settings.save();
+  m_Settings.sync();
 }
 
 void MainWindow::on_m_pRadioGroupClient_clicked(bool)
 {
   enableClient(true);
   enableServer(false);
-  m_Settings.save();
+  m_Settings.sync();
 }
 
 void MainWindow::on_m_pButtonConnect_clicked()
@@ -628,7 +628,7 @@ void MainWindow::saveSettings()
   m_AppConfig.setServerHostname(m_pLineEditHostname->text());
   m_ServerConfig.setClientAddress(m_pLineEditClientIp->text());
 
-  m_Settings.save();
+  m_Settings.sync();
 }
 
 void MainWindow::setIcon()
@@ -767,7 +767,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     m_AppConfig.setShowCloseReminder(false);
   }
 
-  m_Settings.save();
+  m_Settings.sync();
   qDebug("window should hide to tray");
 }
 
@@ -778,7 +778,7 @@ void MainWindow::showFirstConnectedMessage()
   }
 
   m_AppConfig.setStartedBefore(true);
-  m_Settings.save();
+  m_Settings.sync();
 
   const auto isServer = m_CoreProcess.mode() == CoreMode::Server;
   messages::showFirstConnectedMessage(this, m_AppConfig.closeToTray(), m_AppConfig.enableService(), isServer);
@@ -792,7 +792,7 @@ void MainWindow::showDevThanksMessage()
   }
 
   m_AppConfig.setShowDevThanks(false);
-  m_Settings.save();
+  m_Settings.sync();
 
   messages::showDevThanks(this, kAppName);
 }
@@ -866,8 +866,11 @@ void MainWindow::onCoreProcessStateChanged(CoreProcessState state)
   if (state == CoreProcessState::Started && !m_AppConfig.startedBefore()) {
     qDebug("recording that core has started");
     m_AppConfig.setStartedBefore(true);
-    m_Settings.save();
-    messages::showFirstServerStartMessage(this);
+    m_Settings.sync();
+
+    if (m_CoreProcess.mode() == CoreMode::Server) {
+      messages::showFirstServerStartMessage(this);
+    }
   }
 
   if (state == CoreProcessState::Started || state == CoreProcessState::Starting ||
@@ -1083,7 +1086,7 @@ void MainWindow::checkForUpdates()
   if (!m_AppConfig.enableUpdateCheck().has_value()) {
     m_AppConfig.setEnableUpdateCheck(messages::showUpdateCheckOption(this));
     m_AppConfig.commit();
-    m_Settings.save();
+    m_Settings.sync();
   }
 
   const QString fakeVersion = qEnvironmentVariable("SYNERGY_FAKE_REMOTE_VERSION");
