@@ -22,6 +22,7 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QMessageBox>
 #include <QProcess>
 
 namespace deskflow::gui::diagnostic {
@@ -43,7 +44,7 @@ void restart()
 
 void clearSettings(Settings &settings, bool enableRestart)
 {
-  qDebug("clearing user settings");
+  qInfo("clearing user settings");
   auto &userSettings = settings.getUserSettings();
   if (userSettings.isWritable()) {
     userSettings.clear();
@@ -52,13 +53,15 @@ void clearSettings(Settings &settings, bool enableRestart)
     qCritical("user settings are not writable");
   }
 
-  qDebug("clearing system settings");
+  qInfo("clearing system settings");
   auto &systemSettings = settings.getSystemSettings();
   if (systemSettings.isWritable()) {
     systemSettings.clear();
     systemSettings.sync();
   } else {
-    qCritical("system settings are not writable");
+    // Normally on some OS (e.g. Unix-like or Windows running as non-admin),
+    // the system settings are not writable. So this is not an error case.
+    qWarning("system settings are not writable");
   }
 
   // On Windows, the registry is used for user settings, so there is no dir to remove,
@@ -66,7 +69,7 @@ void clearSettings(Settings &settings, bool enableRestart)
   QFileInfo userFileInfo(userSettings.fileName());
   QDir userDir(userFileInfo.absoluteDir());
   if (userDir.exists()) {
-    qDebug().noquote() << "removing user config dir:" << userDir.absolutePath();
+    qInfo().noquote() << "removing user config dir:" << userDir.absolutePath();
     if (!userDir.removeRecursively()) {
       qCritical("failed to remove user config dir");
     }
@@ -78,22 +81,41 @@ void clearSettings(Settings &settings, bool enableRestart)
   QFileInfo fileInfo(systemSettings.fileName());
   QDir systemDir(fileInfo.absoluteDir());
   if (systemDir.exists()) {
-    qDebug().noquote() << "removing system config dir:" << systemDir.absolutePath();
+    qInfo().noquote() << "removing system config dir:" << systemDir.absolutePath();
     if (!systemDir.removeRecursively()) {
-      qCritical("failed to remove system config dir");
+      // Should be a warning, since on Unix-like, we won't normally have access to remove dirs
+      // from /etc/xdg or wherever, as it's a system dir.
+      qWarning("failed to remove system config dir");
     }
   }
 
   auto configDir = paths::configDir();
-  qDebug("removing config dir: %s", qPrintable(configDir.absolutePath()));
-  configDir.removeRecursively();
+  if (configDir.exists()) {
+    qInfo().noquote() << "removing config dir:" << configDir.absolutePath();
+    if (!configDir.removeRecursively()) {
+      qCritical("failed to remove config dir");
+    }
+  }
 
   auto profileDir = paths::coreProfileDir();
-  qDebug("removing profile dir: %s", qPrintable(profileDir.absolutePath()));
-  profileDir.removeRecursively();
+  if (profileDir.exists()) {
+    qInfo("removing profile dir: %s", qPrintable(profileDir.absolutePath()));
+    if (!profileDir.removeRecursively()) {
+      qCritical("failed to remove profile dir");
+    }
+  }
+
+  // It's important to block the UI thread to show a message so that the user has a chance to read the log output,
+  // in case any errors or warnings happened. Ideally, we should be logging to a file instead, but until then,
+  // this is probably the best approach.
+  QMessageBox::information(
+      nullptr, "Settings cleared",
+      "<p>Your settings have been cleared.</p>"
+      "<p>The application will now restart.</p>"
+  );
 
   if (enableRestart) {
-    qDebug("restarting");
+    qInfo("restarting");
     restart();
   } else {
     qDebug("skipping restart");
