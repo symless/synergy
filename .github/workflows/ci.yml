@@ -123,7 +123,7 @@ jobs:
         uses: seanmiddleditch/gha-setup-ninja@master
 
       - name: Install dependencies
-        run: python ./scripts/install_deps.py --skip-vcpkg
+        run: python ./scripts/install_deps.py
 
       - name: Configure
         run: |
