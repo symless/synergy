@@ -149,7 +149,6 @@ void MainWindow::setupControls()
   m_pActionHelp->setText(DESKFLOW_HELP_TEXT);
 
   secureSocket(false);
-  updateLocalFingerprint();
 
   m_pLabelUpdate->setStyleSheet(kStyleNoticeLabel);
   m_pLabelUpdate->hide();
@@ -973,11 +972,7 @@ void MainWindow::updateLocalFingerprint()
     qFatal("failed to check if fingerprint exists");
   }
 
-  if (m_AppConfig.tlsEnabled() && fingerprintExists && m_pRadioGroupServer->isChecked()) {
-    m_pLabelFingerprint->setVisible(true);
-  } else {
-    m_pLabelFingerprint->setVisible(false);
-  }
+  m_pLabelFingerprint->setVisible(m_AppConfig.tlsEnabled() && fingerprintExists && m_pRadioGroupServer->isChecked());
 }
 
 void MainWindow::autoAddScreen(const QString name)
@@ -1038,6 +1033,8 @@ void MainWindow::enableServer(bool enable)
   m_pRadioGroupServer->setChecked(enable);
   m_pWidgetServer->setEnabled(enable);
   m_pWidgetServerInput->setVisible(m_AppConfig.invertConnection());
+
+  updateLocalFingerprint();
 
   if (enable) {
     m_pButtonToggleStart->setEnabled(true);
