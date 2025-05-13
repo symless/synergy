@@ -61,6 +61,29 @@ void clearSettings(Settings &settings, bool enableRestart)
     qCritical("system settings are not writable");
   }
 
+  // On Windows, the registry is used for user settings, so there is no dir to remove,
+  // but removing it on Unix-like systems is still possible.
+  QFileInfo userFileInfo(userSettings.fileName());
+  QDir userDir(userFileInfo.absoluteDir());
+  if (userDir.exists()) {
+    qDebug().noquote() << "removing user config dir:" << userDir.absolutePath();
+    if (!userDir.removeRecursively()) {
+      qCritical("failed to remove user config dir");
+    }
+  }
+
+  // Sometimes Windows doesn't really delete files even though they are "permanently deleted",
+  // this is because NTFS may retain a copy via journaling or delayed write-backs. This even
+  // persists across reboots. So the only way to truly delete the file is to delete the directory.
+  QFileInfo fileInfo(systemSettings.fileName());
+  QDir systemDir(fileInfo.absoluteDir());
+  if (systemDir.exists()) {
+    qDebug().noquote() << "removing system config dir:" << systemDir.absolutePath();
+    if (!systemDir.removeRecursively()) {
+      qCritical("failed to remove system config dir");
+    }
+  }
+
   auto configDir = paths::configDir();
   qDebug("removing config dir: %s", qPrintable(configDir.absolutePath()));
   configDir.removeRecursively();
