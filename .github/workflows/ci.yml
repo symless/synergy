@@ -93,7 +93,6 @@ jobs:
           manifest-dir: ${{ github.workspace }}
           triplet: x64-windows-release
           token: ${{ github.token }}
-          github-binarycache: true
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -104,12 +103,6 @@ jobs:
           version: ${{ env.QT_VERSION }}
           cache: true
           cache-key-prefix: windows-qt-${{ env.QT_VERSION }}
-
-      - name: Cache deps dir
-        uses: actions/cache@v4
-        with:
-          path: deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('config.yaml') }}
 
       # This effectively runs `vcvarsall.bat`, etc. It's not actually installing
       # VC++ as that's already pre-installed on the Windows runner.
