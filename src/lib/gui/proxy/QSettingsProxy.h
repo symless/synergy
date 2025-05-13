@@ -40,6 +40,7 @@ public:
   virtual void loadLocked();
   virtual void copyFrom(const QSettingsProxy &other);
   virtual QString allKeysCSV() const;
+  virtual bool isEmpty() const;
 
   //
   // QSettings methods

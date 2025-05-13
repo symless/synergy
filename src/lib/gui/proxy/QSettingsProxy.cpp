@@ -233,4 +233,9 @@ QString QSettingsProxy::allKeysCSV() const
   return keys.isEmpty() ? "[none]" : keys.join(", ");
 }
 
+bool QSettingsProxy::isEmpty() const
+{
+  return m_pSettings->allKeys().isEmpty();
+}
+
 } // namespace deskflow::gui::proxy

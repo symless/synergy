@@ -118,8 +118,8 @@ void SettingsDialog::on_m_pRadioSystemScope_toggled(bool checked)
     auto &systemSettings = m_appConfig.settings().getSystemSettings();
     systemSettings.loadSystem();
 
-    if (!systemSettings.fileExists()) {
-      qDebug("system settings are new, copying user settings");
+    if (systemSettings.isEmpty()) {
+      qDebug("system settings are empty, copying user settings");
       systemSettings.copyFrom(m_appConfig.settings().getUserSettings());
     }
 
