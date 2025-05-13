@@ -50,7 +50,7 @@ void clearSettings(Settings &settings, bool enableRestart)
     userSettings.clear();
     userSettings.sync();
   } else {
-    qCritical("user settings are not writable");
+    qCritical("cannot clear user settings, not writable");
   }
 
   qInfo("clearing system settings");
@@ -61,34 +61,33 @@ void clearSettings(Settings &settings, bool enableRestart)
   } else {
     // Normally on some OS (e.g. Unix-like or Windows running as non-admin),
     // the system settings are not writable. So this is not an error case.
-    qWarning("system settings are not writable");
+    qWarning("cannot clear system settings, not writable");
   }
 
+  // Tell the usee we're leaving the user config dir behind, so they can delete it manually.
   // On Windows, the registry is used for user settings, so there is no dir to remove,
-  // but removing it on Unix-like systems is still possible.
+  // but removing it on Unix-like systems it's also not always possible to remove the dirs;
+  // on macOS, all the .plist files are in the same directory, so we can't remove that dir.
+  // On Linux it's probably possible to remove the config dir, but we should be consistent
+  // across all platforms. So we just leave the user config dir behind.
   QFileInfo userFileInfo(userSettings.fileName());
   QDir userDir(userFileInfo.absoluteDir());
   if (userDir.exists()) {
-    qInfo().noquote() << "removing user config dir:" << userDir.absolutePath();
-    if (!userDir.removeRecursively()) {
-      qCritical("failed to remove user config dir");
-    }
+    qInfo().noquote() << "user config dir:" << userDir.absolutePath();
   }
 
+  // Tell the usee we're leaving the system config dir behind, so they can delete it manually.
   // Sometimes Windows doesn't really delete files even though they are "permanently deleted",
   // this is because NTFS may retain a copy via journaling or delayed write-backs. This even
-  // persists across reboots. So the only way to truly delete the file is to delete the directory.
+  // persists across reboots. So the only way to truly delete the file is to delete the directory,
+  // but we shouldn't try to do that from the app, since there are too many edge cases.
   QFileInfo fileInfo(systemSettings.fileName());
   QDir systemDir(fileInfo.absoluteDir());
   if (systemDir.exists()) {
-    qInfo().noquote() << "removing system config dir:" << systemDir.absolutePath();
-    if (!systemDir.removeRecursively()) {
-      // Should be a warning, since on Unix-like, we won't normally have access to remove dirs
-      // from /etc/xdg or wherever, as it's a system dir.
-      qWarning("failed to remove system config dir");
-    }
+    qInfo().noquote() << "system config dir:" << systemDir.absolutePath();
   }
 
+  // Gotcha: Not necessarily the same as the dir that contains the user settings file.
   auto configDir = paths::configDir();
   if (configDir.exists()) {
     qInfo().noquote() << "removing config dir:" << configDir.absolutePath();
@@ -97,6 +96,7 @@ void clearSettings(Settings &settings, bool enableRestart)
     }
   }
 
+  // Gotcha: Legacy path for TLS, etc.
   auto profileDir = paths::coreProfileDir();
   if (profileDir.exists()) {
     qInfo("removing profile dir: %s", qPrintable(profileDir.absolutePath()));
