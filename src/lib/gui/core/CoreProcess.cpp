@@ -523,17 +523,9 @@ bool CoreProcess::addGenericArgs(QStringList &args, const ProcessMode processMod
   }
 #endif
 
-#if defined(Q_OS_WIN)
-  // on windows, the profile directory changes depending on the user that
-  // launched the process (e.g. when launched with elevation). setting the
-  // profile dir on launch ensures it uses the same profile dir is used
-  // no matter how its relaunched.
-  if (m_appConfig.isSystemScope()) {
-    args << "--profile-dir" << paths::systemConfigDir(true).absolutePath();
-  } else {
-    args << "--profile-dir" << paths::userConfigDir(true).absolutePath();
-  }
-#endif
+  // Used to find TLS fingerprint files.
+  QDir dir = m_appConfig.isSystemScope() ? paths::systemConfigDir(true) : paths::userConfigDir(true);
+  args << "--profile-dir" << dir.absolutePath();
 
   if (m_appConfig.preventSleep()) {
     args << "--prevent-sleep";
