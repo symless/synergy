@@ -42,15 +42,17 @@ void restart()
   QApplication::exit();
 }
 
-void clearSettings(Settings &settings, bool enableRestart)
+void clearSettings(QWidget *parent, Settings &settings, bool enableRestart)
 {
+  QStringList problems;
+
   qInfo("clearing user settings");
   auto &userSettings = settings.getUserSettings();
   if (userSettings.isWritable()) {
     userSettings.clear();
     userSettings.sync();
   } else {
-    qCritical("cannot clear user settings, not writable");
+    problems << "Cannot clear user settings, not writable.";
   }
 
   qInfo("clearing system settings");
@@ -61,7 +63,7 @@ void clearSettings(Settings &settings, bool enableRestart)
   } else {
     // Normally on some OS (e.g. Unix-like or Windows running as non-admin),
     // the system settings are not writable. So this is not an error case.
-    qWarning("cannot clear system settings, not writable");
+    problems << "Cannot clear system settings, not writable.";
   }
 
   // Tell the usee we're leaving the user config dir behind, so they can delete it manually.
@@ -92,7 +94,7 @@ void clearSettings(Settings &settings, bool enableRestart)
   if (configDir.exists()) {
     qInfo().noquote() << "removing config dir:" << configDir.absolutePath();
     if (!configDir.removeRecursively()) {
-      qCritical("failed to remove config dir");
+      problems << "Failed to remove config dir.";
     }
   }
 
@@ -101,18 +103,33 @@ void clearSettings(Settings &settings, bool enableRestart)
   if (profileDir.exists()) {
     qInfo("removing profile dir: %s", qPrintable(profileDir.absolutePath()));
     if (!profileDir.removeRecursively()) {
-      qCritical("failed to remove profile dir");
+      problems << "Failed to remove profile dir.";
     }
   }
 
-  // It's important to block the UI thread to show a message so that the user has a chance to read the log output,
-  // in case any errors or warnings happened. Ideally, we should be logging to a file instead, but until then,
-  // this is probably the best approach.
-  QMessageBox::information(
-      nullptr, "Settings cleared",
-      "<p>Your settings have been cleared.</p>"
-      "<p>The application will now restart.</p>"
-  );
+  if (!problems.isEmpty()) {
+    const auto result = QMessageBox::warning(
+        parent, "Clear settings",
+        QString(
+            "%1 occurred while clearing settings:\n\n"
+            "%2\n\n"
+            "Would you like to restart the application anyway?"
+        )
+            .arg(problems.length() > 1 ? "Problems" : "A problem")
+            .arg(problems.join("\n")),
+        QMessageBox::Yes | QMessageBox::No
+    );
+    if (result == QMessageBox::No) {
+      qDebug("user chose not to restart");
+      return;
+    }
+  } else {
+    QMessageBox::information(
+        parent, "Clear settings",
+        "Settings cleared successfully.\n\n"
+        "The application will now restart."
+    );
+  }
 
   if (enableRestart) {
     qInfo("restarting");

@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
   const auto noReset = hasArg("--no-reset", arguments);
   const auto resetEnvVar = strToTrue(qEnvironmentVariable("SYNERGY_RESET_ALL"));
   if (resetEnvVar && !noReset) {
-    diagnostic::clearSettings(settings, false);
+    diagnostic::clearSettings(nullptr, settings, false);
   }
 
   AppConfig appConfig(settings);
