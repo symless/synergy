@@ -32,7 +32,6 @@ struct DepsMock : public AppConfig::Deps
 {
   DepsMock()
   {
-    ON_CALL(*this, defaultTlsCertPath()).WillByDefault(Return("stub"));
     ON_CALL(*this, hostname()).WillByDefault(Return("stub"));
   }
 
@@ -41,7 +40,6 @@ struct DepsMock : public AppConfig::Deps
     return std::make_shared<NiceMock<DepsMock>>();
   }
 
-  MOCK_METHOD(QString, defaultTlsCertPath, (), (const, override));
   MOCK_METHOD(QString, hostname, (), (const, override));
 };
 

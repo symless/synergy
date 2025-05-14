@@ -13,6 +13,7 @@
 
 #include <memory>
 
+#include <QDir>
 #include <QFileSystemWatcher>
 #include <QMutex>
 #include <QObject>
@@ -156,6 +157,7 @@ private:
   QString correctedInterface() const;
   QString correctedAddress() const;
   QString requestDaemonLogPath();
+  QDir getConfigDir() const;
 
 #ifdef Q_OS_MAC
   void checkOSXNotification(const QString &line);

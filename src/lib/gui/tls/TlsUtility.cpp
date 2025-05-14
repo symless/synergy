@@ -18,6 +18,7 @@
 #include "TlsUtility.h"
 
 #include "TlsCertificate.h"
+#include "gui/paths.h"
 
 #include <QFile>
 #include <QString>
@@ -36,25 +37,31 @@ bool TlsUtility::isEnabled() const
 
 bool TlsUtility::generateCertificate()
 {
-  qInfo("generating tls certificate, "
-        "all clients must trust the new fingerprint");
+  qInfo(
+      "generating tls certificate, "
+      "all clients must trust the new fingerprint"
+  );
 
   if (!isEnabled()) {
-    qCritical("unable to generate tls certificate, "
-              "tls is either not available or not enabled");
+    qCritical(
+        "unable to generate tls certificate, "
+        "tls is either not available or not enabled"
+    );
     return false;
   }
 
   auto length = m_appConfig.tlsKeyLength();
 
-  return m_certificate.generateCertificate(m_appConfig.tlsCertPath(), length);
+  QString tlsCertPath = paths::tlsFilePath(m_appConfig.tlsCertPath(), m_appConfig.isSystemScope());
+  return m_certificate.generateCertificate(tlsCertPath, length);
 }
 
 bool TlsUtility::persistCertificate()
 {
   qDebug("persisting tls certificate");
 
-  if (QFile::exists(m_appConfig.tlsCertPath())) {
+  QString tlsCertPath = paths::tlsFilePath(m_appConfig.tlsCertPath(), m_appConfig.isSystemScope());
+  if (QFile::exists(tlsCertPath)) {
     qDebug("tls certificate already exists");
     return true;
   }

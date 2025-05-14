@@ -128,10 +128,6 @@ public:
   struct Deps
   {
     virtual ~Deps() = default;
-    virtual QString defaultTlsCertPath() const
-    {
-      return deskflow::gui::paths::defaultTlsCertPath();
-    }
     virtual QString hostname() const
     {
       return QHostInfo::localHostName();
@@ -274,11 +270,6 @@ private:
   template <typename T> void set(AppConfig::Setting name, T value);
 
   QVariant get(AppConfig::Setting name, const QVariant &defaultValue = QVariant()) const;
-
-  /**
-   * @brief Gets a TLS certificate path based on the user's profile dir.
-   */
-  QString defaultTlsCertPath() const;
 
   static const char m_CoreServerName[];
   static const char m_CoreClientName[];

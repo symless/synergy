@@ -38,5 +38,6 @@ const auto kUrlGnomeTrayFix = "https://extensions.gnome.org/extension/2890/tray-
 #endif
 
 const auto kSystemScopeSetting = "loadFromSystemScope";
+const auto kCertificateFilename = QString("%1.pem").arg(DESKFLOW_APP_NAME);
 
 } // namespace deskflow::gui

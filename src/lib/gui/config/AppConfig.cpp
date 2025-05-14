@@ -100,8 +100,7 @@ const char *const AppConfig::m_SettingsName[] = {
 AppConfig::AppConfig(deskflow::gui::ISettings &settings, std::shared_ptr<Deps> deps)
     : m_Settings(settings),
       m_pDeps(deps),
-      m_ScreenName(deps->hostname()),
-      m_TlsCertPath(deps->defaultTlsCertPath())
+      m_ScreenName(deps->hostname())
 {
   qDebug("determining config scope");
   setIsSystemScope(m_Settings.get(settingName(Setting::kLoadSystemSettings)).toBool());

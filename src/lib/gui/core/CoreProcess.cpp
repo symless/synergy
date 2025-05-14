@@ -586,7 +586,7 @@ bool CoreProcess::addServerArgs(QStringList &args, QString &app)
       qCritical("failed to persist tls certificate");
       return false;
     }
-    args << "--tls-cert" << m_appConfig.tlsCertPath();
+    args << "--tls-cert" << paths::tlsFilePath(m_appConfig.tlsCertPath(), m_appConfig.isSystemScope());
   }
 
   return true;
@@ -632,13 +632,22 @@ bool CoreProcess::addClientArgs(QStringList &args, QString &app)
   return true;
 }
 
+QDir CoreProcess::getConfigDir() const
+{
+  if (m_appConfig.isSystemScope()) {
+    return paths::systemConfigDir(true);
+  } else {
+    return paths::userConfigDir(true);
+  }
+}
+
 QString CoreProcess::persistServerConfig() const
 {
   if (m_appConfig.useExternalConfig()) {
     return m_appConfig.configFile();
   }
 
-  const auto configDir = paths::configDir(true);
+  const auto configDir = getConfigDir();
   const auto configDirPath = configDir.absolutePath();
 
   QFile configFile(configDirPath + "/" + kServerConfigFilename);

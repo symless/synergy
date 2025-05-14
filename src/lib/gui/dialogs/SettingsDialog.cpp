@@ -17,15 +17,14 @@
  */
 
 #include "SettingsDialog.h"
-#include "constants.h"
 
 #ifdef DESKFLOW_GUI_HOOK_HEADER
 #include DESKFLOW_GUI_HOOK_HEADER
 #endif
 
 #include "gui/core/CoreProcess.h"
-#include "gui/diagnostic.h"
 #include "gui/messages.h"
+#include "gui/paths.h"
 #include "gui/tls/TlsCertificate.h"
 #include "gui/tls/TlsUtility.h"
 #include "gui/validators/ScreenNameValidator.h"
@@ -204,8 +203,9 @@ void SettingsDialog::loadFromConfig()
 
 void SettingsDialog::updateTlsControls()
 {
-  if (QFile(m_appConfig.tlsCertPath()).exists()) {
-    updateKeyLengthOnFile(m_appConfig.tlsCertPath());
+  QString tlsCertPath = paths::tlsFilePath(m_appConfig.tlsCertPath(), m_appConfig.isSystemScope());
+  if (QFile(tlsCertPath).exists()) {
+    updateKeyLengthOnFile(tlsCertPath);
   } else {
     const auto keyLengthText = QString::number(m_appConfig.tlsKeyLength());
     m_pComboBoxTlsKeyLength->setCurrentIndex(m_pComboBoxTlsKeyLength->findText(keyLengthText));
@@ -214,6 +214,7 @@ void SettingsDialog::updateTlsControls()
   m_pCheckBoxEnableTls->setEnabled(m_appConfig.isWritable());
   m_pCheckBoxEnableTls->setChecked(m_tlsUtility.isEnabled());
   m_pLineEditTlsCertPath->setText(m_appConfig.tlsCertPath());
+  m_pLineEditTlsCertPath->setPlaceholderText(tlsCertPath);
 }
 
 void SettingsDialog::updateTlsControlsEnabled()

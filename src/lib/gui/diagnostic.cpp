@@ -66,44 +66,19 @@ void clearSettings(QWidget *parent, Settings &settings, bool enableRestart)
     problems << "Cannot clear system settings, not writable.";
   }
 
-  // Tell the usee we're leaving the user config dir behind, so they can delete it manually.
-  // On Windows, the registry is used for user settings, so there is no dir to remove,
-  // but removing it on Unix-like systems it's also not always possible to remove the dirs;
-  // on macOS, all the .plist files are in the same directory, so we can't remove that dir.
-  // On Linux it's probably possible to remove the config dir, but we should be consistent
-  // across all platforms. So we just leave the user config dir behind.
-  QFileInfo userFileInfo(userSettings.fileName());
-  QDir userDir(userFileInfo.absoluteDir());
-  if (userDir.exists()) {
-    qInfo().noquote() << "user config dir:" << userDir.absolutePath();
-  }
-
-  // Tell the usee we're leaving the system config dir behind, so they can delete it manually.
-  // Sometimes Windows doesn't really delete files even though they are "permanently deleted",
-  // this is because NTFS may retain a copy via journaling or delayed write-backs. This even
-  // persists across reboots. So the only way to truly delete the file is to delete the directory,
-  // but we shouldn't try to do that from the app, since there are too many edge cases.
-  QFileInfo fileInfo(systemSettings.fileName());
-  QDir systemDir(fileInfo.absoluteDir());
-  if (systemDir.exists()) {
-    qInfo().noquote() << "system config dir:" << systemDir.absolutePath();
-  }
-
-  // Gotcha: Not necessarily the same as the dir that contains the user settings file.
-  auto configDir = paths::configDir();
-  if (configDir.exists()) {
-    qInfo().noquote() << "removing config dir:" << configDir.absolutePath();
-    if (!configDir.removeRecursively()) {
-      problems << "Failed to remove config dir.";
+  auto userConfigDir = paths::userConfigDir();
+  if (userConfigDir.exists()) {
+    qInfo().noquote() << "removing user config dir:" << userConfigDir.absolutePath();
+    if (!userConfigDir.removeRecursively()) {
+      problems << "Failed to remove user config dir.";
     }
   }
 
-  // Gotcha: Legacy path for TLS, etc.
-  auto profileDir = paths::coreProfileDir();
-  if (profileDir.exists()) {
-    qInfo("removing profile dir: %s", qPrintable(profileDir.absolutePath()));
-    if (!profileDir.removeRecursively()) {
-      problems << "Failed to remove profile dir.";
+  auto systemConfigDir = paths::systemConfigDir();
+  if (systemConfigDir.exists()) {
+    qInfo("removing system config dir: %s", qPrintable(systemConfigDir.absolutePath()));
+    if (!systemConfigDir.removeRecursively()) {
+      problems << "Failed to remove system config dir.";
     }
   }
 
