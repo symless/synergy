@@ -66,6 +66,7 @@ void clearSettings(QWidget *parent, Settings &settings, bool enableRestart)
     problems << "Cannot clear system settings, not writable.";
   }
 
+  // Used to store Core config files when in user scope.
   auto userConfigDir = paths::userConfigDir();
   if (userConfigDir.exists()) {
     qInfo().noquote() << "removing user config dir:" << userConfigDir.absolutePath();
@@ -74,6 +75,11 @@ void clearSettings(QWidget *parent, Settings &settings, bool enableRestart)
     }
   }
 
+  // Used to store Core config files when in system scope.
+  // Gotcha: Sometimes Windows doesn't really delete files even though they are "permanently deleted",
+  // this is because NTFS may retain a copy via journaling or delayed write-backs. This even
+  // persists across reboots. So the only way to truly delete the file is to delete the directory,
+  // but unfortunately this isn't always possible due to permissions, so this is a best effort.
   auto systemConfigDir = paths::systemConfigDir();
   if (systemConfigDir.exists()) {
     qInfo().noquote() << "removing system config dir:" << systemConfigDir.absolutePath();
