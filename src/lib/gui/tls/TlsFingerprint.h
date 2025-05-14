@@ -22,16 +22,13 @@
 class TlsFingerprint
 {
 private:
-  explicit TlsFingerprint(const QString &filename);
+  explicit TlsFingerprint(const QString &filename, bool isSystemScope);
 
 public:
-  static TlsFingerprint local();
-  static TlsFingerprint trustedServers();
-  static TlsFingerprint trustedClients();
-  static QString directoryPath();
+  static TlsFingerprint local(bool isSystemScope);
+  static TlsFingerprint trustedServers(bool isSystemScope);
   static QString localFingerprint();
   static bool localFingerprintExists();
-  static void persistDirectory();
 
   void trust(const QString &fingerprintText, bool append = true) const;
   bool isTrusted(const QString &fingerprintText) const;
@@ -39,7 +36,10 @@ public:
   QString readFirst() const;
   QString filePath() const;
   bool fileExists() const;
+  QString directoryPath() const;
+  void persistDirectory() const;
 
 private:
   QString m_Filename;
+  bool m_isSystemScope;
 };

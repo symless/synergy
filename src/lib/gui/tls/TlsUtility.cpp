@@ -53,7 +53,7 @@ bool TlsUtility::generateCertificate()
   auto length = m_appConfig.tlsKeyLength();
 
   QString tlsCertPath = paths::tlsFilePath(m_appConfig.tlsCertPath(), m_appConfig.isSystemScope());
-  return m_certificate.generateCertificate(tlsCertPath, length);
+  return m_certificate.generateCertificate(tlsCertPath, length, m_appConfig.isSystemScope());
 }
 
 bool TlsUtility::persistCertificate()

@@ -49,10 +49,7 @@ enum
 };
 
 static const char kFingerprintDirName[] = "SSL/Fingerprints";
-// static const char kFingerprintLocalFilename[] = "Local.txt";
 static const char kFingerprintTrustedServersFilename[] = "TrustedServers.txt";
-// static const char kFingerprintTrustedClientsFilename[] =
-// "TrustedClients.txt";
 
 struct Ssl
 {
@@ -661,7 +658,7 @@ bool SecureSocket::verifyCertFingerprint()
       }
     }
   } else {
-    LOG((CLOG_ERR "fail to open trusted fingerprints file: %s", trustedServersFilename.c_str()));
+    LOG((CLOG_ERR "failed to open trusted fingerprints file: %s", trustedServersFilename.c_str()));
   }
 
   file.close();

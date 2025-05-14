@@ -144,7 +144,7 @@ bool TlsCertificate::runTool(const QStringList &args)
   return true;
 }
 
-bool TlsCertificate::generateCertificate(const QString &path, int keyLength)
+bool TlsCertificate::generateCertificate(const QString &path, int keyLength, bool isSystemScope)
 {
   qDebug("generating tls certificate: %s", qUtf8Printable(path));
 
@@ -189,14 +189,14 @@ bool TlsCertificate::generateCertificate(const QString &path, int keyLength)
   if (runTool(arguments)) {
     qDebug("tls certificate generated");
 
-    return generateFingerprint(path);
+    return generateFingerprint(path, isSystemScope);
   } else {
     // Error already shown, so no need to repeat.
     return false;
   }
 }
 
-bool TlsCertificate::generateFingerprint(const QString &certificateFilename)
+bool TlsCertificate::generateFingerprint(const QString &certificateFilename, bool isSystemScope)
 {
   qDebug("generating tls fingerprint");
 
@@ -219,7 +219,7 @@ bool TlsCertificate::generateFingerprint(const QString &certificateFilename)
     i++;
     QString fingerprint = m_toolStdout.mid(i, m_toolStdout.size() - i);
 
-    TlsFingerprint::local().trust(fingerprint, false);
+    TlsFingerprint::local(isSystemScope).trust(fingerprint, false);
     qDebug("tls fingerprint generated");
     return true;
   } else {

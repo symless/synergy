@@ -528,7 +528,11 @@ bool CoreProcess::addGenericArgs(QStringList &args, const ProcessMode processMod
   // launched the process (e.g. when launched with elevation). setting the
   // profile dir on launch ensures it uses the same profile dir is used
   // no matter how its relaunched.
-  args << "--profile-dir" << m_pDeps->getProfileRoot();
+  if (m_appConfig.isSystemScope()) {
+    args << "--profile-dir" << paths::systemConfigDir(true).absolutePath();
+  } else {
+    args << "--profile-dir" << paths::userConfigDir(true).absolutePath();
+  }
 #endif
 
   if (m_appConfig.preventSleep()) {

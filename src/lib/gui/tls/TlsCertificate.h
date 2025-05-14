@@ -28,12 +28,12 @@ class TlsCertificate : public QObject
 public:
   explicit TlsCertificate(QObject *parent = nullptr);
 
-  bool generateCertificate(const QString &path, int keyLength);
+  bool generateCertificate(const QString &path, int keyLength, bool isSystemScope);
   int getCertKeyLength(const QString &path);
 
 private:
   bool runTool(const QStringList &args);
-  bool generateFingerprint(const QString &certificateFilename);
+  bool generateFingerprint(const QString &certificateFilename, bool isSystemScope);
 
 private:
   QString m_toolStdout;

@@ -17,7 +17,7 @@
 
 #include "TlsFingerprint.h"
 
-#include "gui/core/CoreTool.h"
+#include "gui/paths.h"
 
 #include <QDir>
 #include <QTextStream>
@@ -27,7 +27,11 @@ static const char kLocalFilename[] = "Local.txt";
 static const char kTrustedServersFilename[] = "TrustedServers.txt";
 static const char kTrustedClientsFilename[] = "TrustedClients.txt";
 
-TlsFingerprint::TlsFingerprint(const QString &filename) : m_Filename(filename)
+using namespace deskflow::gui;
+
+TlsFingerprint::TlsFingerprint(const QString &filename, bool isSystemScope)
+    : m_Filename(filename),
+      m_isSystemScope(isSystemScope)
 {
 }
 
@@ -52,7 +56,7 @@ void TlsFingerprint::trust(const QString &fingerprintText, bool append) const
 
 bool TlsFingerprint::fileExists() const
 {
-  QString dirName = TlsFingerprint::directoryPath();
+  QString dirName = directoryPath();
   if (!QDir(dirName).exists()) {
     return false;
   }
@@ -76,7 +80,7 @@ QStringList TlsFingerprint::readList(const int readTo) const
 {
   QStringList list;
 
-  QString dirName = TlsFingerprint::directoryPath();
+  QString dirName = directoryPath();
   if (!QDir(dirName).exists()) {
     return list;
   }
@@ -105,37 +109,30 @@ QString TlsFingerprint::readFirst() const
 
 QString TlsFingerprint::filePath() const
 {
-  QString dir = TlsFingerprint::directoryPath();
+  QString dir = directoryPath();
   return QString("%1/%2").arg(dir).arg(m_Filename);
 }
 
-void TlsFingerprint::persistDirectory()
+void TlsFingerprint::persistDirectory() const
 {
-  QDir dir(TlsFingerprint::directoryPath());
+  QDir dir(directoryPath());
   if (!dir.exists()) {
     dir.mkpath(".");
   }
 }
 
-QString TlsFingerprint::directoryPath()
+QString TlsFingerprint::directoryPath() const
 {
-  CoreTool coreTool;
-  QString profileDir = coreTool.getProfileDir();
-
-  return QString("%1/%2").arg(profileDir).arg(kDirName);
+  QDir dir = m_isSystemScope ? paths::systemConfigDir(true) : paths::userConfigDir(true);
+  return dir.filePath(kDirName);
 }
 
-TlsFingerprint TlsFingerprint::local()
+TlsFingerprint TlsFingerprint::local(bool isSystemScope)
 {
-  return TlsFingerprint(kLocalFilename);
+  return TlsFingerprint(kLocalFilename, isSystemScope);
 }
 
-TlsFingerprint TlsFingerprint::trustedServers()
+TlsFingerprint TlsFingerprint::trustedServers(bool isSystemScope)
 {
-  return TlsFingerprint(kTrustedServersFilename);
-}
-
-TlsFingerprint TlsFingerprint::trustedClients()
-{
-  return TlsFingerprint(kTrustedClientsFilename);
+  return TlsFingerprint(kTrustedServersFilename, isSystemScope);
 }

@@ -483,7 +483,7 @@ void MainWindow::on_m_pLabelComputerName_linkActivated(const QString &)
 
 void MainWindow::on_m_pLabelFingerprint_linkActivated(const QString &)
 {
-  auto fingerprint = TlsFingerprint::local().readFirst();
+  auto fingerprint = TlsFingerprint::local(m_AppConfig.isSystemScope()).readFirst();
   QMessageBox::information(
       this, "TLS fingerprint",
       QString(
@@ -736,7 +736,7 @@ void MainWindow::checkFingerprint(const QString &line)
   }
 
   auto fingerprint = match.captured(1);
-  if (TlsFingerprint::trustedServers().isTrusted(fingerprint)) {
+  if (TlsFingerprint::trustedServers(m_AppConfig.isSystemScope()).isTrusted(fingerprint)) {
     return;
   }
 
@@ -764,7 +764,7 @@ void MainWindow::checkFingerprint(const QString &line)
 
     if (fingerprintReply == QMessageBox::Yes) {
       // start core process again after trusting fingerprint.
-      TlsFingerprint::trustedServers().trust(fingerprint);
+      TlsFingerprint::trustedServers(m_AppConfig.isSystemScope()).trust(fingerprint);
       m_CoreProcess.start();
     }
 
@@ -1001,7 +1001,7 @@ void MainWindow::updateLocalFingerprint()
 {
   bool fingerprintExists = false;
   try {
-    fingerprintExists = TlsFingerprint::local().fileExists();
+    fingerprintExists = TlsFingerprint::local(m_AppConfig.isSystemScope()).fileExists();
   } catch (const std::exception &e) {
     qDebug() << e.what();
     qFatal("failed to check if fingerprint exists");
