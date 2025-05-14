@@ -76,7 +76,7 @@ void clearSettings(QWidget *parent, Settings &settings, bool enableRestart)
 
   auto systemConfigDir = paths::systemConfigDir();
   if (systemConfigDir.exists()) {
-    qInfo("removing system config dir: %s", qPrintable(systemConfigDir.absolutePath()));
+    qInfo.noquote() << "removing system config dir:" << systemConfigDir.absolutePath();
     if (!systemConfigDir.removeRecursively()) {
       problems << "Failed to remove system config dir.";
     }
