@@ -31,7 +31,7 @@ QDir userConfigDir(const bool persist)
   if (persist) {
     const auto dirPath = dir.absolutePath();
     if (!QDir().mkpath(dirPath)) {
-      qFatal() << "failed to persist user config dir: " << dirPath;
+      qFatal("failed to persist user config dir: %s", qUtf8Printable(dirPath));
     }
   }
   return dir;
@@ -48,7 +48,7 @@ QDir systemConfigDir(const bool persist)
   if (persist) {
     const auto dirPath = dir.absolutePath();
     if (!QDir().mkpath(dirPath)) {
-      qFatal() << "failed to persist system config dir: " << dirPath;
+      qFatal("failed to persist system config dir: %s", qUtf8Printable(dirPath));
     }
   }
   return dir;
