@@ -58,8 +58,8 @@ private:
   void accept() override;
   void showEvent(QShowEvent *event) override;
   bool isClientMode() const;
+  void updateTlsCheckbox();
   void updateTlsControls();
-  void updateTlsControlsEnabled();
 
   /// @brief Load all settings.
   void loadFromConfig();

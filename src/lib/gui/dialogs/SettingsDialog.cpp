@@ -63,7 +63,7 @@ SettingsDialog::SettingsDialog(
       new validators::ScreenNameValidator(m_pLineEditScreenName, m_pScreenNameError, &serverConfig.screens())
   );
 
-  connect(m_pCheckBoxEnableTls, &QCheckBox::toggled, this, &SettingsDialog::updateTlsControlsEnabled);
+  connect(m_pCheckBoxEnableTls, &QCheckBox::toggled, this, &SettingsDialog::updateTlsControls);
 
 #ifdef DESKFLOW_GUI_HOOK_SETTINGS
   DESKFLOW_GUI_HOOK_SETTINGS
@@ -96,7 +96,7 @@ void SettingsDialog::on_m_pButtonBrowseLog_clicked()
 
 void SettingsDialog::on_m_pCheckBoxEnableTls_clicked(bool)
 {
-  updateTlsControlsEnabled();
+  updateTlsControls();
 }
 
 void SettingsDialog::on_m_pPushButtonTlsCertPath_clicked()
@@ -198,7 +198,22 @@ void SettingsDialog::loadFromConfig()
 
   m_pCheckBoxInvertConnection->setChecked(m_appConfig.invertConnection());
 
+  updateTlsCheckbox();
   updateTlsControls();
+}
+
+void SettingsDialog::updateTlsCheckbox()
+{
+  bool tlsAvailable = m_appConfig.isWritable();
+
+  auto &locked = m_appConfig.settings().getLockedSettings();
+  if (locked.contains("cryptoEnabled")) {
+    qDebug("locking tls setting");
+    tlsAvailable = false;
+  }
+
+  m_pCheckBoxEnableTls->setEnabled(tlsAvailable);
+  m_pCheckBoxEnableTls->setChecked(m_tlsUtility.isEnabled());
 }
 
 void SettingsDialog::updateTlsControls()
@@ -211,17 +226,12 @@ void SettingsDialog::updateTlsControls()
     m_pComboBoxTlsKeyLength->setCurrentIndex(m_pComboBoxTlsKeyLength->findText(keyLengthText));
   }
 
-  m_pCheckBoxEnableTls->setEnabled(m_appConfig.isWritable());
-  m_pCheckBoxEnableTls->setChecked(m_tlsUtility.isEnabled());
-  m_pLineEditTlsCertPath->setText(m_appConfig.tlsCertPath());
-  m_pLineEditTlsCertPath->setPlaceholderText(tlsCertPath);
-}
-
-void SettingsDialog::updateTlsControlsEnabled()
-{
   const auto writable = m_appConfig.isWritable();
   const auto clientMode = m_appConfig.clientGroupChecked();
   const auto tlsChecked = m_pCheckBoxEnableTls->isChecked();
+
+  m_pLineEditTlsCertPath->setText(m_appConfig.tlsCertPath());
+  m_pLineEditTlsCertPath->setPlaceholderText(tlsCertPath);
 
   auto enabled = writable && tlsChecked && !clientMode;
   m_pLabelTlsKeyLength->setEnabled(enabled);
@@ -230,6 +240,18 @@ void SettingsDialog::updateTlsControlsEnabled()
   m_pLineEditTlsCertPath->setEnabled(enabled);
   m_pPushButtonTlsCertPath->setEnabled(enabled);
   m_pPushButtonTlsRegenCert->setEnabled(enabled);
+
+  auto &locked = m_appConfig.settings().getLockedSettings();
+  if (locked.contains("tlsCertPath")) {
+    qDebug("locking tls cert path setting");
+    m_pLineEditTlsCertPath->setEnabled(false);
+    m_pPushButtonTlsCertPath->setEnabled(false);
+    m_pPushButtonTlsRegenCert->setEnabled(false);
+  }
+  if (locked.contains("tlsKeyLength")) {
+    qDebug("locking tls key length setting");
+    m_pComboBoxTlsKeyLength->setEnabled(false);
+  }
 }
 
 bool SettingsDialog::isClientMode() const
@@ -331,20 +353,4 @@ void SettingsDialog::updateControls()
 #endif
 
   updateTlsControls();
-
-  auto &locked = m_appConfig.settings().getLockedSettings();
-  if (locked.contains("cryptoEnabled")) {
-    qDebug("locking tls setting");
-    m_pCheckBoxEnableTls->setEnabled(false);
-  }
-  if (locked.contains("tlsCertPath")) {
-    qDebug("locking tls cert path setting");
-    m_pLineEditTlsCertPath->setEnabled(false);
-    m_pPushButtonTlsCertPath->setEnabled(false);
-    m_pPushButtonTlsRegenCert->setEnabled(false);
-  }
-  if (locked.contains("tlsKeyLength")) {
-    qDebug("locking tls key length setting");
-    m_pComboBoxTlsKeyLength->setEnabled(false);
-  }
 }
