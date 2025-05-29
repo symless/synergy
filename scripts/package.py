@@ -23,6 +23,7 @@ import argparse
 import platform
 from lib.linux import PackageType
 from dotenv import load_dotenv  # type: ignore
+from lib import env
 
 ENV_FILE = ".env"
 DEFAULT_PRODUCT_NAME = "Synergy"
@@ -46,7 +47,7 @@ def main():
     load_dotenv(dotenv_path=ENV_FILE)
 
     package(
-        DEFAULT_FILENAME_BASE,
+        env.get_env("SYNERGY_PACKAGE_PREFIX", default=DEFAULT_FILENAME_BASE),
         get_app_version(VERSION_FILE),
         DEFAULT_PROJECT_BUILD_DIR,
         DEFAULT_DIST_DIR,
