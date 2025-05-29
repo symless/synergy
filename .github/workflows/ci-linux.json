@@ -89,18 +89,6 @@
       "runs-on": "ubuntu-latest"
     },
     {
-      "name": "rockylinux-9-amd64",
-      "like": "fedora",
-      "container": "rockylinux:9",
-      "runs-on": "ubuntu-latest"
-    },
-    {
-      "name": "almalinux-9-amd64",
-      "like": "fedora",
-      "container": "almalinux:9",
-      "runs-on": "ubuntu-latest"
-    },
-    {
       "name": "archlinux-amd64",
       "like": "arch",
       "container": "archlinux:latest",
