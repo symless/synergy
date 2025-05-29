@@ -325,7 +325,7 @@
              <item>
               <widget class="QRadioButton" name="m_pRadioGroupClient">
                <property name="text">
-                <string>Use another computer’s mouse and keyboard</string>
+                <string>Use another computer’s keyboard and mouse</string>
                </property>
               </widget>
              </item>
