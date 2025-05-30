@@ -261,12 +261,6 @@ class Dependencies:
 
         linux.run_command(command, check=True)
 
-        subprojects = self.config.get_os_subprojects()
-        if subprojects:
-            for subproject in subprojects:
-                deps = SubprojectDependencies(subproject)
-                deps.install()
-
 
 class SubprojectDependencies:
 
