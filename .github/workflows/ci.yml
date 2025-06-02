@@ -271,10 +271,13 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           if [ "${{ matrix.distro.like }}" == "debian" ]; then
-            # 24.10 and above use `sources.list.d` instead of `sources.list`.
-            if [[ "${{ matrix.distro.name }}" == ubuntu* ]]; then
-              sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
-              sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources
+          if [[ "${{ matrix.distro.name }}" == ubuntu* ]]; then
+              # Sources were moved to `/etc/apt/sources.list.d/ubuntu.sources` in Ubuntu 24.10
+              if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
+                sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources
+              else
+                sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
+              fi
             fi
             apt update
             apt install -y git python3 python3-venv
