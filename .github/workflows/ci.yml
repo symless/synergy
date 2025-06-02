@@ -15,6 +15,11 @@ on:
         type: string
         required: false
         description: "The ref to check out. Defaults to the current ref."
+      cmake-args:
+        type: string
+        required: false
+        description: "Additional CMake arguments to pass to the configure step."
+        default: ""
   workflow_dispatch:
   push:
     branches:
@@ -116,6 +121,7 @@ jobs:
           -DUSE_CLI11=OFF `
           -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} `
           ${{ steps.vcpkg.outputs.vcpkg-cmake-config }}
+          ${{ inputs.cmake-args }}
 
       - name: Build
         run: cmake --build build -j8
@@ -202,6 +208,7 @@ jobs:
           -DUSE_CLI11=OFF \
           -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} \
           -DCMAKE_OSX_SYSROOT=/Applications/Xcode_15.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+          ${{ inputs.cmake-args }}
 
       - name: Build
         run: cmake --build build -j8
@@ -308,6 +315,7 @@ jobs:
           -DUSE_TOMLPLUSPLUS=OFF \
           -DUSE_CLI11=OFF \
           -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}
+          ${{ inputs.cmake-args }}
 
       - name: Build
         run: cmake --build build -j8
