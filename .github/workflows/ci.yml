@@ -247,7 +247,7 @@ jobs:
         run: |
           if [ "${{ matrix.distro.like }}" == "debian" ]; then
             if [[ "${{ matrix.distro.name }}" == ubuntu* ]]; then
-              sed -i 's|http://archive.ubuntu.com/ubuntu/|https://azure.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
+              sed -i 's|http://archive.ubuntu.com/ubuntu/|https://mirror.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
             fi
             apt update
             apt install -y git python3 python3-venv
