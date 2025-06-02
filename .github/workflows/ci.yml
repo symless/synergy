@@ -246,7 +246,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           if [ "${{ matrix.distro.like }}" == "debian" ]; then
-            if [ "${{ matrix.distro.name }}" == "ubuntu"* ]; then
+            if [[ "ubuntu-24.04-amd64" == ubuntu* ]]; then
               sudo sed -i 's|http://archive.ubuntu.com/ubuntu/|https://azure.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
             fi
             apt update
