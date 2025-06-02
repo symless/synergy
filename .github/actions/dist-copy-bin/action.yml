@@ -6,6 +6,7 @@ runs:
   steps:
     - run: |
         cd build/bin
+        mkdir -p ../../dist
         ls -al *
         if [ "${{ runner.os }}" == "Windows" ]; then
           cp -v \
