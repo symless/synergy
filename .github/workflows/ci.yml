@@ -139,10 +139,7 @@ jobs:
 
       - name: Package
         if: ${{ env.PACKAGE_BUILD == 'true' }}
-        run: python ./scripts/package.py
-        env:
-          WINDOWS_PFX_CERTIFICATE: ${{ secrets.WINDOWS_PFX }}
-          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASS }}
+        uses: ./.github/actions/dist-copy-bin
 
       - name: Upload to GitHub
         if: ${{ env.PACKAGE_BUILD == 'true' }}
@@ -226,14 +223,7 @@ jobs:
 
       - name: Package
         if: ${{ env.PACKAGE_BUILD == 'true' }}
-        run: ./scripts/package.py
-        env:
-          APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
-          APPLE_P12_CERTIFICATE: ${{ secrets.APPLE_P12_CERTIFICATE }}
-          APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
-          APPLE_NOTARY_USER: ${{ secrets.APPLE_NOTARY_USER }}
-          APPLE_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARY_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        uses: ./.github/actions/dist-copy-bin
 
       - name: Upload to GitHub
         if: ${{ env.PACKAGE_BUILD == 'true' }}
@@ -329,9 +319,7 @@ jobs:
 
       - name: Package
         if: ${{ env.PACKAGE_BUILD == 'true' }}
-        env:
-          LINUX_PACKAGE_USER: ${{ matrix.distro.package-user }}
-        run: ./scripts/package.py
+        uses: ./.github/actions/dist-copy-bin
 
       - name: Upload to GitHub
         if: ${{ env.PACKAGE_BUILD == 'true' }}

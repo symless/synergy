@@ -1,0 +1,22 @@
+name: "Copy binaries for distribution"
+
+runs:
+  using: "composite"
+
+  steps:
+    - run: |
+        cd build/bin
+        ls -al *
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          cp -v \
+            synergy-core.exe \
+            synergy-core \
+            syntool.exe \
+            ../../dist/
+        else
+          cp -v \
+            synergy-core \
+            syntool \
+            ../../dist/
+        fi
+      shell: bash
