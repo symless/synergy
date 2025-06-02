@@ -19,12 +19,10 @@ on:
         type: string
         required: false
         description: "Additional CMake arguments to pass to the configure step."
-        default: ""
-      run-tests:
+      skip-tests:
         type: boolean
         required: false
-        description: "Whether to run tests. Defaults to true."
-        default: true
+        description: "Whether to skip running tests. Defaults to false."
   workflow_dispatch:
   push:
     branches:
@@ -132,7 +130,7 @@ jobs:
         run: cmake --build build -j8
 
       - name: Tests
-        if: ${{ inputs.run-tests }}
+        if: ${{ !inputs.skip-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
@@ -220,7 +218,7 @@ jobs:
         run: cmake --build build -j8
 
       - name: Tests
-        if: ${{ inputs.run-tests }}
+        if: ${{ !inputs.skip-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
@@ -335,7 +333,7 @@ jobs:
         run: cmake --build build -j8
 
       - name: Tests
-        if: ${{ inputs.run-tests }}
+        if: ${{ !inputs.skip-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
