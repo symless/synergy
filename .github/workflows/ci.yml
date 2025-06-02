@@ -132,7 +132,7 @@ jobs:
         run: cmake --build build -j8
 
       - name: Tests
-        if: ${{ inputs.run-tests != 'false' }}
+        if: ${{ inputs.run-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
@@ -220,7 +220,7 @@ jobs:
         run: cmake --build build -j8
 
       - name: Tests
-        if: ${{ inputs.run-tests != 'false' }}
+        if: ${{ inputs.run-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
@@ -335,7 +335,7 @@ jobs:
         run: cmake --build build -j8
 
       - name: Tests
-        if: ${{ inputs.run-tests != 'false' }}
+        if: ${{ inputs.run-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
