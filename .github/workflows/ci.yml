@@ -23,6 +23,10 @@ on:
         type: boolean
         required: false
         description: "Whether to skip running tests. Defaults to false."
+      package-prefix:
+        type: string
+        required: false
+        description: "The prefix to use for the package name."
   workflow_dispatch:
   push:
     branches:
@@ -43,7 +47,7 @@ env:
   GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   SYNERGY_PRODUCT_NAME: ${{ vars.SYNERGY_PRODUCT_NAME }}
   SYNERGY_EDITION_TYPE: ${{ vars.SYNERGY_EDITION_TYPE }}
-  SYNERGY_PACKAGE_PREFIX: ${{ vars.SYNERGY_PACKAGE_PREFIX }}
+  SYNERGY_PACKAGE_PREFIX: ${{ inputs.package-prefix || vars.SYNERGY_PACKAGE_PREFIX }}
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
   SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
