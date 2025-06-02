@@ -274,10 +274,11 @@ jobs:
           if [[ "${{ matrix.distro.name }}" == ubuntu* ]]; then
               # Sources were moved to `/etc/apt/sources.list.d/ubuntu.sources` in Ubuntu 24.10
               if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
-                sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list.d/ubuntu.sources
+                sources=/etc/apt/sources.list.d/ubuntu.sources
               else
-                sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' /etc/apt/sources.list
+                sources=/etc/apt/sources.list
               fi
+              sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' $sources
             fi
             apt update
             apt install -y git python3 python3-venv
