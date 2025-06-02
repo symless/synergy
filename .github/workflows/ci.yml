@@ -40,7 +40,7 @@ env:
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
   SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
   GIT_REPOSITORY: ${{ inputs.repository || github.repository }}
-  GIT_REF: ${{ inputs.branch || github.ref_name || 'master' }}
+  GIT_REF: ${{ inputs.branch || github.ref || 'master' }}
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
