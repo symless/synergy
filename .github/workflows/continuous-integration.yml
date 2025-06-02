@@ -1,0 +1,367 @@
+# All-in-one continuous integration (CI) workflow.
+# Runs on all platforms (Windows, macOS, and Linux)
+# for all events (pull request, release, and schedule).
+
+name: Continuous Integration
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - 'v*'
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    paths-ignore:
+      - '**/*.md'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.editorconfig'
+      - '.env-example'
+      - '.gitignore'
+      - '.gitattributes'
+      - 'cspell.json'
+
+env:
+  GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  PACKAGE_PREFIX: "deskflow"
+  PACKAGE_PATH: ./dist
+  CMAKE_CONFIGURE: "cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON"
+
+jobs:
+  # Always run this job, even if not on PR, since other jobs need it.
+  pr-comment-flags:
+    runs-on: ubuntu-latest
+    needs: lint-check
+
+    outputs:
+      no-sonar: ${{ steps.check.outputs.no-sonar }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check PR comment for flags
+        if: ${{ github.event_name == 'pull_request' }}
+        id: check
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          no_sonar="{no-sonar}"
+
+          if echo $PR_BODY | grep -q "$no_sonar"; then
+            echo "Flag $no_sonar found in PR body."
+            echo "no-sonar=true" >> $GITHUB_OUTPUT
+          else
+            echo "No $no_sonar flag found in PR body."
+          fi
+
+  # Quality gate to allow PR merge, used in the branch protection rules.
+  ci-passed:
+    runs-on: ubuntu-latest
+    needs: [test-results, unix, flatpak]
+
+    steps:
+      - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
+
+  # Summary of test results, combined from test result artifacts.
+  # Runs even if the tests fail to provide a summary of the failures.
+  test-results:
+    needs: main-build
+    if: always() && needs.main-build.result != 'skipped'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test summary
+        uses: ./.github/actions/test-summary
+
+  lint-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint Checker
+        uses: ./.github/actions/lint-check
+
+  analyse-valgrind:
+    needs: lint-check
+    if: ${{ github.event_name == 'pull_request' }}
+    uses: ./.github/workflows/valgrind-analysis.yml
+
+  analyse-sonarcloud:
+    needs: pr-comment-flags
+    if: ${{ needs.pr-comment-flags.outputs.no-sonar != 'true' }}
+    uses: ./.github/workflows/sonarcloud-analysis.yml
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  main-build:
+    needs: lint-check
+    name: ${{ matrix.target.name }}
+    runs-on: ${{ matrix.target.runs-on }}
+    container: ${{ matrix.target.container }}
+    timeout-minutes: ${{ matrix.target.timeout }}
+    strategy:
+      # Normally, we want to fail fast, but in this case we shouldn't since one target may
+      # fail due to transient issues unrelated to the build.
+      fail-fast: false
+
+      matrix:
+        target:
+          - name: "windows-2022-x64"
+            runs-on: "windows-2022"
+            timeout: 120 #Windows can take while if it has to build vcpkg cache
+            config-args: "-G Ninja"
+
+          - name: "macos-14-arm64"
+            runs-on: "macos-14"
+            timeout: 10
+            arch: arm64
+            config-args: "-DCMAKE_OSX_ARCHITECTURES=\"arm64\""
+
+          - name: "macos-13-x64"
+            runs-on: macos-13
+            timeout: 20
+            config-args: "-DCMAKE_OSX_ARCHITECTURES=\"x86_64\""
+
+          - name: "debian-13-x86_64"
+            runs-on: ubuntu-latest
+            container: debian:trixie-slim
+            like: "debian"
+            timeout: 20
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          - name: "fedora-41-x86_64"
+            runs-on: ubuntu-latest
+            container: fedora:41
+            like: "fedora"
+            timeout: 20
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          - name: "fedora-40-x86_84"
+            runs-on: ubuntu-latest
+            container: fedora:40
+            like: "fedora"
+            timeout: 20
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          - name: "opensuse-x86_84"
+            runs-on: ubuntu-latest
+            container: opensuse/tumbleweed:latest
+            like: "suse"
+            timeout: 20
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          - name: "archlinux-x86_84"
+            runs-on: ubuntu-latest
+            container: archlinux:latest
+            like: "arch"
+            timeout: 20
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+    steps:
+      # Make sure the container has git before we do anything else
+      - name: Install Git on Container
+        if: ${{ matrix.target.container }}
+        shell: bash
+        run : |
+           if [ "${{matrix.target.like}}" == "debian" ]; then
+             apt update -qqq > /dev/null && apt install -qqq git devscripts > /dev/null
+           elif [ "${{matrix.target.like}}" == "fedora" ]; then
+             dnf install -y git
+           elif [ "${{matrix.target.like}}" == "suse" ]; then
+             zypper refresh
+             zypper install -y --force-resolution git
+           elif [ "${{matrix.target.like}}" == "arch" ]; then
+             pacman -Syu --noconfirm git
+           else
+             echo "Unknown: ${{matrix.target.like}}"
+           fi
+      # Fancy checkout gets all the tags
+      # it also makes sure we can use git --describe correctly
+      - name: Fancy Checkout
+        uses: sithlord48/fancy-checkout@v1.0.0
+
+      # This effectively runs `vcvarsall.bat`, etc. It's not actually installing
+      # VC++ as that's already pre-installed on the Windows runner.
+      - name: Setup VC++ environment
+        if: ${{ runner.os == 'Windows' }}
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install dependencies
+        id: get-deps
+        uses: ./.github/actions/install-dependencies
+        with:
+          mac-qt-version: 6.7.2
+          like: ${{ matrix.target.like }}
+
+      - name: Get version
+        uses: ./.github/actions/get-version
+
+      - name: Configure
+        run: ${{env.CMAKE_CONFIGURE}} ${{ matrix.target.config-args }} ${{ steps.get-deps.outputs.vcpkg-cmake-config }} -DPACKAGE_VERSION_LABEL="${{env.DESKFLOW_PACKAGE_VERSION}}"
+
+      - name: Build
+        shell: bash
+        run: |
+          if [[ "${{matrix.target.like}}" != "arch" ]]; then
+            cmake --build build --config Release -j8 --target package
+          else
+            cmake --build build --config Release -j8
+            useradd -m build
+            sudo chown -R build build
+            cd build
+            sudo -u build makepkg -s
+            export OSNAME=$(cat /etc/os-release | grep ^ID= | sed 's/ID=//g')
+            export ARCH=$(uname -m)
+            mv *.pkg.tar.zst deskflow-${{env.DESKFLOW_PACKAGE_VERSION}}-${OSNAME}-${ARCH}.pkg.tar.zst
+            cd ..
+          fi
+
+      - name: Tests
+        uses: ./.github/actions/run-tests
+        timeout-minutes: 2
+        with:
+          job: ${{ matrix.target.name }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ env.PACKAGE_PREFIX }}-${{ matrix.target.name }}
+          path: ${{github.workspace}}/build/deskflow[-_]*.*
+
+  # Technically, "unix" is a misnomer, but we use it here to mean "Unix-like BSD-derived".
+  unix:
+    needs: lint-check
+    name: unix-${{ matrix.distro.name }}
+    runs-on: ${{ vars.CI_UNIX_RUNNER || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        distro:
+          - name: freebsd
+
+    steps:
+      # Fancy checkout gets all the tags
+      # it also makes sure we can use git --describe correctly
+      - name: Fancy Checkout
+        uses: sithlord48/fancy-checkout@v1.0.0
+
+      - name: Build on FreeBSD
+        if: ${{ matrix.distro.name == 'freebsd' }}
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          run: |
+            ./scripts/install_deps.sh
+            ${{env.CMAKE_CONFIGURE}} -G Ninja
+            cmake --build build -j16
+            
+            # Integration tests are flakey by nature, make them optional.
+            export QT_QPA_PLATFORM=offscreen
+            ./build/bin/unittests
+            ./build/bin/integtests || true
+  flatpak:
+    needs: lint-check
+    runs-on: ubuntu-latest
+    container:
+      image: bilelmoussaoui/flatpak-github-actions:kde-6.7
+      options: --privileged
+    steps:
+      - name: Check out repository
+        uses: sithlord48/fancy-checkout@v1.0.0
+
+      - run: git config --global protocol.file.allow always
+
+      - name: Get version
+        uses: ./.github/actions/get-version
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@master
+        name: "Build"
+        with:
+          bundle: deskflow-${{env.DESKFLOW_PACKAGE_VERSION}}-linux-x86_64.flatpak
+          manifest-path: deploy/linux/flatpak/org.deskflow.deskflow.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+          upload-artifact: false
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ env.PACKAGE_PREFIX }}-flatpak-x86_64
+          path: ${{github.workspace}}/deskflow[-_]*.flatpak
+
+  release:
+    needs: ci-passed
+    if: (github.ref == 'refs/heads/master') || (contains(github.ref, '/tags/v'))
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fancy Checkout
+        uses: sithlord48/fancy-checkout@v1.0.0
+
+      - name: Get version
+        uses: ./.github/actions/get-version
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate package checksums
+        id: generate_notes
+        shell: bash
+        run: |
+          mv $GITHUB_WORKSPACE/package-*/deskflow-* .
+          rm -rf $GITHUB_WORKSPACE/package-*
+          echo "Build: ${{env.DESKFLOW_VERSION }}" > sums.txt
+          sha256sum deskflow-* >> sums.txt
+
+      - name: Deploy continuous
+        if: (github.ref == 'refs/heads/master') && !(contains(github.ref, '/tags/v'))
+        uses: crowbarmaster/GH-Automatic-Releases@latest
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "continuous"
+          prerelease: true
+          title: 'Continuous Build'
+          files: |
+            deskflow-*
+            sums.txt
+
+      - name: Deploy release
+        if: contains(github.ref, '/tags/v')
+        uses: crowbarmaster/GH-Automatic-Releases@latest
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            deskflow-*
+            sums.txt
+            
+  winget-publish:
+    needs: release
+    if: contains(github.ref, 'tags/v')
+    runs-on: windows-latest
+    steps:
+      - name: Fancy Checkout
+        uses: sithlord48/fancy-checkout@v1.0.0
+
+      - name: Get version
+        uses: ./.github/actions/get-version
+
+      - name: Submit
+        uses: ./.github/actions/winget-publish
+        with:
+          release-version: ${{env.DESKFLOW_PACKAGE_VERSION}}
+          token: ${{ secrets.WINGET_DEPLOY_TOKEN }}

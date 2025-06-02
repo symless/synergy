@@ -1,0 +1,85 @@
+name: "SonarCloud Analysis"
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master*
+
+jobs:
+  sonarcloud-analysis:
+    runs-on: ubuntu-24.04-16-core-x64
+    container: debian:trixie-slim
+    timeout-minutes: 20
+
+    if: vars.SONARCLOUD_ENABLED
+
+    env:
+      CPU_CORE_COUNT: 16
+
+    steps:
+      - name: Install container dependencies
+        run: |
+          apt update
+          apt install -y git python3 python3-venv curl unzip gcovr
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0 # SonarCloud needs the full history to assign issues properly
+
+      - name: Config Git safe dir
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Install dependencies
+        run: ./scripts/install_deps.py
+        env:
+          # Prevent apt prompting for input.
+          DEBIAN_FRONTEND: noninteractive
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: sonarsource/sonarcloud-github-c-cpp@v3
+
+      - name: Configure
+        run: |
+          cmake -B build \
+            -G "Ninja" \
+            -DCMAKE_BUILD_TYPE="Release" \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DENABLE_COVERAGE=ON
+
+      - name: Build
+        run: |
+          build-wrapper-linux-x86-64 --out-dir bw-output cmake --build build -j${CPU_CORE_COUNT}
+
+      - name: Unit tests coverage
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cmake --build build --target coverage-unittests
+
+      - name: Integration tests coverage
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cmake --build build --target coverage-integtests
+
+      - name: Get coverage report paths
+        id: coverage-paths
+        run: |
+          unittests=$(find build -name coverage-unittests.xml)
+          integtests=$(find build -name coverage-integtests.xml)
+          paths="${unittests}${integtests:+,$integtests}"
+          if [ -z "$paths" ]; then
+            echo "Error: No coverage files found"
+            exit 1
+          fi
+          echo "csv=$paths" >> $GITHUB_OUTPUT
+
+      - name: Run SonarScanner
+        run: |
+          sonar-scanner \
+            -Dsonar.coverageReportPaths=${{ steps.coverage-paths.outputs.csv }} \
+            -Dsonar.cfamily.threads=${{ env.CPU_CORE_COUNT }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

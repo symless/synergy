@@ -1,0 +1,16 @@
+name: Feature request
+description: Had an idea how to improve Deskflow? Share it with us.
+labels: ["enhancement", "triage", "unanswered"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to help us improve Deskflow.
+
+  - type: textarea
+    id: request
+    attributes:
+      label: Feature Request
+      description: |
+        Please describe the feature you have in mind.
+    validations:
+      required: true
