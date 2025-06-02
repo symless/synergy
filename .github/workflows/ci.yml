@@ -6,6 +6,10 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      repository:
+        type: string
+        required: true
   workflow_dispatch:
   push:
     branches:
@@ -30,6 +34,7 @@ env:
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
   SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
+  REPOSITORY: ${{ inputs.repository || github.repository }}
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
@@ -60,6 +65,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: ${{ env.REPOSITORY }}
           fetch-depth: 0
           submodules: true
 
@@ -157,6 +163,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: ${{ env.REPOSITORY }}
           fetch-depth: 0
           submodules: true
 
@@ -218,6 +225,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          repository: ${{ env.REPOSITORY }}
 
       - name: Get JSON file
         id: get
@@ -267,6 +276,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: ${{ env.REPOSITORY }}
           fetch-depth: 0
           submodules: true
 
