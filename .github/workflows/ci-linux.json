@@ -81,26 +81,6 @@
       "like": "fedora",
       "container": "fedora:39",
       "runs-on": "ubuntu-latest"
-    },
-    {
-      "name": "opensuse-tumbleweed-amd64",
-      "like": "suse",
-      "container": "opensuse/tumbleweed:latest",
-      "runs-on": "ubuntu-latest"
-    },
-    {
-      "name": "archlinux-amd64",
-      "like": "arch",
-      "container": "archlinux:latest",
-      "runs-on": "ubuntu-latest",
-      "package-user": "build"
-    },
-    {
-      "name": "manjaro-amd64",
-      "like": "arch",
-      "container": "manjarolinux/base:latest",
-      "runs-on": "ubuntu-latest",
-      "package-user": "build"
     }
   ]
 }
