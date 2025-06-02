@@ -9,7 +9,8 @@ on:
     inputs:
       repository:
         type: string
-        required: true
+        required: false
+        description: "The repository check out. Defaults to the current repository."
   workflow_dispatch:
   push:
     branches:
