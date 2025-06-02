@@ -271,7 +271,9 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           if [ "${{ matrix.distro.like }}" == "debian" ]; then
-          if [[ "${{ matrix.distro.name }}" == ubuntu* ]]; then
+
+            # The default Ubuntu mirror is often flakey, so use the US mirror instead.
+            if [[ "${{ matrix.distro.name }}" == ubuntu* ]]; then
               # Sources were moved to `/etc/apt/sources.list.d/ubuntu.sources` in Ubuntu 24.10
               if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
                 sources=/etc/apt/sources.list.d/ubuntu.sources
@@ -280,6 +282,7 @@ jobs:
               fi
               sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' $sources
             fi
+            
             apt update
             apt install -y git python3 python3-venv
           elif [ "${{ matrix.distro.like }}" == "fedora" ]; then
