@@ -11,10 +11,10 @@ on:
         type: string
         required: false
         description: "The repository check out. Defaults to the current repository."
-      branch:
+      ref:
         type: string
         required: false
-        description: "The branch to check out. Defaults to the current branch or master."
+        description: "The ref to check out. Defaults to the current ref."
   workflow_dispatch:
   push:
     branches:
@@ -40,6 +40,7 @@ env:
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
   SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
   GIT_REPOSITORY: ${{ inputs.repository || github.repository }}
+  GIT_REF: ${{ inputs.ref || github.ref }}
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
@@ -71,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.GIT_REPOSITORY }}
-          ref: ${{ github.ref }}
+          ref: ${{ env.GIT_REF }}
           fetch-depth: 0
           submodules: true
 
@@ -170,7 +171,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.GIT_REPOSITORY }}
-          ref: ${{ github.ref }}
+          ref: ${{ env.GIT_REF }}
           fetch-depth: 0
           submodules: true
 
@@ -234,7 +235,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.GIT_REPOSITORY }}
-          ref: ${{ github.ref }}
+          ref: ${{ env.GIT_REF }}
 
       - name: Get JSON file
         id: get
@@ -285,7 +286,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ env.GIT_REPOSITORY }}
-          ref: ${{ github.ref }}
+          ref: ${{ env.GIT_REF }}
           fetch-depth: 0
           submodules: true
 
