@@ -92,14 +92,8 @@ jobs:
             package-os: macos-x64
             timeout: 20
 
-          - name: "debian-13-x86_64"
+          - name: debian-13-x86_64
             runs-on: ubuntu-latest
-            container: debian:trixie-slim
-            like: "debian"
-            timeout: 20
-
-          - name: "debian-13-arm64"
-            runs-on: ubuntu-24.04-8-core-arm64
             container: debian:trixie-slim
             like: "debian"
             timeout: 20
@@ -111,19 +105,19 @@ jobs:
             legacy-debian: true
             timeout: 20
 
-          - name: "ubuntu-25.04-x86_64"
+          - name: ubuntu-25.04-x86_64
             runs-on: ubuntu-latest
             container: ubuntu:25.04
             like: "debian"
             timeout: 20
 
-          - name: "ubuntu-24.10-x86_64"
+          - name: ubuntu-24.10-x86_64
             runs-on: ubuntu-latest
             container: ubuntu:24.10
             like: "debian"
             timeout: 20
 
-          - name: "ubuntu-24.04-x86_64"
+          - name: ubuntu-24.04-x86_64
             runs-on: ubuntu-latest
             container: ubuntu:24.04
             like: "debian"
@@ -131,26 +125,29 @@ jobs:
             static-libportal: true
             timeout: 20
 
-          - name: "ubuntu-22.04-x86_64"
+          - name: ubuntu-24.04-arm64
+            runs-on: ubuntu-24.04-8-core-arm64
+            container: ubuntu:24.04
+            like: "debian"
+            legacy-debian: true
+            static-libportal: true
+            arch: arm64
+            timeout: 20
+
+          - name: ubuntu-22.04-x86_64
             runs-on: ubuntu-latest
             container: ubuntu:22.04
             like: "debian"
             legacy-debian: true
             timeout: 20
 
-          - name: "fedora-41-arm64"
-            runs-on: ubuntu-24.04-8-core-arm64
-            container: fedora:41
-            like: "fedora"
-            timeout: 20
-
-          - name: "fedora-41-x86_64"
+          - name: fedora-41-x86_64
             runs-on: ubuntu-latest
             container: fedora:41
             like: "fedora"
             timeout: 20
 
-          - name: "fedora-40-x86_84"
+          - name: fedora-40-x86_84
             runs-on: ubuntu-latest
             container: fedora:40
             like: "fedora"
@@ -272,7 +269,7 @@ jobs:
         if: ${{ env.PACKAGE_BUILD == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}"
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
           path: ./dist
 
   windows:
@@ -362,7 +359,7 @@ jobs:
         if: ${{ env.PACKAGE_BUILD == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}"
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
           path: ./dist
 
   macos:
@@ -382,7 +379,7 @@ jobs:
 
       matrix:
         target:
-          - name: "macos-14-arm64"
+          - name: macos-14-arm64
             timeout: 10
             os: "macos-14"
             arch: arm64
@@ -451,7 +448,7 @@ jobs:
         if: ${{ env.PACKAGE_BUILD == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}"
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
           path: ./dist
 
   linux-matrix:
@@ -568,5 +565,5 @@ jobs:
         if: ${{ env.PACKAGE_BUILD == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.distro.name }}"
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.distro.name }}
           path: ./dist
