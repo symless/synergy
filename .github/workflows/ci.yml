@@ -99,7 +99,7 @@ jobs:
             timeout: 20
 
           - name: "debian-13-arm64"
-            runs-on: ubuntu-24.04-arm
+            runs-on: ubuntu-24.04-8-core-arm64
             container: debian:trixie-slim
             like: "debian"
             timeout: 20
@@ -139,7 +139,7 @@ jobs:
             timeout: 20
 
           - name: "fedora-41-arm64"
-            runs-on: ubuntu-24.04-arm
+            runs-on: ubuntu-24.04-8-core-arm64
             container: fedora:41
             like: "fedora"
             timeout: 20
