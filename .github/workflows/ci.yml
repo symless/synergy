@@ -164,7 +164,7 @@ jobs:
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
       - name: Debug
-        if: ${{ inputs.ref }}
+        if: ${{ steps.cache-bin.outputs.cache-hit }}
         run: ls -Rla dist
 
       - name: Setup Linux
