@@ -156,7 +156,7 @@ jobs:
     steps:
       # Only use caching for workflow calls, since in every other case the SHA will likely change.
       - name: Cache binaries
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.ref }}
         uses: actions/cache@v4
         id: cache-bin
         with:
