@@ -25,6 +25,7 @@ runs:
   using: "composite"
 
   steps:
+    # TODO: This seems like it would be more useful as an standalone bash script.
     - name: Install dependencies
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
@@ -44,7 +45,7 @@ runs:
                 libcli11-dev -y >/dev/null
 
               if [ "${{ inputs.legacy-debian }}" != "true" ]; then
-                apt install -qqq libportal-dev tomlplusplus-dev libei-dev -y >/dev/null
+                apt install -qqq libportal-dev libei-dev -y >/dev/null
               else
                 echo "Skipping newer libs for legacy debian compatibility"
               fi
