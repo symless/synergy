@@ -5,16 +5,16 @@ name: "Install dependencies"
 
 inputs:
   os-like:
-    description: "Used only on linux distro type: debian, fedora, suse, arch"
-    required: false
+    description: "Used only on Linux for distro type"
 
   qt-version:
     description: "The version of Qt to install on mac os"
-    required: false
 
   legacy-debian:
     description: "Use legacy debian packages (excludes newer libs)"
-    required: false
+
+  build-libportal:
+    description: "Build libportal from source on Linux"
 
 outputs:
   vcpkg-cmake-config:
@@ -84,6 +84,15 @@ runs:
             echo "Unknown OS: $RUNNER_OS"
           fi
       shell: bash
+
+    - name: Build libportal
+      if: ${{ inputs.build-libportal }}
+      run: |
+        ./scripts/install_deps.py \
+        --skip-system \
+        --meson-no-system libportal --meson-static libportal --subprojects
+      env:
+        DEBIAN_FRONTEND: noninteractive
 
     - name: Install Qt (macOS)
       if: ${{ runner.os == 'macOS' }}

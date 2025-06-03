@@ -128,6 +128,7 @@ jobs:
             container: ubuntu:24.04
             like: "debian"
             legacy-debian: true
+            static-libportal: true
             timeout: 20
 
           - name: "ubuntu-22.04-x86_64"
@@ -156,12 +157,21 @@ jobs:
             timeout: 20
 
     steps:
+      - name: Cache binaries
+        uses: actions/cache@v4
+        id: cache-bin
+        with:
+          path: dist
+          key: ${{ matrix.target.name }}-bin-${{ github.sha }}
+
       - name: Setup Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && runner.os == 'Linux' }}
         shell: bash
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
           if [ "${{ matrix.target.like }}" == "debian" ]; then
 
             # The default Ubuntu mirror is often flakey, so use the US mirror instead.
@@ -190,34 +200,6 @@ jobs:
             echo "Unknown: ${{ matrix.target.like }}"
           fi
 
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.GIT_REPOSITORY }}
-          ref: ${{ env.GIT_REF }}
-          fetch-depth: 0
-          submodules: true
-
-      - name: Config Git safe dir
-        if: ${{ runner.os == 'Linux' }}
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
-
-      - name: Cache binaries
-        uses: actions/cache@v4
-        id: cache-bin
-        with:
-          path: dist
-          key: ${{ matrix.target.name }}-bin-${{ github.sha }}
-
-      - name: Install dependencies
-        if: ${{ !steps.cache-bin.outputs.cache-hit }}
-        id: get-deps
-        uses: ./.github/actions/install-deps
-        with:
-          qt-version: ${{ env.QT_VERSION }}
-          os-like: ${{ matrix.target.like }}
-          legacy-debian: ${{ matrix.target.legacy-debian || false }}
-
       - name: Setup variables
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
         id: vars
@@ -234,33 +216,39 @@ jobs:
 
             "Linux")
               cmake_args="$cmake_args --preset=linux-release"
-              if [ "${{ matrix.target.name }}" == "ubuntu-24.04"* ]; then
+              if [ "${{ matrix.target.static-libportal }}" == "true" ]; then
                 cmake_args="$cmake_args -DSYSTEM_LIBPORTAL=OFF -DSTATIC_LIBPORTAL=ON"
-                build_libportal=true
               fi
               ;;
           esac
 
           cmake_args="$cmake_args -DUSE_TOMLPLUSPLUS=OFF -DUSE_CLI11=OFF"
           cmake_args="$cmake_args -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}"
-          cmake_args="$cmake_args ${{ steps.get-deps.outputs.vcpkg-cmake-config }}"
           cmake_args="$cmake_args ${{ inputs.cmake-args }}"
 
           echo "cmake-args=$cmake_args" >> $GITHUB_OUTPUT
-          echo "build-libportal=$build_libportal" >> $GITHUB_OUTPUT
 
-      - name: Build libportal
-        if: ${{ steps.vars.outputs.build-libportal }}
-        run: |
-          ./scripts/install_deps.py \
-          --skip-system \
-          --meson-no-system libportal --meson-static libportal --subprojects
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GIT_REPOSITORY }}
+          ref: ${{ env.GIT_REF }}
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install dependencies
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        id: get-deps
+        uses: ./.github/actions/install-deps
+        with:
+          qt-version: ${{ env.QT_VERSION }}
+          os-like: ${{ matrix.target.like }}
+          legacy-debian: ${{ matrix.target.legacy-debian }}
+          build-libportal: ${{ matrix.target.static-libportal }}
 
       - name: Configure
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
-        run: cmake -B build ${{ steps.vars.outputs.cmake-args }}
+        run: cmake -B build ${{ steps.vars.outputs.cmake-args }} ${{ steps.get-deps.outputs.vcpkg-cmake-config }}
 
       - name: Build
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
