@@ -89,7 +89,6 @@ runs:
       if: ${{ inputs.build-libportal }}
       run: |
         ./scripts/install_deps.py \
-        --skip-system \
         --meson-no-system libportal --meson-static libportal --subprojects
       shell: bash
       env:
@@ -133,6 +132,12 @@ runs:
         triplet: x64-windows-release
         token: ${{ github.token }}
         github-binarycache: true
+
+    # This effectively runs `vcvarsall.bat`, etc. It's not actually installing
+    # VC++ as that's already pre-installed on the Windows runner.
+    - name: Setup VC++ environment
+      if: ${{ runner.os == 'Windows' }}
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Install Wix
       if: ${{ runner.os == 'Windows' }}
