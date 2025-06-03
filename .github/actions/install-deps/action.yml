@@ -9,7 +9,7 @@ inputs:
     description: "Used only on linux distro type: debian, fedora, suse, arch"
     required: false
 
-  mac-qt-version:
+  qt-version:
     description: "The verison of Qt to install on mac os"
     required: false
 

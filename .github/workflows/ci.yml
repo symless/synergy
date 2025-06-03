@@ -216,8 +216,7 @@ jobs:
         id: get-deps
         uses: ./.github/actions/install-deps
         with:
-          qt-version: 6.9.0
-          qt-install-dir: ${{matrix.target.qt-install-dir}}
+          qt-version: ${{ env.QT_VERSION }}
           like: ${{ matrix.target.like }}
 
       - name: Setup variables
