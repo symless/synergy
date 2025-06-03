@@ -1,10 +1,9 @@
 {
   "dependencies": [
+    "gtest",
     {
       "name": "openssl",
-      "features": [
-        "tools"
-      ]
+      "features": ["tools"]
     }
   ]
 }
