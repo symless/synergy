@@ -63,7 +63,7 @@ macro(post_config_all)
       VERBATIM
       COMMENT "Copying files to bin dir")
 
-    set(dependencies synergyd)
+    set(dependencies synergy-daemon)
 
     if(BUILD_GUI)
       list(APPEND dependencies synergy)
