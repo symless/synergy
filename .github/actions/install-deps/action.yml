@@ -91,6 +91,7 @@ runs:
         ./scripts/install_deps.py \
         --skip-system \
         --meson-no-system libportal --meson-static libportal --subprojects
+      shell: bash
       env:
         DEBIAN_FRONTEND: noninteractive
 
