@@ -163,7 +163,7 @@ jobs:
         id: cache-bin
         with:
           path: dist
-          key: ${{ matrix.target.name }}-bin-${{ github.sha }}
+          key: ${{ matrix.target.name }}-bin-${{ env.GIT_REF }}
 
       - name: Setup Linux
         if: ${{ !steps.cache-bin.outputs.cache-hit && runner.os == 'Linux' }}
