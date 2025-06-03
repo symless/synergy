@@ -196,8 +196,6 @@ jobs:
             echo "Unknown: ${{ matrix.target.like }}"
           fi
 
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-
       - name: Setup variables
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
         id: vars
@@ -226,6 +224,15 @@ jobs:
           cmake_args="$cmake_args ${{ inputs.cmake-args }}"
 
           echo "cmake-args=$cmake_args" >> $GITHUB_OUTPUT
+
+      # By default, workspace dir is not trusted by Git on containers.
+      - name: Setup Git (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Checkout
         uses: actions/checkout@v4
