@@ -85,6 +85,7 @@ runs:
           fi
       shell: bash
 
+    # HACK: This installs the system deps a 2nd time, but without that the Meson step fails.
     - name: Build libportal
       if: ${{ inputs.build-libportal }}
       run: |
