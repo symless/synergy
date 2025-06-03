@@ -160,12 +160,8 @@ jobs:
         uses: actions/cache@v4
         id: cache-bin
         with:
-          path: build/bin
+          path: dist
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
-
-      - name: ls build/bin
-        if: ${{ steps.cache-bin.outputs.cache-hit }}
-        run: ls -Rls build/bin
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
@@ -271,7 +267,7 @@ jobs:
           bin-dir: build/bin
 
       - name: Package
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD == 'true' }}
         uses: ./.github/actions/dist-copy-bin
 
       - name: Upload to GitHub
