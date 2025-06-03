@@ -267,7 +267,7 @@ jobs:
           bin-dir: build/bin
 
       - name: Package
-        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD == 'true' }}
+        if: ${{ env.PACKAGE_BUILD == 'true' }}
         uses: ./.github/actions/dist-copy-bin
 
       - name: Upload to GitHub
