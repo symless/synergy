@@ -170,8 +170,6 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-
           if [ "${{ matrix.target.like }}" == "debian" ]; then
 
             # The default Ubuntu mirror is often flakey, so use the US mirror instead.
@@ -199,6 +197,8 @@ jobs:
           else
             echo "Unknown: ${{ matrix.target.like }}"
           fi
+
+          git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Setup variables
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
