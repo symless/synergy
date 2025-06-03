@@ -98,6 +98,7 @@ runs:
     # HACK: Needed for GTest on Windows (installed bia Meson).
     - name: Install Windows deps
       if: ${{ runner.os == 'Windows' }}
+      shell: pwsh
       run: ./scripts/install_deps.py
 
     - name: Install Qt (macOS)
