@@ -1,8 +1,8 @@
 # SPDX-FileCopyrightText: 2024 Chris Rizzitello <sithlord48@gmail.com>
 # SPDX-License-Identifier: MIT
 
-name: "Install dependencies for deskflow"
-description: "Install the dependencies needed to build deskflow"
+name: "Install dependencies"
+description: "Install the dependencies needed to build"
 
 inputs:
   like:
@@ -10,7 +10,7 @@ inputs:
     required: false
 
   qt-version:
-    description: "The verison of Qt to install on mac os"
+    description: "The version of Qt to install on mac os"
     required: false
 
 outputs:
@@ -73,9 +73,9 @@ runs:
         AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
       with:
         dir: "/Users/runner"
-        version: ${{ env.QT_VERSION }}
+        version: ${{ inputs.qt-version }}
         cache: true
-        cache-key-prefix: macos-qt-${{ env.QT_VERSION }}
+        cache-key-prefix: macos-qt-${{ inputs.qt-version }}
 
     - name: Install Qt (Windows)
       if: ${{ runner.os == 'Windows' }}
@@ -84,9 +84,9 @@ runs:
         AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
       with:
         dir: "C:"
-        version: ${{ env.QT_VERSION }}
+        version: ${{ inputs.qt-version }}
         cache: true
-        cache-key-prefix: windows-qt-${{ env.QT_VERSION }}
+        cache-key-prefix: windows-qt-${{ inputs.qt-version }}
 
     # Install Ninja with an action instead of using Chocolatey, as it's more
     # reliable and faster. The Ninja install action is pretty good as it
