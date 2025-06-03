@@ -66,14 +66,27 @@ runs:
           fi
       shell: bash
 
-    - name: Install Qt
-      if: ${{runner.os == 'macOS' }}
+    - name: Install Qt (macOS)
+      if: ${{ runner.os == 'macOS' }}
       uses: jurplel/install-qt-action@v4
+      env:
+        AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
       with:
         dir: "/Users/runner"
-        version: ${{inputs.mac-qt-version}}
+        version: ${{ env.QT_VERSION }}
         cache: true
-        cache-key-prefix: ${{matrix.target.os}}-${{env.qt-version}}
+        cache-key-prefix: macos-qt-${{ env.QT_VERSION }}
+
+    - name: Install Qt (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      uses: jurplel/install-qt-action@v4
+      env:
+        AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
+      with:
+        dir: "C:"
+        version: ${{ env.QT_VERSION }}
+        cache: true
+        cache-key-prefix: windows-qt-${{ env.QT_VERSION }}
 
     # Install Ninja with an action instead of using Chocolatey, as it's more
     # reliable and faster. The Ninja install action is pretty good as it

@@ -58,12 +58,186 @@ jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
   ci-passed:
     runs-on: ubuntu-latest
-    needs: [windows, macos, linux]
+    needs: main
 
     steps:
       - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
 
+  main:
+    if: ${{ !github.event.pull_request.draft }}
+    name: main / ${{ matrix.target.name }}
+    runs-on: ${{ matrix.target.runs-on }}
+    container: ${{ matrix.target.container }}
+    timeout-minutes: ${{ matrix.target.timeout }}
+
+    strategy:
+      # Normally, we want to fail fast, but in this case we shouldn't since one target may
+      # fail due to transient issues unrelated to the build.
+      fail-fast: false
+
+      matrix:
+        target:
+          - name: windows-2022-x64
+            runs-on: windows-latest-16-cores
+            package-os: windows-x64
+            timeout: 20
+
+          - name: macos-14-arm64
+            runs-on: macos-14
+            package-os: macos-arm64
+            timeout: 10
+
+          - name: macos-14-x64
+            runs-on: macos-14-large
+            package-os: macos-x64
+            timeout: 20
+
+          - name: "debian-13-x86_64"
+            runs-on: ubuntu-latest
+            container: debian:trixie-slim
+            like: "debian"
+            timeout: 20
+
+          - name: "debian-13-arm64"
+            runs-on: ubuntu-24.04-arm
+            container: debian:trixie-slim
+            like: "debian"
+            timeout: 20
+
+          - name: debian-12-x86_64
+            runs-on: ubuntu-latest
+            container: debian:bookworm-slim
+            like: "debian"
+            timeout: 20
+
+          - name: "ubuntu-25.04-x86_64"
+            runs-on: ubuntu-latest
+            container: ubuntu:25.04
+            like: "debian"
+            timeout: 20
+
+          - name: "ubuntu-24.10-x86_64"
+            runs-on: ubuntu-latest
+            container: ubuntu:24.10
+            like: "debian"
+            timeout: 20
+
+          - name: "ubuntu-24.04-x86_64"
+            runs-on: ubuntu-latest
+            container: ubuntu:24.04
+            like: "debian"
+            timeout: 20
+
+          - name: "ubuntu-22.04-x86_64"
+            runs-on: ubuntu-latest
+            container: ubuntu:22.04
+            like: "debian"
+            timeout: 20
+
+          - name: "fedora-42-x86_64"
+            runs-on: ubuntu-latest
+            container: fedora:42
+            like: "fedora"
+            timeout: 20
+
+          - name: "fedora-42-arm64"
+            runs-on: ubuntu-24.04-arm
+            container: fedora:42
+            like: "fedora"
+            timeout: 20
+
+          - name: "fedora-41-x86_64"
+            runs-on: ubuntu-latest
+            container: fedora:41
+            like: "fedora"
+            timeout: 20
+
+          - name: "fedora-40-x86_84"
+            runs-on: ubuntu-latest
+            container: fedora:40
+            like: "fedora"
+            timeout: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GIT_REPOSITORY }}
+          ref: ${{ env.GIT_REF }}
+          fetch-depth: 0
+          submodules: true
+
+      - name: Cache binaries
+        uses: actions/cache@v4
+        id: cache-bin
+        with:
+          path: dist
+          key: ${{ matrix.target.name }}-bin-${{ github.sha }}
+
+      - name: Install dependencies
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        id: get-deps
+        uses: ./.github/actions/install-deps
+        with:
+          qt-version: 6.9.0
+          qt-install-dir: ${{matrix.target.qt-install-dir}}
+          like: ${{ matrix.target.like }}
+
+      - name: Setup variables
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        id: vars
+        run: |
+          case "${{ runner.os }}" in
+            "Windows")
+              cmake_args="--preset=windows-release"
+              ;;
+
+            "macOS")
+              cmake_args="$cmake_args --preset=macos-release"
+              cmake_args="$cmake_args -DCMAKE_OSX_SYSROOT=/Applications/Xcode_15.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+              ;;
+
+            "Linux")
+              cmake_args="$cmake_args --preset=linux-release"
+              ;;
+          esac
+
+          cmake_args="$cmake_args -DUSE_TOMLPLUSPLUS=OFF -DUSE_CLI11=OFF"
+          cmake_args="$cmake_args -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}"
+          cmake_args="$cmake_args ${{ steps.get-deps.outputs.vcpkg-cmake-config }}"
+          cmake_args="$cmake_args ${{ inputs.cmake-args }}"
+
+          echo "cmake-args=$cmake_args" >> $GITHUB_OUTPUT
+
+      - name: Configure
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        run: cmake -B build ${{ steps.vars.outputs.cmake-args }}
+
+      - name: Build
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        run: cmake --build build -j8
+
+      - name: Tests
+        if: ${{ !steps.cache-bin.outputs.cache-hit && !inputs.skip-tests }}
+        uses: ./.github/actions/run-tests
+        timeout-minutes: 2
+        with:
+          job: ${{ matrix.target.name }}
+          bin-dir: build/bin
+
+      - name: Package
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD == 'true' }}
+        uses: ./.github/actions/dist-copy-bin
+
+      - name: Upload to GitHub
+        if: ${{ env.PACKAGE_BUILD == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}"
+          path: ./dist
+
   windows:
+    if: false
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
     container: ${{ matrix.target.container }}
@@ -153,6 +327,7 @@ jobs:
           path: ./dist
 
   macos:
+    if: false
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.os }}
     timeout-minutes: ${{ matrix.target.timeout }}
@@ -241,6 +416,7 @@ jobs:
           path: ./dist
 
   linux-matrix:
+    if: false
     runs-on: ubuntu-latest
 
     outputs:
@@ -261,6 +437,7 @@ jobs:
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
 
   linux:
+    if: false
     needs: linux-matrix
     name: linux-${{ matrix.distro.name }}
     runs-on: ${{ matrix.distro.runs-on }}
