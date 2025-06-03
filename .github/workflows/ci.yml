@@ -163,6 +163,10 @@ jobs:
           path: build/bin
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
+      - name: ls build/bin
+        if: ${{ steps.cache-bin.outputs.cache-hit }}
+        run: ls -Rls build/bin
+
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
         shell: bash
