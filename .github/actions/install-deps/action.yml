@@ -95,6 +95,11 @@ runs:
       env:
         DEBIAN_FRONTEND: noninteractive
 
+    # HACK: Needed for GTest on Windows (installed bia Meson).
+    - name: Install Windows deps
+      if: ${{ runner.os == 'Windows' }}
+      run: ./scripts/install_deps.py
+
     - name: Install Qt (macOS)
       if: ${{ runner.os == 'macOS' }}
       uses: jurplel/install-qt-action@v4
