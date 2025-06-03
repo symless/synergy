@@ -163,6 +163,10 @@ jobs:
           path: dist
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
+      - name: Debug
+        if: ${{ inputs.ref }}
+        run: ls -Rla dist
+
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
         shell: bash
