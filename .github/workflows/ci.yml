@@ -203,6 +203,7 @@ jobs:
       - name: Setup variables
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
         id: vars
+        shell: bash
         run: |
           case "${{ runner.os }}" in
             "Windows")
