@@ -108,6 +108,7 @@ jobs:
             runs-on: ubuntu-latest
             container: debian:bookworm-slim
             like: "debian"
+            legacy-debian: true
             timeout: 20
 
           - name: "ubuntu-25.04-x86_64"
@@ -126,12 +127,14 @@ jobs:
             runs-on: ubuntu-latest
             container: ubuntu:24.04
             like: "debian"
+            legacy-debian: true
             timeout: 20
 
           - name: "ubuntu-22.04-x86_64"
             runs-on: ubuntu-latest
             container: ubuntu:22.04
             like: "debian"
+            legacy-debian: true
             timeout: 20
 
           - name: "fedora-42-x86_64"
@@ -218,6 +221,7 @@ jobs:
         with:
           qt-version: ${{ env.QT_VERSION }}
           os-like: ${{ matrix.target.like }}
+          legacy-debian: ${{ matrix.target.legacy-debian || false }}
 
       - name: Setup variables
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
