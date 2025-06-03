@@ -160,7 +160,7 @@ jobs:
         uses: actions/cache@v4
         id: cache-bin
         with:
-          path: dist
+          path: build/bin
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
       - name: Setup Linux
