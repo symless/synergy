@@ -217,7 +217,7 @@ jobs:
         uses: ./.github/actions/install-deps
         with:
           qt-version: ${{ env.QT_VERSION }}
-          like: ${{ matrix.target.like }}
+          os-like: ${{ matrix.target.like }}
 
       - name: Setup variables
         if: ${{ !steps.cache-bin.outputs.cache-hit }}

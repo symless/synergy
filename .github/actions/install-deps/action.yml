@@ -4,7 +4,7 @@
 name: "Install dependencies"
 
 inputs:
-  like:
+  os-like:
     description: "Used only on linux distro type: debian, fedora, suse, arch"
     required: false
 
@@ -25,17 +25,30 @@ runs:
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
+            
             brew install cmake googletest ninja openssl --quiet
+
           elif [ "$RUNNER_OS" == "Linux" ]; then
-            if [ ${{inputs.like}} == "debian" ]; then
+            if [ ${{ inputs.os-like }} == "debian" ]; then
+
               apt update -qqq > /dev/null
               apt install -qqq cmake build-essential ninja-build \
                 xorg-dev libx11-dev libxtst-dev libssl-dev \
                 libglib2.0-dev libgdk-pixbuf-2.0-dev libnotify-dev \
                 libxkbfile-dev qt6-base-dev qt6-tools-dev \
                 libgtk-3-dev libgtest-dev libgmock-dev libpugixml-dev \
-                libei-dev libportal-dev libtomlplusplus-dev libcli11-dev -y >/dev/null
-            elif [ ${{inputs.like}} == "fedora" ]; then
+                libcli11-dev -y >/dev/null
+
+              # If ubuntu version is 24.10 or later, install newly available libraries
+              distro_version=$(lsb_release -rs)
+              if [ "$distro_version" \> "24.04" ]; then
+                apt install -qqq libportal-dev tomlplusplus-dev libei-dev -y >/dev/null
+              else
+                echo "Skipping newer libs for Ubuntu version $distro_version"
+              fi
+
+            elif [ ${{ inputs.os-like }} == "fedora" ]; then
+
               dnf install -y cmake make ninja-build gcc-c++ \
                 rpm-build openssl-devel glib2-devel \
                 gdk-pixbuf2-devel libXtst-devel libnotify-devel \
@@ -43,7 +56,9 @@ runs:
                 gtk3-devel gtest-devel gmock-devel pugixml-devel \
                 libei-devel libportal-devel tomlplusplus-devel \
                 cli11-devel
-            elif [ ${{inputs.like}} == "suse" ]; then
+
+            elif [ ${{ inputs.os-like }} == "suse" ]; then
+
               zypper refresh
               zypper install -y --force-resolution \
                 cmake make ninja gcc-c++ rpm-build libopenssl-devel \
@@ -51,13 +66,16 @@ runs:
                 libxkbfile-devel qt6-base-devel qt6-tools-devel gtk3-devel \
                 googletest-devel googlemock-devel pugixml-devel libei-devel \
                 libportal-devel tomlplusplus-devel cli11-devel
+
             elif [ ${{ inputs.like }} == "arch" ]; then
+
               pacman -Syu --noconfirm base-devel cmake ninja \
                 gcc openssl glib2 gdk-pixbuf2 libxtst libnotify \
                 libxkbfile gtest pugixml libei libportal \
                 qt6-base qt6-tools gtk3 tomlplusplus cli11
+
             else
-              echo "Unknown like"
+              echo "Unknown OS like: ${{ inputs.os-like }}"
             fi
           else
             echo "Unknown OS: $RUNNER_OS"
