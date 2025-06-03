@@ -160,7 +160,7 @@ jobs:
         id: cache-bin
         with:
           path: dist
-          key: ${{ matrix.target.name }}-bin-${{ env.GIT_REF }}
+          key: ${{ matrix.target.name }}-bin-${{ inputs.ref || github.sha }}
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
