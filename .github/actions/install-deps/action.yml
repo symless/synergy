@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 name: "Install dependencies"
-description: "Install the dependencies needed to build"
 
 inputs:
   like:
@@ -15,18 +14,17 @@ inputs:
 
 outputs:
   vcpkg-cmake-config:
-    description: "windows vcpkg output for cmaket"
+    description: "Windows vcpkg output for cmake"
     value: ${{ steps.vcpkg.outputs.vcpkg-cmake-config }}
 
 runs:
   using: "composite"
 
   steps:
-    - name: Install Depends
+    - name: Install dependencies
+      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            echo "Window not supported yet"
-          elif [ "$RUNNER_OS" == "macOS" ]; then
+          if [ "$RUNNER_OS" == "macOS" ]; then
             brew install cmake googletest ninja openssl --quiet
           elif [ "$RUNNER_OS" == "Linux" ]; then
             if [ ${{inputs.like}} == "debian" ]; then

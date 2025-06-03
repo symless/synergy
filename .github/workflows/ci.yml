@@ -235,6 +235,10 @@ jobs:
 
             "Linux")
               cmake_args="$cmake_args --preset=linux-release"
+              if [ "${{ matrix.target.name }}" == "ubuntu-24.04"* ]; then
+                cmake_args="$cmake_args -DSYSTEM_LIBPORTAL=OFF -DSTATIC_LIBPORTAL=ON"
+                build_libportal=true
+              fi
               ;;
           esac
 
@@ -244,6 +248,16 @@ jobs:
           cmake_args="$cmake_args ${{ inputs.cmake-args }}"
 
           echo "cmake-args=$cmake_args" >> $GITHUB_OUTPUT
+          echo "build-libportal=$build_libportal" >> $GITHUB_OUTPUT
+
+      - name: Build libportal
+        if: ${{ steps.vars.outputs.build-libportal }}
+        run: |
+          ./scripts/install_deps.py \
+          --skip-system \
+          --meson-no-system libportal --meson-static libportal --subprojects
+        env:
+          DEBIAN_FRONTEND: noninteractive
 
       - name: Configure
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
