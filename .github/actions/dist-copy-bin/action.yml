@@ -10,7 +10,7 @@ inputs:
 outputs:
   copy-done:
     description: "Indicates whether the copy happened."
-    value: ${{ steps.copy.outputs.copy-done }}
+    value: ${{ steps.copy.outputs.done }}
     
 
 runs:
