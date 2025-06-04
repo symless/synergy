@@ -164,12 +164,13 @@ jobs:
           path: dist
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
-      - name: Debug
+      - name: Binary info
         if: ${{ steps.cache-bin.outputs.cache-hit }}
         shell: bash
         run: |
           pwd
           ls -Rla dist
+          ./bin/synergy-core server --version
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
