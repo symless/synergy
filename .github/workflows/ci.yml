@@ -56,7 +56,8 @@ env:
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
-  passed:
+  # Even though "ci-" seems redundant, it adds useful context in the GitHub UI.
+  ci-passed:
     runs-on: ubuntu-latest
     needs: main
 
