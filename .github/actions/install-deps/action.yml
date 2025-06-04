@@ -107,7 +107,7 @@ runs:
       if: ${{ runner.os == 'macOS' }}
       uses: jurplel/install-qt-action@v4
       env:
-        AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
+        AQT_CONFIG: ${{ github.action_path }}/aqt.ini
       with:
         dir: "/Users/runner"
         version: ${{ inputs.qt-version }}
@@ -118,7 +118,7 @@ runs:
       if: ${{ runner.os == 'Windows' }}
       uses: jurplel/install-qt-action@v4
       env:
-        AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
+        AQT_CONFIG: ${{ github.action_path }}/aqt.ini
       with:
         dir: "C:"
         version: ${{ inputs.qt-version }}
