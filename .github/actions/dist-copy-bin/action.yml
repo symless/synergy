@@ -12,7 +12,6 @@ outputs:
     description: "Indicates whether the copy happened."
     value: ${{ steps.copy.outputs.done }}
     
-
 runs:
   using: "composite"
 
