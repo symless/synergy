@@ -38,11 +38,23 @@ macro(configure_definitions)
   endif()
   add_definitions(-DSYNERGY_VERSION_URL="${VERSION_URL}")
 
-  if(NOT "$ENV{GIT_SHA}" STREQUAL "")
-    # Shorten the Git SHA to 8 chars for readability
-    string(SUBSTRING "$ENV{GIT_SHA}" 0 8 GIT_SHA_SHORT)
-    message(STATUS "Short Git SHA: ${GIT_SHA_SHORT}")
+  find_package(Git)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short=7 HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE GIT_SHA_SHORT
+    ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+  if("${GIT_SHA_SHORT}" STREQUAL "" AND NOT "$ENV{GIT_SHA}" STREQUAL "")
+    string(SUBSTRING "$ENV{GIT_SHA}" 0 7 GIT_SHA_SHORT)
+  endif()
+
+  if (NOT "${GIT_SHA_SHORT}" STREQUAL "")
+    message(STATUS "Git SHA: ${GIT_SHA_SHORT}")
     add_definitions(-DGIT_SHA_SHORT="${GIT_SHA_SHORT}")
+  else()
+    message(WARNING "Unable to get Git SHA")
   endif()
 
   if(NOT "$ENV{SYNERGY_PRODUCT_NAME}" STREQUAL "")
