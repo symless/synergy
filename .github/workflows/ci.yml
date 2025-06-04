@@ -167,7 +167,9 @@ jobs:
       - name: Debug
         if: ${{ steps.cache-bin.outputs.cache-hit }}
         shell: bash
-        run: ls -Rla dist
+        run: |
+          pwd
+          ls -Rla dist
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
