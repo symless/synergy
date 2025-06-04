@@ -4,5 +4,8 @@
   "sonarlint.connectedMode.project": {
     "connectionId": "symless",
     "projectKey": "symless_synergy-core"
-  }
+  },
+  "cmake.configureArgs": [
+    "-DBUILD_GUI=OFF -DBUILD_TESTS=OFF -DBUILD_INSTALLER=OFF -DBUILD_UNIFIED=ON"
+  ]
 }
