@@ -273,6 +273,7 @@ jobs:
           bin-dir: build/bin
 
       - name: Debug
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
         shell: bash
         run: |
           pwd
@@ -285,6 +286,13 @@ jobs:
         with:
           source-dir: build/bin
           target-dir: dist
+
+      - name: Debug
+        if: ${{ steps.cache-bin.outputs.cache-hit || steps.package.outputs.copy-done }}
+        shell: bash
+        run: |
+          pwd
+          ls -Rla dist
 
       - name: Upload to GitHub
         if: ${{ steps.cache-bin.outputs.cache-hit || steps.package.outputs.copy-done }}
