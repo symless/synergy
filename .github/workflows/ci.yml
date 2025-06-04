@@ -273,6 +273,7 @@ jobs:
           bin-dir: build/bin
 
       - name: Debug
+        shell: bash
         run: |
           pwd
           ls -Rla build/bin
