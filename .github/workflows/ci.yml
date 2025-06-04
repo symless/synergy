@@ -56,7 +56,7 @@ env:
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
-  ci-passed:
+  passed:
     runs-on: ubuntu-latest
     needs: main
 
