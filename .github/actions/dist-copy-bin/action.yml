@@ -7,6 +7,12 @@ inputs:
   target-dir:
     description: "The target directory where the binaries will be copied."
 
+outputs:
+  copy-done:
+    description: "Indicates whether the copy happened."
+    value: ${{ steps.copy.outputs.copy-done }}
+    
+
 runs:
   using: "composite"
 
@@ -42,4 +48,8 @@ runs:
             syntool \
             "${{ inputs.target-dir }}"
         fi
+
+        echo "Binaries copied to ${{ inputs.target-dir }}"
+        echo "done=true" >> $GITHUB_OUTPUT
       shell: bash
+      id: copy
