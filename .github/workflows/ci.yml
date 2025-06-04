@@ -272,6 +272,11 @@ jobs:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
 
+      - name: Debug
+        run: |
+          ls -Rla build/bin
+          ls -Rla ${{ github.workspace }}/build/bin
+
       - name: Package
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
         id: package
