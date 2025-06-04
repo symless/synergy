@@ -281,7 +281,7 @@ jobs:
           target-dir: ${{ github.workspace }}/dist
 
       - name: Upload to GitHub
-        if: ${{ steps.package.outputs.copy-done }}
+        if: ${{ steps.cache-bin.outputs.cache-hit || steps.package.outputs.copy-done }}
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
