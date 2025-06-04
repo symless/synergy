@@ -170,7 +170,7 @@ jobs:
         run: |
           pwd
           ls -Rla dist
-          ./bin/synergy-core server --version
+          ./dist/synergy-core server --version
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
