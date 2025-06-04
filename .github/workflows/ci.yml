@@ -155,23 +155,6 @@ jobs:
             timeout: 20
 
     steps:
-      # Only use caching for workflow calls, since in every other case the SHA will likely change.
-      - name: Cache binaries
-        if: ${{ inputs.ref }}
-        uses: actions/cache@v4
-        id: cache-bin
-        with:
-          path: dist
-          key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
-
-      - name: Binary info
-        if: ${{ steps.cache-bin.outputs.cache-hit }}
-        shell: bash
-        run: |
-          pwd
-          ls -Rla dist
-          ./dist/synergy-core server --version
-
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
         shell: bash
@@ -207,7 +190,6 @@ jobs:
           fi
 
       - name: Setup variables
-        if: ${{ !steps.cache-bin.outputs.cache-hit }}
         id: vars
         shell: bash
         run: |
@@ -248,6 +230,22 @@ jobs:
           ref: ${{ env.GIT_REF }}
           fetch-depth: 0
           submodules: true
+
+      # Only use caching for workflow calls, since in every other case the SHA will likely change.
+      - name: Cache binaries
+        if: ${{ inputs.ref }}
+        uses: actions/cache@v4
+        id: cache-bin
+        with:
+          path: dist
+          key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
+
+      - name: Binary info
+        if: ${{ steps.cache-bin.outputs.cache-hit }}
+        shell: bash
+        run: |
+          pwd
+          ls -Rla dist
 
       - name: Install dependencies
         if: ${{ !steps.cache-bin.outputs.cache-hit }}
