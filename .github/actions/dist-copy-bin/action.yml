@@ -17,39 +17,39 @@ runs:
 
   steps:
     - run: |
-        pwd
-        cd "${{ inputs.source-dir }}"
-        mkdir -p "${{ inputs.target-dir }}"
-        ls -al *
+        source_dir="${{ inputs.source-dir }}"
+        target_dir="${{ inputs.target-dir }}"
+
+        mkdir -p ${target_dir}
 
         if [ "${{ runner.os }}" == "Windows" ]; then
 
-          if [ ! -f synergy-core.exe ]; then
+          if [ ! -f ${source_dir}/synergy-core.exe ]; then
             echo "Unified core not found, skipping copy."
             exit 0
           fi
           
           cp -v \
-            synergy-core.exe \
-            synergy-daemon.exe \
-            syntool.exe \
-            libcrypto-3-x64.dll \
-            libssl-3-x64.dll \
-            "${{ inputs.target-dir }}"
+            ${source_dir}/synergy-core.exe \
+            ${source_dir}/synergy-daemon.exe \
+            ${source_dir}/syntool.exe \
+            ${source_dir}/libcrypto-3-x64.dll \
+            ${source_dir}/libssl-3-x64.dll \
+            ${target_dir}
         else
 
-          if [ ! -f synergy-core ]; then
+          if [ ! -f ${source_dir}/synergy-core ]; then
             echo "Unified core not found, skipping copy."
             exit 0
           fi
 
           cp -v \
-            synergy-core \
-            syntool \
-            "${{ inputs.target-dir }}"
+            ${source_dir}/synergy-core \
+            ${source_dir}/syntool \
+            ${target_dir}
         fi
 
-        echo "Binaries copied to ${{ inputs.target-dir }}"
+        echo "Binaries copied from ${source_dir} to ${target_dir}."
         echo "done=true" >> $GITHUB_OUTPUT
       shell: bash
       id: copy
