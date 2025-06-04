@@ -1,12 +1,19 @@
 name: "Copy binaries for distribution"
 
+inputs:
+  source-dir:
+    description: "The source directory where the binaries are located."
+
+  target-dir:
+    description: "The target directory where the binaries will be copied."
+
 runs:
   using: "composite"
 
   steps:
     - run: |
-        cd build/bin
-        mkdir -p ../../dist
+        cd "${{ inputs.source-dir }}"
+        mkdir -p "${{ inputs.target-dir }}"
         ls -al *
 
         if [ "${{ runner.os }}" == "Windows" ]; then
@@ -22,7 +29,7 @@ runs:
             syntool.exe \
             libcrypto-3-x64.dll \
             libssl-3-x64.dll \
-            ../../dist/
+            "${{ inputs.target-dir }}"
         else
 
           if [ ! -f synergy-core ]; then
@@ -33,6 +40,6 @@ runs:
           cp -v \
             synergy-core \
             syntool \
-            ../../dist/
+            "${{ inputs.target-dir }}"
         fi
       shell: bash

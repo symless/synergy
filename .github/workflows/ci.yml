@@ -275,6 +275,9 @@ jobs:
       - name: Package
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD == 'true' }}
         uses: ./.github/actions/dist-copy-bin
+        with:
+          source-dir: ${{ github.workspace }}/build/bin
+          target-dir: ${{ github.workspace }}/dist
 
       - name: Upload to GitHub
         if: ${{ env.PACKAGE_BUILD == 'true' }}
