@@ -165,6 +165,7 @@ jobs:
 
       - name: Debug
         if: ${{ steps.cache-bin.outputs.cache-hit }}
+        shell: bash
         run: ls -Rla dist
 
       - name: Setup Linux
