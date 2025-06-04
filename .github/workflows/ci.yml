@@ -273,7 +273,7 @@ jobs:
           bin-dir: build/bin
 
       - name: Package
-        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD == 'true' }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
         id: package
         uses: ./.github/actions/dist-copy-bin
         with:
@@ -281,7 +281,7 @@ jobs:
           target-dir: ${{ github.workspace }}/dist
 
       - name: Upload to GitHub
-        if: ${{ env.PACKAGE_BUILD == 'true' && steps.package.outputs.copy-done == 'true' }}
+        if: ${{ env.PACKAGE_BUILD && steps.package.outputs.copy-done }}
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
