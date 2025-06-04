@@ -18,6 +18,7 @@ runs:
 
   steps:
     - run: |
+        pwd
         cd "${{ inputs.source-dir }}"
         mkdir -p "${{ inputs.target-dir }}"
         ls -al *
