@@ -161,13 +161,13 @@ jobs:
         uses: actions/cache@v4
         id: cache-bin
         with:
-          path: dist
+          path: ${{ github.workspace }}/dist
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
       - name: Debug
         if: ${{ steps.cache-bin.outputs.cache-hit }}
         shell: bash
-        run: ls -Rla dist
+        run: ls -Rla ${{ github.workspace }}/dist
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' }}
@@ -281,7 +281,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
-          path: ./dist
+          path: ${{ github.workspace }}/dist
+          if-no-files-found: error
 
   windows:
     if: false
