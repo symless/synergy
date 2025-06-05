@@ -95,6 +95,7 @@ install_debian_deps() {
 
   if [ "$libportal_debian" = true ]; then
     apt-get install -y \
+      libportal-dev \
       python3-dbusmock \
       python3-pytest \
       valac \
