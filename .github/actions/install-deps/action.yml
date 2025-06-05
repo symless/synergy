@@ -93,7 +93,7 @@ runs:
     - name: Build and cache vcpkg
       if: ${{ runner.os == 'Windows' }}
       id: vcpkg
-      uses: sithlord48/vcpkg-action@v7
+      uses: johnwason/vcpkg-action@v7
       with:
         manifest-dir: ${{ github.workspace }}
         triplet: x64-windows-release
