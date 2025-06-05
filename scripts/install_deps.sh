@@ -14,6 +14,14 @@ parse_args() {
         libportal_debian=true
         shift
         ;;
+      --help|-h)
+        echo "Usage: $0 [--legacy-debian] [--libportal-debian]"
+        echo "Options:"
+        echo "  --legacy-debian       Install dependencies for legacy Debian systems"
+        echo "  --libportal-debian    Install libportal dependencies for Debian"
+        echo "  --help, -h            Show this help message"
+        exit 0
+        ;;
       *)
         echo "Unknown argument: $1"
         exit 1
