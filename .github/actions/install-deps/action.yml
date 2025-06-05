@@ -28,7 +28,7 @@ runs:
     - name: Install dependencies
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
-        args = ""
+        args=""
         if [ "${{ inputs.legacy-debian }}" == "true" ]; then
           echo "Skipping newer libs for legacy debian compatibility"
           args="--legacy-debian"
