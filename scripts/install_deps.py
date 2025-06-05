@@ -56,41 +56,9 @@ def parse_args(is_ci):
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--ci-env",
-        action="store_true",
-        help="Useful for faking CI env (defaults to true in CI env)",
-        default=is_ci,
-    )
-    parser.add_argument(
-        "--lock-file",
-        type=str,
-        help="Create a file to indicate script is running",
-    )
-    parser.add_argument(
-        "--only-python", action="store_true", help="Only install Python dependencies"
-    )
-    parser.add_argument(
-        "--skip-python",
-        action="store_true",
-        help="Do not install Python dependencies",
-    )
-    parser.add_argument(
-        "--skip-system",
-        action="store_true",
-        help="Do not install system dependencies (apt, dnf, etc)",
-    )
-    parser.add_argument(
-        "--skip-meson", action="store_true", help="Do not setup and compile with Meson"
-    )
-    parser.add_argument(
         "--subprojects",
         action="store_true",
         help="Install dependencies for Meson subprojects (use with --meson-no-system)",
-    )
-    parser.add_argument(
-        "--meson-install",
-        action="store_true",
-        help="Install built Meson subprojects to system",
     )
     parser.add_argument(
         "--meson-no-system",
@@ -102,33 +70,6 @@ def parse_args(is_ci):
         nargs="+",
         help="Specify which Meson subprojects to build as static libraries",
     )
-    parser.add_argument(
-        "--build-dir",
-        default="build",
-        help="Specify the Meson build directory",
-    )
-
-    if env.is_windows():
-        parser.add_argument(
-            "--skip-vcpkg",
-            action="store_true",
-            help="Windows only: Do not install vcpkg dependencies",
-        )
-        parser.add_argument(
-            "--skip-elevated",
-            action="store_true",
-            help="Windows only: Do not run elevated command",
-        )
-        parser.add_argument(
-            "--only-elevated",
-            action="store_true",
-            help="Windows only: Only run elevated command",
-        )
-        parser.add_argument(
-            "--pause-on-exit",
-            action="store_true",
-            help="Windows only: Useful to prevent elevated window from closing",
-        )
 
     return parser.parse_args()
 
@@ -169,27 +110,14 @@ def run(args):
 
 
 def install(args):
-    if not args.skip_system:
-        deps = Dependencies(args)
-        deps.install()
+    if args.subprojects:
+        for subproject in args.meson_no_system or []:
+            deps = SubprojectDependencies(subproject)
+            deps.install()
 
-    # Only install vcpkg dependencies on Windows, since on other OS it's not needed (yet).
-    # We probably won't ever need this on macOS and Linux since brew and apt/dnf/etc do a
-    # good job of providing dependencies. Where they don't, we can use Meson.
-    if env.is_windows() and not args.skip_vcpkg:
-        import lib.vcpkg as vcpkg
-
-        vcpkg.install()
-
-    if not args.skip_meson:
-        if args.subprojects:
-            for subproject in args.meson_no_system or []:
-                deps = SubprojectDependencies(subproject)
-                deps.install()
-
-        run_meson(
-            args.meson_install, args.meson_no_system, args.meson_static, args.build_dir
-        )
+    run_meson(
+        args.meson_install, args.meson_no_system, args.meson_static, args.build_dir
+    )
 
 
 # It's a bit weird to use Meson just for installing deps, but it's a stopgap until
@@ -207,80 +135,6 @@ def run_meson(install, no_system_list, static_list, build_dir):
 
     if install:
         meson.install()
-
-
-class Dependencies:
-
-    def __init__(self, args):
-        from lib.config import Config
-
-        self.config = Config()
-        self.args = args
-        self.ci_env = args.ci_env
-
-    def install(self):
-        """Installs dependencies for the current platform."""
-
-        if env.is_windows():
-            self.windows()
-        elif env.is_mac():
-            self.mac()
-        elif env.is_linux():
-            self.linux()
-        else:
-            raise RuntimeError(f"Unsupported platform: {os}")
-
-    def windows(self):
-        """Installs dependencies on Windows."""
-        command = self.config.get_os_deps_command()
-        cmd_utils.run(command, shell=True, print_cmd=True)
-
-    def mac(self):
-        """Installs dependencies on macOS."""
-        command = self.config.get_os_deps_command()
-        cmd_utils.run(command, shell=True, print_cmd=True)
-
-    def linux(self):
-        """Installs dependencies on Linux."""
-        import lib.linux as linux
-
-        distro, distro_like, _distro_version = env.get_linux_distro()
-        if not distro:
-            raise RuntimeError("Unable to detect Linux distro")
-
-        command_pre = self.config.get_os_deps_command_pre(
-            linux_distro=distro, required=False
-        )
-        if command_pre:
-            print("Running dependencies prerequisites command")
-
-            check = True
-            if distro == "fedora" or (distro_like and "fedora" in distro_like):
-                print(
-                    "Fedora-like detected, "
-                    "ignoring return code on dependencies prerequisites command"
-                )
-                # On Fedora-like, dnf update returns code 100 when updates are available.
-                check = False
-
-            linux.run_command(command_pre, check)
-
-        command = self.config.get_os_deps_command(linux_distro=distro)
-        optional = self.config.get_os_deps_value(
-            "optional", linux_distro=distro, required=False
-        )
-        for optional_package in optional or []:
-            if not linux.is_package_available(optional_package):
-                print(f"Optional package not found, stripping: {optional_package}")
-                command = command.replace(optional_package, "")
-
-        linux.run_command(command, check=True)
-
-        subprojects = self.config.get_os_subprojects()
-        if subprojects:
-            for subproject in subprojects:
-                deps = SubprojectDependencies(subproject)
-                deps.install()
 
 
 class SubprojectDependencies:

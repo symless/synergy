@@ -1,76 +1,159 @@
 #!/usr/bin/env sh
 
-SUDO=$(which sudo > /dev/null 2>&1 && echo "sudo" || echo "")
+inputs_legacy_debian=false
+
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --legacy-debian)
+        inputs_legacy_debian=true
+        shift
+        ;;
+      *)
+        echo "Unknown argument: $1"
+        exit 1
+        ;;
+    esac
+  done
+}
 
 install_deps() {
   uname_out="$(uname -s)"
   case "${uname_out}" in
-    FreeBSD*)   install_freebsd ;;
-    OpenBSD*)   install_openbsd ;;
-    NetBSD*)    install_netbsd ;;
-    DragonFly*) install_dragonfly ;;
-    SunOS*)     install_solaris ;;
-    *)          install_other $@ ;;
+    Darwin*) install_darwin ;;
+    Linux*) install_linux ;;
+
+    *)
+      echo "Unsupported OS: ${uname_out}"
+      exit 1
+    ;;
   esac
 }
 
-install_freebsd() {
-  run_cmd pkg install -y \
+install_darwin() {
+  brew install cmake googletest ninja openssl --quiet
+}
+
+install_linux() {
+  . /etc/os-release
+  os=${ID}
+  if [ -z "$os" ]; then
+    os=${ID_LIKE}
+  fi
+  
+  case "${os}" in
+    ubuntu|debian) install_debian_deps ;;
+    fedora|centos|rhel) install_fedora_deps ;;
+    suse|opensuse) install_suse_deps ;;
+    arch) install_arch_deps ;;
+
+    *)
+      echo "Unsupported Linux: ${os}"
+      exit 1
+      ;;
+  esac
+}
+
+install_debian_deps() {
+  apt-get update
+  apt-get install -y \
+    cmake \
+    build-essential \
+    ninja-build \
+    xorg-dev \
+    libx11-dev \
+    libxtst-dev \
+    libssl-dev \
+    libglib2.0-dev \
+    libgdk-pixbuf-2.0-dev \
+    libnotify-dev \
+    libxkbfile-dev \
+    qt6-base-dev \
+    qt6-tools-dev \
+    libgtk-3-dev \
+    libgtest-dev \
+    libgmock-dev \
+    libpugixml-dev \
+    libcli11-dev
+
+  if [ "$inputs_legacy_debian" = false ]; then
+    apt-get install -y libportal-dev libei-dev
+  fi
+}
+
+install_fedora_deps() {
+  dnf install -y \
+    cmake \
+    make \
+    ninja-build \
+    gcc-c++ \
+    rpm-build \
+    openssl-devel \
+    glib2-devel \
+    gdk-pixbuf2-devel \
+    libXtst-devel \
+    libnotify-devel \
+    libxkbfile-devel \
+    qt6-qtbase-devel \
+    qt6-qttools-devel \
+    gtk3-devel \
+    gtest-devel \
+    gmock-devel \
+    pugixml-devel \
+    libei-devel \
+    libportal-devel \
+    tomlplusplus-devel \
+    cli11-devel
+}
+
+install_suse_deps() {
+  zypper refresh
+  zypper install -y --force-resolution \
+    cmake \
+    make \
+    ninja \
+    gcc-c++ \
+    rpm-build \
+    libopenssl-devel \
+    glib2-devel \
+    gdk-pixbuf-devel \
+    libXtst-devel \
+    libnotify-devel \
+    libxkbfile-devel \
+    qt6-base-devel \
+    qt6-tools-devel \
+    gtk3-devel \
+    googletest-devel \
+    googlemock-devel \
+    pugixml-devel \
+    libei-devel \
+    libportal-devel \
+    tomlplusplus-devel \
+    cli11-devel
+}
+
+install_arch_deps() {
+  pacman -Syu --noconfirm \
+    base-devel \
     cmake \
     ninja \
-    gmake \
-    gcc10 \
+    gcc \
     openssl \
-    glib \
+    glib2 \
     gdk-pixbuf2 \
-    libX11 \
-    libXtst \
+    libxtst \
     libnotify \
     libxkbfile \
+    gtest \
+    pugixml \
+    libei \
+    libportal \
     qt6-base \
     qt6-tools \
     gtk3 \
-    googletest \
-    pugixml
+    tomlplusplus \
+    cli11
 }
 
-install_openbsd() {
-  # Patches welcome!
-  # pkg_add error:
-  #   Can't find libX11
-  #   Can't find libXtst
-  echo "Sorry, OpenBSD is not supported yet."
-}
-
-install_netbsd() {
-  # Patches welcome!
-  # pkg_add error:
-  #  pkg_add: no pkg found for 'libX11', sorry.
-  #  pkg_add: no pkg found for 'libXtst', sorry.
-  echo "Sorry, NetBSD is not supported yet."
-}
-
-install_dragonfly() {
-  # Patches welcome!
-  # The C++ version on DragonFly BSD seems to be too old.
-  echo "Sorry, DragonFly BSD is not supported yet."
-}
-
-install_solaris() {
-  # Patches welcome!
-  echo "Sorry, Solaris is not supported yet."
-}
-
-install_other() {
-  # TODO: Port the .py script to shell script to make the deps installation lighter on 
-  # Linux and macOS. The .py script is probably only really needed to deal with Windows.
-  ./scripts/install_deps.py $@
-}
-
-run_cmd() {
-  cmd="${SUDO:+$SUDO }$@"
-  echo "Running: $cmd"
-  $cmd
-}
-
-install_deps $@
+parse_args $@
+install_deps

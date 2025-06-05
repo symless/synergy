@@ -111,13 +111,6 @@
       "type": "cppvsdbg",
       "request": "attach",
       "processId": "${command:pickProcess}"
-    },
-    {
-      "name": "install_deps.py",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "scripts/install_deps.py",
-      "console": "integratedTerminal"
     }
   ]
 }
