@@ -29,9 +29,15 @@ runs:
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
         args=""
+
         if [ "${{ inputs.legacy-debian }}" == "true" ]; then
           echo "Skipping newer libs for legacy debian compatibility"
-          args="--legacy-debian"
+          args="${args} --legacy-debian"
+        fi
+
+        if [ "${{ inputs.build-libportal }}" == "true" ]; then
+          echo "Building libportal from source"
+          args="${args} --libportal-debian"
         fi
 
         ./scripts/install_deps.sh ${args}
@@ -42,7 +48,7 @@ runs:
       if: ${{ inputs.build-libportal }}
       run: |
         ./scripts/install_deps.py \
-          --meson-no-system libportal --meson-static libportal --subprojects
+          --meson-no-system libportal --meson-static libportal
       shell: bash
       env:
         DEBIAN_FRONTEND: noninteractive

@@ -17,12 +17,7 @@
 
 import os, sys, argparse, traceback
 import lib.env as env
-import lib.cmd_utils as cmd_utils
-import lib.github as github
 import lib.meson as meson_utils
-
-path_env_var = "PATH"
-cmake_prefix_env_var = "CMAKE_PREFIX_PATH"
 
 
 def main():
@@ -32,12 +27,6 @@ def main():
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--subprojects",
-        action="store_true",
-        help="Install dependencies for Meson subprojects (use with --meson-no-system)",
-    )
     parser.add_argument(
         "--meson-no-system",
         nargs="+",
@@ -60,11 +49,6 @@ def run(args):
 
 
 def install(args):
-    if args.subprojects:
-        for subproject in args.meson_no_system or []:
-            deps = SubprojectDependencies(subproject)
-            deps.install()
-
     run_meson(args.meson_no_system, args.meson_static, "build")
 
 
@@ -82,32 +66,6 @@ def run_meson(no_system_list, static_list, build_dir):
         meson.compile()
 
     meson.install()
-
-
-class SubprojectDependencies:
-
-    def __init__(self, subproject):
-        from lib.config import Config
-
-        self.subproject = subproject
-        self.config = Config()
-
-    def install(self):
-        """Installs dependencies for the current platform."""
-
-        print(f"Installing dependencies for sub-project: {self.subproject}")
-
-        if env.is_linux():
-            self.linux()
-        else:
-            raise RuntimeError(f"Unsupported platform: {os}")
-
-    def linux(self):
-        """Installs dependencies on Linux."""
-        import lib.linux as linux
-
-        command = self.config.get_subproject_deps_command(self.subproject)
-        linux.run_command(command, check=True)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,17 @@
 #!/usr/bin/env sh
 
-inputs_legacy_debian=false
+legacy_debian=false
+libportal_debian=false
 
 parse_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --legacy-debian)
-        inputs_legacy_debian=true
+        legacy_debian=true
+        shift
+        ;;
+      --libportal-debian)
+        libportal_debian=true
         shift
         ;;
       *)
@@ -76,8 +81,22 @@ install_debian_deps() {
     libpugixml-dev \
     libcli11-dev
 
-  if [ "$inputs_legacy_debian" = false ]; then
+  if [ "$legacy_debian" = false ]; then
     apt-get install -y libportal-dev libei-dev
+  fi
+
+  if [ "$libportal_debian" = true ]; then
+    apt-get install -y \
+      python3-dbusmock \
+      python3-pytest \
+      valac \
+      protobuf-c-compiler \
+      protobuf-compiler \
+      libglib2.0 \
+      libgtk-3-dev \
+      libprotobuf-c-dev \
+      libsystemd-dev \
+      libgirepository1.0-dev
   fi
 }
 
