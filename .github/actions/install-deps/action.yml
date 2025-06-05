@@ -53,7 +53,7 @@ runs:
       shell: pwsh
       run: |
         echo "Installing Windows dependencies"
-        python ./scripts/install_deps.py --skip-vcpkg
+        python ./scripts/install_deps.py
 
     - name: Install Qt (macOS)
       if: ${{ runner.os == 'macOS' }}
