@@ -103,7 +103,6 @@ jobs:
             runs-on: ubuntu-latest
             container: debian:bookworm-slim
             like: "debian"
-            legacy-debian: true
             timeout: 20
 
           - name: ubuntu-25.04-x86_64
@@ -122,22 +121,18 @@ jobs:
             runs-on: ubuntu-latest
             container: ubuntu:24.04
             like: "debian"
-            static-libportal: true
             timeout: 20
 
           - name: ubuntu-24.04-arm64
             runs-on: ubuntu-24.04-8-core-arm64
             container: ubuntu:24.04
             like: "debian"
-            static-libportal: true
-            arch: arm64
             timeout: 20
 
           - name: ubuntu-22.04-x86_64
             runs-on: ubuntu-latest
             container: ubuntu:22.04
             like: "debian"
-            legacy-debian: true
             timeout: 20
 
           - name: fedora-41-x86_64
@@ -244,9 +239,6 @@ jobs:
         uses: ./.github/actions/install-deps
         with:
           qt-version: ${{ env.QT_VERSION }}
-          os-like: ${{ matrix.target.like }}
-          legacy-debian: ${{ matrix.target.legacy-debian }}
-          build-libportal: ${{ matrix.target.static-libportal }}
 
       - name: Configure
         if: ${{ !steps.cache-bin.outputs.cache-hit }}

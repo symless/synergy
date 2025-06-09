@@ -89,11 +89,11 @@ install_debian_deps() {
     libpugixml-dev \
     libcli11-dev
 
-  if [ "$legacy_debian" = false ]; then
+  if [ $legacy_debian = false ]; then
     apt-get install -y libportal-dev libei-dev
   fi
 
-  if [ "$libportal_debian" = true ]; then
+  if [ $libportal_debian = true ]; then
     apt-get install -y \
       libportal-dev \
       python3-dbusmock \

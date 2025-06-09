@@ -4,23 +4,8 @@
 name: "Install dependencies"
 
 inputs:
-  os-like:
-    description: "Used only on Linux for distro type"
-    required: false
-    default: ""
-
   qt-version:
     description: "The version of Qt to install on mac os"
-    required: false
-    default: ""
-
-  legacy-debian:
-    description: "Use legacy debian packages (excludes newer libs)"
-    required: false
-    default: ""
-
-  build-libportal:
-    description: "Build libportal from source on Linux"
     required: false
     default: ""
 
@@ -33,17 +18,36 @@ runs:
   using: "composite"
 
   steps:
+    # On Ubuntu 24.04, libportal is available but does not support the required portals,
+    # so we can build a newer one since the available libei works fine for Wayland support.
+    # On older Ubuntu and Debian versions, there is no libei, so Wayland support is not possible.
     - name: Install dependencies
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: |
         args=""
 
-        if [ "${{ inputs.legacy-debian }}" == "true" ]; then
+        legacy_debian=false
+        libportal_debian=false
+
+        . /etc/os-release || true
+        if [ "$ID" == "ubuntu" ]; then
+          if [ "$VERSION_ID" == "24.04" ]; then
+            libportal_debian=true
+          elif [ "$VERSION_ID" == "22.04" ]; then
+            legacy_debian=true
+          fi
+        elif [ "$ID" == "debian" ]; then
+          if [ "$VERSION_ID" == "12" ]; then
+            legacy_debian=true
+          fi
+        fi
+
+        if [ $legacy_debian == true ]; then
           echo "Skipping newer libs for legacy debian compatibility"
           args="${args} --legacy-debian"
         fi
 
-        if [ "${{ inputs.build-libportal }}" == "true" ]; then
+        if [ $libportal_debian == true ]; then
           echo "Building libportal from source"
           args="${args} --libportal-debian"
         fi
