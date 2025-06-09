@@ -6,15 +6,23 @@ name: "Install dependencies"
 inputs:
   os-like:
     description: "Used only on Linux for distro type"
+    required: false
+    default: ""
 
   qt-version:
     description: "The version of Qt to install on mac os"
+    required: false
+    default: ""
 
   legacy-debian:
     description: "Use legacy debian packages (excludes newer libs)"
+    required: false
+    default: ""
 
   build-libportal:
     description: "Build libportal from source on Linux"
+    required: false
+    default: ""
 
 outputs:
   vcpkg-cmake-config:
