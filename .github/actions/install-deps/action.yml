@@ -26,30 +26,32 @@ runs:
       run: |
         args=""
 
-        legacy_debian=false
-        libportal_debian=false
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          legacy_debian=false
+          libportal_debian=false
 
-        . /etc/os-release || true
-        if [ "$ID" == "ubuntu" ]; then
-          if [ "$VERSION_ID" == "24.04" ]; then
-            libportal_debian=true
-          elif [ "$VERSION_ID" == "22.04" ]; then
-            legacy_debian=true
+          . /etc/os-release || true
+          if [ "$ID" == "ubuntu" ]; then
+            if [ "$VERSION_ID" == "24.04" ]; then
+              libportal_debian=true
+            elif [ "$VERSION_ID" == "22.04" ]; then
+              legacy_debian=true
+            fi
+          elif [ "$ID" == "debian" ]; then
+            if [ "$VERSION_ID" == "12" ]; then
+              legacy_debian=true
+            fi
           fi
-        elif [ "$ID" == "debian" ]; then
-          if [ "$VERSION_ID" == "12" ]; then
-            legacy_debian=true
+
+          if [ $legacy_debian == true ]; then
+            echo "Skipping newer libs for legacy debian compatibility"
+            args="${args} --legacy-debian"
           fi
-        fi
 
-        if [ $legacy_debian == true ]; then
-          echo "Skipping newer libs for legacy debian compatibility"
-          args="${args} --legacy-debian"
-        fi
-
-        if [ $libportal_debian == true ]; then
-          echo "Building libportal from source"
-          args="${args} --libportal-debian"
+          if [ $libportal_debian == true ]; then
+            echo "Building libportal from source"
+            args="${args} --libportal-debian"
+          fi
         fi
 
         ./scripts/install_deps.sh ${args}
