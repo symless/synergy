@@ -1,35 +1,5 @@
 #!/usr/bin/env sh
 
-legacy_debian=false
-libportal_debian=false
-
-parse_args() {
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --legacy-debian)
-        legacy_debian=true
-        shift
-        ;;
-      --libportal-debian)
-        libportal_debian=true
-        shift
-        ;;
-      --help|-h)
-        echo "Usage: $0 [--legacy-debian] [--libportal-debian]"
-        echo "Options:"
-        echo "  --legacy-debian       Install dependencies for legacy Debian systems"
-        echo "  --libportal-debian    Install libportal dependencies for Debian"
-        echo "  --help, -h            Show this help message"
-        exit 0
-        ;;
-      *)
-        echo "Unknown argument: $1"
-        exit 1
-        ;;
-    esac
-  done
-}
-
 install_deps() {
   uname_out="$(uname -s)"
   case "${uname_out}" in
@@ -53,7 +23,8 @@ install_linux() {
   if [ -z "$os" ]; then
     os=${ID_LIKE}
   fi
-  
+
+  echo "Detected Linux: ${os}"
   case "${os}" in
     ubuntu|debian) install_debian_deps ;;
     fedora|centos|rhel) install_fedora_deps ;;
@@ -68,6 +39,23 @@ install_linux() {
 }
 
 install_debian_deps() {
+
+  legacy=false
+  build_libportal=false
+
+  . /etc/os-release || true
+  if [ "$ID" == "ubuntu" ]; then
+    if [ "$VERSION_ID" == "24.04" ]; then
+      build_libportal=true
+    elif [ "$VERSION_ID" == "22.04" ]; then
+      legacy=true
+    fi
+  elif [ "$ID" == "debian" ]; then
+    if [ "$VERSION_ID" == "12" ]; then
+      legacy=true
+    fi
+  fi
+  
   apt-get update
   apt-get install -y \
     cmake \
@@ -89,11 +77,15 @@ install_debian_deps() {
     libpugixml-dev \
     libcli11-dev
 
-  if [ $legacy_debian = false ]; then
+  if [ $legacy = false ]; then
+    echo "Installing newer libs"
     apt-get install -y libportal-dev libei-dev
+  else
+    echo "Skipping newer libs"
   fi
 
-  if [ $libportal_debian = true ]; then
+  if [ $build_libportal = true ]; then
+    echo "Installing libportal build dependencies"
     apt-get install -y \
       libportal-dev \
       python3-dbusmock \
@@ -106,6 +98,9 @@ install_debian_deps() {
       libprotobuf-c-dev \
       libsystemd-dev \
       libgirepository1.0-dev
+
+    echo "Building libportal"
+    ./scripts/install_deps.py --meson-no-system libportal --meson-static libportal
   fi
 }
 
@@ -183,5 +178,4 @@ install_arch_deps() {
     cli11
 }
 
-parse_args $@
 install_deps

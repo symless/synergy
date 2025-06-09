@@ -23,50 +23,9 @@ runs:
     # On older Ubuntu and Debian versions, there is no libei, so Wayland support is not possible.
     - name: Install dependencies
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
-      run: |
-        args=""
-
-        if [ "$RUNNER_OS" == "Linux" ]; then
-          legacy_debian=false
-          libportal_debian=false
-
-          . /etc/os-release || true
-          if [ "$ID" == "ubuntu" ]; then
-            if [ "$VERSION_ID" == "24.04" ]; then
-              libportal_debian=true
-            elif [ "$VERSION_ID" == "22.04" ]; then
-              legacy_debian=true
-            fi
-          elif [ "$ID" == "debian" ]; then
-            if [ "$VERSION_ID" == "12" ]; then
-              legacy_debian=true
-            fi
-          fi
-
-          if [ $legacy_debian == true ]; then
-            echo "Skipping newer libs for legacy debian compatibility"
-            args="${args} --legacy-debian"
-          fi
-
-          if [ $libportal_debian == true ]; then
-            echo "Building libportal from source"
-            args="${args} --libportal-debian"
-          fi
-        fi
-
-        ./scripts/install_deps.sh ${args}
+      run: ./scripts/install_deps.sh ${args}
       shell: bash
-
-    # HACK: This installs the system deps a 2nd time, but without that the Meson step fails.
-    - name: Build libportal
-      if: ${{ inputs.build-libportal }}
-      run: |
-        ./scripts/install_deps.py \
-          --meson-no-system libportal --meson-static libportal
-      shell: bash
-      env:
-        DEBIAN_FRONTEND: noninteractive
-
+      
     # HACK: Needed for GTest on Windows (installed bia Meson).
     - name: Install Windows deps
       if: ${{ runner.os == 'Windows' }}
