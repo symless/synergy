@@ -122,7 +122,6 @@ jobs:
             runs-on: ubuntu-latest
             container: ubuntu:24.04
             like: "debian"
-            legacy-debian: true
             static-libportal: true
             timeout: 20
 
@@ -130,7 +129,6 @@ jobs:
             runs-on: ubuntu-24.04-8-core-arm64
             container: ubuntu:24.04
             like: "debian"
-            legacy-debian: true
             static-libportal: true
             arch: arm64
             timeout: 20
