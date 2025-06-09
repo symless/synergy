@@ -44,14 +44,14 @@ install_debian_deps() {
   build_libportal=false
 
   . /etc/os-release || true
-  if [ "$ID" == "ubuntu" ]; then
-    if [ "$VERSION_ID" == "24.04" ]; then
+  if [ "$ID" = "ubuntu" ]; then
+    if [ "$VERSION_ID" = "24.04" ]; then
       build_libportal=true
     elif [ "$VERSION_ID" == "22.04" ]; then
       legacy=true
     fi
-  elif [ "$ID" == "debian" ]; then
-    if [ "$VERSION_ID" == "12" ]; then
+  elif [ "$ID" = "debian" ]; then
+    if [ "$VERSION_ID" = "12" ]; then
       legacy=true
     fi
   fi
