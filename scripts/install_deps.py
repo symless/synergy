@@ -43,7 +43,7 @@ def parse_args():
 
 def run(args):
     env.ensure_dependencies()
-    env.ensure_in_venv(__file__, auto_create=True)
+    env.ensure_in_venv(__file__, create_venv=True)
     env.install_requirements()
     install(args)
 
