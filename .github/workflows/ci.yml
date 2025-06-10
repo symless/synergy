@@ -5,6 +5,32 @@
 name: CI
 
 on:
+  workflow_call:
+    inputs:
+      repository:
+        type: string
+        required: false
+        description: "The repository check out. Defaults to the current repository."
+      ref:
+        type: string
+        required: false
+        description: "The ref to check out. Defaults to the current ref."
+      cmake-args:
+        type: string
+        required: false
+        description: "Additional CMake arguments to pass to the configure step."
+      skip-tests:
+        type: boolean
+        required: false
+        description: "Whether to skip running tests. Defaults to false."
+      package-prefix:
+        type: string
+        required: false
+        description: "The prefix to use for the package name."
+      package-bin-zip:
+        type: boolean
+        required: false
+        description: "Whether to only package the binaries in a zip file. Defaults to false."
   workflow_dispatch:
   push:
     branches:
@@ -25,49 +51,29 @@ env:
   GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
   SYNERGY_PRODUCT_NAME: ${{ vars.SYNERGY_PRODUCT_NAME }}
   SYNERGY_EDITION_TYPE: ${{ vars.SYNERGY_EDITION_TYPE }}
-  SYNERGY_PACKAGE_PREFIX: ${{ vars.SYNERGY_PACKAGE_PREFIX }}
+  SYNERGY_PACKAGE_PREFIX: ${{ inputs.package-prefix || vars.SYNERGY_PACKAGE_PREFIX }}
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
   SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
+  GIT_REPOSITORY: ${{ inputs.repository || github.repository }}
+  GIT_REF: ${{ inputs.ref || github.ref }}
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
+  # Even though "ci-" seems redundant, it adds useful context in the GitHub UI.
   ci-passed:
     runs-on: ubuntu-latest
-    needs: [windows, macos, linux]
+    needs: main
 
     steps:
       - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
 
-  aws-s3-upload:
-    runs-on: ubuntu-latest
-    needs: [windows, macos, linux]
-    if: ${{ always() && github.event_name != 'pull_request' && github.event_name != 'schedule' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
-
-      - name: Get version
-        id: get-version
-        uses: ./.github/actions/get-version
-
-      - name: Upload to AWS S3
-        uses: ./.github/actions/dist-upload
-        with:
-          aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
-          aws-s3-package-version: ${{ steps.get-version.outputs.version }}
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-  windows:
-    name: ${{ matrix.target.name }}
+  main:
+    if: ${{ !github.event.pull_request.draft }}
+    name: main / ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
     container: ${{ matrix.target.container }}
-    timeout-minutes: 20
+    timeout-minutes: ${{ matrix.target.timeout }}
 
     strategy:
       # Normally, we want to fail fast, but in this case we shouldn't since one target may
@@ -77,265 +83,234 @@ jobs:
       matrix:
         target:
           - name: windows-2022-x64
-            runs-on: windows-2022-8-core-x64
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
-
-      - name: Build and cache vcpkg
-        id: vcpkg
-        uses: sithlord48/vcpkg-action@v7
-        with:
-          manifest-dir: ${{ github.workspace }}
-          triplet: x64-windows-release
-          token: ${{ github.token }}
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        env:
-          AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
-        with:
-          dir: "C:"
-          version: ${{ env.QT_VERSION }}
-          cache: true
-          cache-key-prefix: windows-qt-${{ env.QT_VERSION }}
-
-      # This effectively runs `vcvarsall.bat`, etc. It's not actually installing
-      # VC++ as that's already pre-installed on the Windows runner.
-      - name: Setup VC++ environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      # Install Ninja with an action instead of using Chocolatey, as it's more
-      # reliable and faster. The Ninja install action is pretty good as it
-      # downloads directly from the `ninja-build` GitHub project releases.
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@master
-
-      - name: Install dependencies
-        run: python ./scripts/install_deps.py
-
-      - name: Configure
-        run: |
-          cmake -B build `
-          --preset=windows-release `
-          -DUSE_TOMLPLUSPLUS=OFF `
-          -DUSE_CLI11=OFF `
-          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} `
-          ${{ steps.vcpkg.outputs.vcpkg-cmake-config }}
-
-      - name: Build
-        run: cmake --build build -j8
-
-      - name: Tests
-        uses: ./.github/actions/run-tests
-        timeout-minutes: 2
-        with:
-          job: ${{ matrix.target.name }}
-          bin-dir: build/bin
-
-      - name: Package
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
-        run: python ./scripts/package.py
-        env:
-          WINDOWS_PFX_CERTIFICATE: ${{ secrets.WINDOWS_PFX }}
-          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASS }}
-
-      - name: Upload to GitHub
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}"
-          path: ./dist
-
-  macos:
-    name: ${{ matrix.target.name }}
-    runs-on: ${{ matrix.target.os }}
-    timeout-minutes: ${{ matrix.target.timeout }}
-
-    defaults:
-      run:
-        shell: ${{ matrix.target.shell }}
-
-    strategy:
-      # Normally, we want to fail fast, but in this case we shouldn't since one target may
-      # fail due to transient issues unrelated to the build.
-      fail-fast: false
-
-      matrix:
-        target:
-          - name: "macos-14-arm64"
-            timeout: 10
-            os: "macos-14"
-            arch: arm64
-            shell: "/usr/bin/arch -arch arm64e /bin/bash --noprofile --norc -eo pipefail {0}"
-
-          - name: ${{ 'macos-14-x64' }}
+            runs-on: windows-latest-16-cores
+            package-os: windows-x64
             timeout: 20
-            os: ${{ 'macos-14-large' }}
-            arch: x64
-            shell: "bash"
+
+          - name: macos-14-arm64
+            runs-on: macos-14
+            package-os: macos-arm64
+            timeout: 10
+
+          - name: macos-14-x64
+            runs-on: macos-14-large
+            package-os: macos-x64
+            timeout: 20
+
+          - name: debian-13-x86_64
+            runs-on: ubuntu-latest
+            container: debian:trixie-slim
+            like: "debian"
+            timeout: 20
+
+          - name: debian-12-x86_64
+            runs-on: ubuntu-latest
+            container: debian:bookworm-slim
+            like: "debian"
+            timeout: 20
+
+          - name: ubuntu-25.04-x86_64
+            runs-on: ubuntu-latest
+            container: ubuntu:25.04
+            like: "debian"
+            timeout: 20
+
+          - name: ubuntu-24.10-x86_64
+            runs-on: ubuntu-latest
+            container: ubuntu:24.10
+            like: "debian"
+            timeout: 20
+
+          - name: ubuntu-24.04-x86_64
+            runs-on: ubuntu-latest
+            container: ubuntu:24.04
+            like: "debian"
+            timeout: 20
+
+          - name: ubuntu-24.04-arm64
+            runs-on: ubuntu-24.04-8-core-arm64
+            container: ubuntu:24.04
+            like: "debian"
+            timeout: 20
+
+          - name: ubuntu-22.04-x86_64
+            runs-on: ubuntu-latest
+            container: ubuntu:22.04
+            like: "debian"
+            timeout: 20
+
+          - name: fedora-41-x86_64
+            runs-on: ubuntu-latest
+            container: fedora:41
+            like: "fedora"
+            timeout: 20
+
+          - name: fedora-40-x86_84
+            runs-on: ubuntu-latest
+            container: fedora:40
+            like: "fedora"
+            timeout: 20
+
+          - name: opensuse-tumbleweed-x86_64
+            runs-on: ubuntu-latest
+            container: opensuse/tumbleweed:latest
+            like: "suse"
+            timeout: 20
+
+          - name: archlinux-x86_64
+            runs-on: ubuntu-latest
+            container: archlinux:latest
+            like: "arch"
+            timeout: 20
+
+          - name: manjaro-x86_64
+            runs-on: ubuntu-latest
+            container: manjarolinux/base:latest
+            like: "arch"
+            timeout: 20
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: true
-
-      - name: Cache deps dir
-        uses: actions/cache@v4
-        with:
-          path: deps
-          key: ${{ runner.os }}-deps-${{ hashFiles('config.yaml') }}
-
-      - name: Install dependencies
-        run: ./scripts/install_deps.py
-
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        env:
-          AQT_CONFIG: ${{ github.workspace }}/.github/workflows/aqt.ini
-        with:
-          dir: "/Users/runner"
-          version: ${{ env.QT_VERSION }}
-          cache: true
-          cache-key-prefix: macos-qt-${{ env.QT_VERSION }}
-
-      - name: Configure
-        run: |
-          cmake -B build \
-          --preset=macos-release \
-          -DUSE_TOMLPLUSPLUS=OFF \
-          -DUSE_CLI11=OFF \
-          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} \
-          -DCMAKE_OSX_SYSROOT=/Applications/Xcode_15.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-
-      - name: Build
-        run: cmake --build build -j8
-
-      - name: Tests
-        uses: ./.github/actions/run-tests
-        timeout-minutes: 2
-        with:
-          job: ${{ matrix.target.name }}
-          bin-dir: build/bin
-
-      - name: Package
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
-        run: ./scripts/package.py
-        env:
-          APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
-          APPLE_P12_CERTIFICATE: ${{ secrets.APPLE_P12_CERTIFICATE }}
-          APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
-          APPLE_NOTARY_USER: ${{ secrets.APPLE_NOTARY_USER }}
-          APPLE_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARY_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-
-      - name: Upload to GitHub
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}"
-          path: ./dist
-
-  linux-matrix:
-    runs-on: ubuntu-latest
-
-    outputs:
-      json-matrix: ${{ steps.get.outputs.json }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Get JSON file
-        id: get
-        run: |
-          json_file=".github/workflows/ci-linux.json"
-          json=$(cat $json_file)
-          echo "json=$(echo $json)" >> $GITHUB_OUTPUT
-
-  linux:
-    needs: linux-matrix
-    name: linux-${{ matrix.distro.name }}
-    runs-on: ${{ matrix.distro.runs-on }}
-    container: ${{ matrix.distro.container }}
-    timeout-minutes: 20
-
-    strategy:
-      # Normally, we want to fail fast, but in this case we shouldn't since one distro may
-      # fail due to transient issues unrelated to the build.
-      fail-fast: false
-      matrix: ${{fromJson(needs.linux-matrix.outputs.json-matrix)}}
-
-    steps:
-      - name: Setup distro and deps
+      - name: Setup Linux
+        if: ${{ runner.os == 'Linux' }}
+        id: setup-linux
         shell: bash
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          if [ "${{ matrix.distro.like }}" == "debian" ]; then
+          if [ "${{ matrix.target.like }}" == "debian" ]; then
+
+            # The default Ubuntu mirror is often flakey, so use the US mirror instead.
+            if [[ "${{ matrix.target.name }}" == ubuntu* ]]; then
+              # Sources were moved to `/etc/apt/sources.list.d/ubuntu.sources` in Ubuntu 24.10
+              if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
+                sources=/etc/apt/sources.list.d/ubuntu.sources
+              else
+                sources=/etc/apt/sources.list
+              fi
+              sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' $sources
+            fi
+            
             apt update
             apt install -y git python3 python3-venv
-          elif [ "${{ matrix.distro.like }}" == "fedora" ]; then
+          elif [ "${{ matrix.target.like }}" == "fedora" ]; then
             dnf install -y git python3
-          elif [ "${{ matrix.distro.like }}" == "suse" ]; then
+          elif [ "${{ matrix.target.like }}" == "suse" ]; then
             zypper refresh
             zypper --non-interactive --no-gpg-checks \
               install -y --force-resolution git python3
-          elif [ "${{ matrix.distro.like }}" == "arch" ]; then
+          elif [ "${{ matrix.target.like }}" == "arch" ]; then
             pacman -Syu --noconfirm git python sudo
             useradd -m build
+            echo "package-user=build" >> $GITHUB_OUTPUT
           else
-            echo "Unknown: ${{ matrix.distro.like }}"
+            echo "Unknown: ${{ matrix.target.like }}"
           fi
+
+      - name: Setup variables
+        id: vars
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            "Windows")
+              cmake_args="--preset=windows-release"
+              ;;
+
+            "macOS")
+              cmake_args="$cmake_args --preset=macos-release"
+              cmake_args="$cmake_args -DCMAKE_OSX_SYSROOT=/Applications/Xcode_15.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+              ;;
+
+            "Linux")
+              cmake_args="$cmake_args --preset=linux-release"
+              if [ "${{ matrix.target.static-libportal }}" == "true" ]; then
+                cmake_args="$cmake_args -DSYSTEM_LIBPORTAL=OFF -DSTATIC_LIBPORTAL=ON"
+              fi
+              ;;
+          esac
+
+          cmake_args="$cmake_args -DUSE_TOMLPLUSPLUS=OFF -DUSE_CLI11=OFF"
+          cmake_args="$cmake_args -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}"
+          cmake_args="$cmake_args ${{ inputs.cmake-args }}"
+
+          echo "cmake-args=$cmake_args" >> $GITHUB_OUTPUT
+
+      # By default, workspace dir is not trusted by Git on containers.
+      - name: Setup Git (Linux)
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          repository: ${{ env.GIT_REPOSITORY }}
+          ref: ${{ env.GIT_REF }}
           fetch-depth: 0
           submodules: true
 
-      - name: Config Git safe dir
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      # Only use caching for workflow calls, since in every other case the SHA will likely change.
+      - name: Cache binaries
+        if: ${{ inputs.ref }}
+        uses: actions/cache@v4
+        id: cache-bin
+        with:
+          path: dist
+          key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
       - name: Install dependencies
-        run: ./scripts/install_deps.py ${{ matrix.distro.extra-dep-args }}
-        env:
-          # Prevent apt prompting for input.
-          DEBIAN_FRONTEND: noninteractive
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        id: get-deps
+        uses: ./.github/actions/install-deps
+        with:
+          qt-version: ${{ env.QT_VERSION }}
 
       - name: Configure
-        run: |
-          cmake -B build \
-          --preset=linux-release ${{ matrix.distro.extra-cmake-args }} \
-          -DUSE_TOMLPLUSPLUS=OFF \
-          -DUSE_CLI11=OFF \
-          -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        run: cmake -B build ${{ steps.vars.outputs.cmake-args }} ${{ steps.get-deps.outputs.vcpkg-cmake-config }}
 
       - name: Build
+        if: ${{ !steps.cache-bin.outputs.cache-hit }}
         run: cmake --build build -j8
 
       - name: Tests
+        if: ${{ !steps.cache-bin.outputs.cache-hit && !inputs.skip-tests }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:
-          job: linux-${{ matrix.distro.name }}
+          job: ${{ matrix.target.name }}
           bin-dir: build/bin
 
       - name: Package
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && !inputs.package-bin-zip }}
         env:
-          LINUX_PACKAGE_USER: ${{ matrix.distro.package-user }}
+          LINUX_PACKAGE_USER: ${{ steps.setup-linux.outputs.package-user }}
         run: ./scripts/package.py
 
+      - name: Package
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && inputs.package-bin-zip }}
+        id: package
+        uses: ./.github/actions/dist-copy-bin
+        with:
+          source-dir: build/bin
+          target-dir: dist
+
+      - name: Get version
+        id: get-version
+        uses: ./.github/actions/get-version
+
       - name: Upload to GitHub
-        if: ${{ env.PACKAGE_BUILD == 'true' }}
+        if: ${{ steps.cache-bin.outputs.cache-hit || steps.package.outputs.copy-done }}
         uses: actions/upload-artifact@v4
         with:
-          name: "package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.distro.name }}"
-          path: ./dist
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
+          path: dist
+          if-no-files-found: error
+
+      - name: Upload to AWS S3
+        uses: ./.github/actions/dist-upload
+        if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
+        with:
+          aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
+          aws-s3-package-version: ${{ steps.get-version.outputs.version }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

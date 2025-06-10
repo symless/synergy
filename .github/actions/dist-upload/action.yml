@@ -56,13 +56,17 @@ runs:
 
       shell: bash
 
-    - name: Download packages
-      uses: actions/download-artifact@v4
-      with:
-        pattern: ${{ inputs.asset-name-pattern }}
-        merge-multiple: true
-        path: dist
-        
+    - name: Install AWS CLI
+      if: ${{ runner.os == 'Linux' }}
+      shell: bash
+      run: |
+        arch=$(uname -m)
+        echo "Arch: $arch"
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o "awscli.zip"
+        unzip awscli.zip
+        ./aws/install
+        aws --version
+
     - name: AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
