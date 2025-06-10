@@ -19,16 +19,16 @@ install_darwin() {
 
 install_linux() {
   . /etc/os-release
-  os=${ID}
+  os=${ID_LIKE}
   if [ -z "$os" ]; then
-    os=${ID_LIKE}
+    os=${ID}
   fi
 
   echo "Detected Linux: ${os}"
   case "${os}" in
-    ubuntu|debian) install_debian_deps ;;
-    fedora|centos|rhel) install_fedora_deps ;;
-    suse|opensuse) install_suse_deps ;;
+    debian) install_debian_deps ;;
+    fedora) install_fedora_deps ;;
+    suse) install_suse_deps ;;
     arch) install_arch_deps ;;
 
     *)
