@@ -1,0 +1,55 @@
+name: "Copy binaries for distribution"
+
+inputs:
+  source-dir:
+    description: "The source directory where the binaries are located."
+
+  target-dir:
+    description: "The target directory where the binaries will be copied."
+
+outputs:
+  copy-done:
+    description: "Indicates whether the copy happened."
+    value: ${{ steps.copy.outputs.done }}
+    
+runs:
+  using: "composite"
+
+  steps:
+    - run: |
+        source_dir="${{ inputs.source-dir }}"
+        target_dir="${{ inputs.target-dir }}"
+
+        mkdir -p ${target_dir}
+
+        if [ "${{ runner.os }}" == "Windows" ]; then
+
+          if [ ! -f ${source_dir}/synergy-core.exe ]; then
+            echo "Unified core not found, skipping copy."
+            exit 0
+          fi
+          
+          cp -v \
+            ${source_dir}/synergy-core.exe \
+            ${source_dir}/synergy-daemon.exe \
+            ${source_dir}/syntool.exe \
+            ${source_dir}/libcrypto-3-x64.dll \
+            ${source_dir}/libssl-3-x64.dll \
+            ${target_dir}
+        else
+
+          if [ ! -f ${source_dir}/synergy-core ]; then
+            echo "Unified core not found, skipping copy."
+            exit 0
+          fi
+
+          cp -v \
+            ${source_dir}/synergy-core \
+            ${source_dir}/syntool \
+            ${target_dir}
+        fi
+
+        echo "Binaries copied from ${source_dir} to ${target_dir}."
+        echo "done=true" >> $GITHUB_OUTPUT
+      shell: bash
+      id: copy

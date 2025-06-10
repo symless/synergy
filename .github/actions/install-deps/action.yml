@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: 2024 Chris Rizzitello <sithlord48@gmail.com>
+# SPDX-License-Identifier: MIT
+
+name: "Install dependencies"
+
+inputs:
+  qt-version:
+    description: "The version of Qt to install on mac os"
+    required: false
+    default: ""
+
+outputs:
+  vcpkg-cmake-config:
+    description: "Windows vcpkg output for cmake"
+    value: ${{ steps.vcpkg.outputs.vcpkg-cmake-config }}
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Install dependencies
+      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+      run: ./scripts/install_deps.sh ${args}
+      shell: bash
+
+    # HACK: Needed for GTest on Windows (installed bia Meson).
+    - name: Install Meson deps (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      shell: pwsh
+      run: python ./scripts/install_deps.py
+
+    # Installs some Python deps (e.g. pip, etc) and the venv needed for the package step.
+    - name: Setup Python env (Linux & macOS)
+      if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
+      shell: bash
+      run: ./scripts/install_deps.py
+
+    - name: Install Qt (macOS)
+      if: ${{ runner.os == 'macOS' }}
+      uses: jurplel/install-qt-action@v4
+      env:
+        AQT_CONFIG: ${{ github.action_path }}/aqt.ini
+      with:
+        dir: "/Users/runner"
+        version: ${{ inputs.qt-version }}
+        cache: true
+        cache-key-prefix: macos-qt-${{ inputs.qt-version }}
+
+    - name: Install Qt (Windows)
+      if: ${{ runner.os == 'Windows' }}
+      uses: jurplel/install-qt-action@v4
+      env:
+        AQT_CONFIG: ${{ github.action_path }}/aqt.ini
+      with:
+        dir: "C:"
+        version: ${{ inputs.qt-version }}
+        cache: true
+        cache-key-prefix: windows-qt-${{ inputs.qt-version }}
+
+    # Install Ninja with an action instead of using Chocolatey, as it's more
+    # reliable and faster. The Ninja install action is pretty good as it
+    # downloads directly from the `ninja-build` GitHub project releases.
+    - name: Install Ninja
+      if: ${{ runner.os == 'Windows' }}
+      uses: seanmiddleditch/gha-setup-ninja@master
+
+    - name: Build and cache vcpkg
+      if: ${{ runner.os == 'Windows' }}
+      id: vcpkg
+      uses: johnwason/vcpkg-action@v7
+      with:
+        manifest-dir: ${{ github.workspace }}
+        triplet: x64-windows-release
+        token: ${{ github.token }}
+
+    # This effectively runs `vcvarsall.bat`, etc. It's not actually installing
+    # VC++ as that's already pre-installed on the Windows runner.
+    - name: Setup VC++ environment
+      if: ${{ runner.os == 'Windows' }}
+      uses: ilammy/msvc-dev-cmd@v1
