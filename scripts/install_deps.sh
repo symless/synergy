@@ -61,6 +61,7 @@ install_debian_deps() {
   
   apt-get update
   apt-get install -y \
+    file \
     cmake \
     build-essential \
     ninja-build \

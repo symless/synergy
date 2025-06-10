@@ -280,13 +280,13 @@ jobs:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
 
-      - name: Package
+      - name: Package (native)
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && !inputs.package-bin-zip }}
         env:
           LINUX_PACKAGE_USER: ${{ steps.setup-linux.outputs.package-user }}
         run: ./scripts/package.py
 
-      - name: Package
+      - name: Package (bin zip)
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && inputs.package-bin-zip }}
         id: package
         uses: ./.github/actions/dist-copy-bin
