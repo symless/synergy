@@ -308,7 +308,7 @@ jobs:
 
       - name: Upload to AWS S3
         uses: ./.github/actions/dist-upload
-        if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
+        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         with:
           aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
           aws-s3-package-version: ${{ steps.get-version.outputs.version }}
