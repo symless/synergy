@@ -286,11 +286,29 @@ jobs:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
 
-      - name: Package (native)
-        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && !inputs.package-bin-zip }}
+      - name: Package (Linux)
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'Linux' && !inputs.package-bin-zip }}
+        run: ./scripts/package.py
         env:
           LINUX_PACKAGE_USER: ${{ steps.setup-linux.outputs.package-user }}
+
+      - name: Package (Windows)
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'Windows' && !inputs.package-bin-zip }}
+        run: python ./scripts/package.py
+        env:
+          WINDOWS_PFX_CERTIFICATE: ${{ secrets.WINDOWS_PFX }}
+          WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASS }}
+
+      - name: Package (macOS)
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'macOS' && !inputs.package-bin-zip }}
         run: ./scripts/package.py
+        env:
+          APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
+          APPLE_P12_CERTIFICATE: ${{ secrets.APPLE_P12_CERTIFICATE }}
+          APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+          APPLE_NOTARY_USER: ${{ secrets.APPLE_NOTARY_USER }}
+          APPLE_NOTARY_PASSWORD: ${{ secrets.APPLE_NOTARY_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Package (bin zip)
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && inputs.package-bin-zip }}
