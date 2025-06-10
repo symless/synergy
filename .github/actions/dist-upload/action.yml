@@ -60,6 +60,38 @@ runs:
       if: ${{ runner.os == 'Linux' }}
       shell: bash
       run: |
+        . /etc/os-release
+        os=${ID_LIKE}
+        if [ -z "$os" ]; then
+          os=${ID}
+        fi
+
+        echo "Detected Linux: ${os}"
+        case "${os}" in
+          *debian*)
+            apt-get update
+            apt-get install -y unzip curl
+            ;;
+
+          *fedora*)
+            dnf install -y unzip curl
+            ;;
+
+          *suse*)
+            zypper refresh
+            zypper install -y --force-resolution unzip curl
+            ;;
+
+          *arch*)
+            pacman -Syu --noconfirm unzip curl
+            ;;
+
+          *)
+            echo "Unsupported Linux: ${os}"
+            exit 1
+            ;;
+        esac
+
         arch=$(uname -m)
         echo "Arch: $arch"
         curl "https://awscli.amazonaws.com/awscli-exe-linux-${arch}.zip" -o "awscli.zip"
