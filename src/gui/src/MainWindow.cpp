@@ -1122,13 +1122,16 @@ void MainWindow::checkForUpdates()
     m_Settings.sync();
   }
 
+  if (!m_AppConfig.enableUpdateCheck().value()) {
+    qDebug("update check disabled");
+    return;
+  }
+
   const QString fakeVersion = qEnvironmentVariable("SYNERGY_FAKE_REMOTE_VERSION");
   if (!fakeVersion.isEmpty()) {
     m_VersionChecker.fakeCheck(fakeVersion);
-  } else if (m_AppConfig.enableUpdateCheck().value()) {
-    m_VersionChecker.checkLatest();
   } else {
-    qDebug("update check disabled");
+    m_VersionChecker.checkLatest();
   }
 }
 
