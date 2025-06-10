@@ -304,7 +304,6 @@ jobs:
 
       - name: Package (bin zip)
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && inputs.package-bin-zip }}
-        id: package
         uses: ./.github/actions/dist-copy-bin
         with:
           source-dir: build/bin
@@ -315,7 +314,7 @@ jobs:
         uses: ./.github/actions/get-version
 
       - name: Upload to GitHub
-        if: ${{ steps.cache-bin.outputs.cache-hit || steps.package.outputs.copy-done }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
