@@ -43,6 +43,9 @@ install_debian_deps() {
   legacy=false
   build_libportal=false
 
+  # On Ubuntu 24.04, libportal is available but does not support the required portals,
+  # so we can build a newer one since the available libei works fine for Wayland support.
+  # On older Ubuntu and Debian versions, there is no libei, so Wayland support is not possible.
   . /etc/os-release || true
   if [ "$ID" = "ubuntu" ]; then
     if [ "$VERSION_ID" = "24.04" ]; then

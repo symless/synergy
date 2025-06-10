@@ -18,9 +18,6 @@ runs:
   using: "composite"
 
   steps:
-    # On Ubuntu 24.04, libportal is available but does not support the required portals,
-    # so we can build a newer one since the available libei works fine for Wayland support.
-    # On older Ubuntu and Debian versions, there is no libei, so Wayland support is not possible.
     - name: Install dependencies
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       run: ./scripts/install_deps.sh ${args}
