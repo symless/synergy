@@ -26,10 +26,10 @@ install_linux() {
 
   echo "Detected Linux: ${os}"
   case "${os}" in
-    debian) install_debian_deps ;;
-    fedora) install_fedora_deps ;;
-    suse) install_suse_deps ;;
-    arch) install_arch_deps ;;
+    *debian*) install_debian_deps ;;
+    *fedora*) install_fedora_deps ;;
+    *suse*) install_suse_deps ;;
+    *arch*) install_arch_deps ;;
 
     *)
       echo "Unsupported Linux: ${os}"
