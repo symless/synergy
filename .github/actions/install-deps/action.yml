@@ -29,11 +29,11 @@ runs:
       shell: pwsh
       run: python ./scripts/install_deps.py
 
-    # HACK: Needed for packaging (Windows already sets up venv in Meson deps step).
+    # Installs some Python deps (e.g. pip, etc) and the venv needed for the package step.
     - name: Setup Python env (Linux & macOS)
       if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
       shell: bash
-      run: ./scripts/setup_venv.py
+      run: ./scripts/install_deps.py
 
     - name: Install Qt (macOS)
       if: ${{ runner.os == 'macOS' }}
