@@ -234,14 +234,6 @@
             </item>
             <item>
              <widget class="QComboBox" name="m_pComboBoxTlsKeyLength">
-              <property name="currentText">
-               <string>1024</string>
-              </property>
-              <item>
-               <property name="text">
-                <string>1024</string>
-               </property>
-              </item>
               <item>
                <property name="text">
                 <string>2048</string>
