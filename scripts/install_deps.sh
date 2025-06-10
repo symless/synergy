@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-install_deps() {
+main() {
   uname_out="$(uname -s)"
   case "${uname_out}" in
     Darwin*) install_darwin ;;
@@ -181,4 +181,4 @@ install_arch_deps() {
     cli11
 }
 
-install_deps
+main "$@"
