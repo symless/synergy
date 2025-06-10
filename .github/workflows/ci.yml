@@ -139,6 +139,12 @@ jobs:
             like: "debian"
             timeout: 20
 
+          - name: fedora-42-x86_64
+            runs-on: ubuntu-latest
+            container: fedora:42
+            like: "fedora"
+            timeout: 20
+
           - name: fedora-41-x86_64
             runs-on: ubuntu-latest
             container: fedora:41
