@@ -3,8 +3,8 @@
 main() {
   uname_out="$(uname -s)"
   case "${uname_out}" in
-    Darwin*) install_darwin ;;
-    Linux*) install_linux ;;
+    Darwin*) install_darwin_deps ;;
+    Linux*) install_linux_deps ;;
 
     *)
       echo "Unsupported OS: ${uname_out}"
@@ -13,11 +13,11 @@ main() {
   esac
 }
 
-install_darwin() {
+install_darwin_deps() {
   brew install cmake googletest ninja openssl --quiet
 }
 
-install_linux() {
+install_linux_deps() {
   . /etc/os-release
   os=${ID_LIKE}
   if [ -z "$os" ]; then
