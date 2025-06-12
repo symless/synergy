@@ -115,15 +115,14 @@ runs:
 
         # Separate snapshot and release versions for easier navigation
         if [[ "${{ inputs.aws-s3-package-version }}" =~ snapshot ]]; then
-          sub_dir="snapshot"
+          # Organize by major.minor.patch dir (i.e. 1.0.0/1.0.0-foobar+r123)
+          short_version=$(echo "${{ inputs.aws-s3-package-version }}" | cut -d'-' -f1 | cut -d'+' -f1)
+          sub_dir="snapshot/$short_version"
         else
           sub_dir="release"
         fi
 
-        # Organize by major.minor.patch dir (i.e. v1.0.0/v1.0.0-foobar+r123)
-        short_version=$(echo "${{ inputs.aws-s3-package-version }}" | cut -d'-' -f1 | cut -d'+' -f1)
-
-        target_dir="$base_dir/$sub_dir/$short_version/${{ inputs.aws-s3-package-version }}"
+        target_dir="$base_dir/$sub_dir/${{ inputs.aws-s3-package-version }}"
         url="s3://${{ inputs.aws-s3-bucket }}/$target_dir"
 
         echo "Uploading to AWS S3: $url"
