@@ -1013,10 +1013,6 @@ void MainWindow::updateLocalFingerprint()
     qFatal("failed to check if fingerprint exists");
   }
 
-  qInfo() << "tls enabled:" << m_AppConfig.tlsEnabled();
-  qInfo() << "local fingerprint exists:" << fingerprintExists;
-  qInfo() << "server checked:" << m_pRadioGroupServer->isChecked();
-
   m_pLabelFingerprint->setVisible(m_AppConfig.tlsEnabled() && fingerprintExists && m_pRadioGroupServer->isChecked());
 }
 
