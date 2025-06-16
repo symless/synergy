@@ -125,6 +125,7 @@ public:
 
 signals:
   void starting();
+  void started();
   void error(Error error);
   void logLine(const QString &line);
   void connectionStateChanged(ConnectionState state);

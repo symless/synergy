@@ -412,6 +412,7 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   }
 
   m_lastProcessMode = processMode;
+  Q_EMIT started();
 }
 
 void CoreProcess::stop(std::optional<ProcessMode> processModeOption)

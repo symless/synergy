@@ -227,6 +227,8 @@ void MainWindow::connectSlots()
 
   connect(&m_CoreProcess, &CoreProcess::starting, this, &MainWindow::onCoreProcessStarting, Qt::DirectConnection);
 
+  connect(&m_CoreProcess, &CoreProcess::started, this, &MainWindow::onCoreProcessStarted, Qt::DirectConnection);
+
   connect(&m_CoreProcess, &CoreProcess::error, this, &MainWindow::onCoreProcessError);
 
   connect(
@@ -315,10 +317,10 @@ void MainWindow::onSettingsSaving()
 
 void MainWindow::onAppConfigTlsChanged()
 {
-  updateLocalFingerprint();
   if (m_TlsUtility.isEnabled()) {
     m_TlsUtility.generateCertificate();
   }
+  updateLocalFingerprint();
 }
 
 void MainWindow::onTrayIconActivated(QSystemTrayIcon::ActivationReason reason)
@@ -373,7 +375,6 @@ void MainWindow::on_m_pActionStartCore_triggered()
 {
   m_ClientConnection.setShowMessage();
   m_CoreProcess.start();
-  updateLocalFingerprint();
 }
 
 void MainWindow::on_m_pActionStopCore_triggered()
@@ -583,6 +584,11 @@ void MainWindow::onCoreProcessStarting()
 #endif
 
   saveSettings();
+}
+
+void MainWindow::onCoreProcessStarted()
+{
+  updateLocalFingerprint();
 }
 
 void MainWindow::setStatus(const QString &status)
@@ -1007,6 +1013,10 @@ void MainWindow::updateLocalFingerprint()
     qFatal("failed to check if fingerprint exists");
   }
 
+  qInfo() << "tls enabled:" << m_AppConfig.tlsEnabled();
+  qInfo() << "local fingerprint exists:" << fingerprintExists;
+  qInfo() << "server checked:" << m_pRadioGroupServer->isChecked();
+
   m_pLabelFingerprint->setVisible(m_AppConfig.tlsEnabled() && fingerprintExists && m_pRadioGroupServer->isChecked());
 }
 
@@ -1082,7 +1092,6 @@ void MainWindow::enableServer(bool enable)
     if (!m_AppConfig.startedBefore()) {
       qDebug("auto-starting core server for first time");
       m_CoreProcess.start();
-      updateLocalFingerprint();
     }
   }
 }
@@ -1139,7 +1148,6 @@ void MainWindow::autoStartCore()
 {
   if (m_AppConfig.startedBefore()) {
     m_CoreProcess.start();
-    updateLocalFingerprint();
   }
 }
 

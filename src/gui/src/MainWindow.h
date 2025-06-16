@@ -110,6 +110,7 @@ private slots:
   void onAppConfigScreenNameChanged();
   void onAppConfigInvertConnection();
   void onCoreProcessStarting();
+  void onCoreProcessStarted();
   void onCoreProcessError(CoreProcess::Error error);
   void onCoreConnectionStateChanged(CoreProcess::ConnectionState state);
   void onCoreProcessStateChanged(CoreProcess::ProcessState state);
