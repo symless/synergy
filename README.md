@@ -37,8 +37,9 @@ This involves QA, integration testing, and compliance review. Critical bug fixes
 For specific timelines on particular bug fixes and features, please [get in touch](https://symless.com/synergy/contact).
 
 ### Is Deskflow stable?
-Deskflow is a development sandbox, suitable for testing, prototyping, and contributing, but not for production use.
-Unlike Synergy, Deskflow doesn’t carry any guarantees around quality, support, or compliance.
+Deskflow is intended for developers and contributors who can self-support and fix issues.
+It’s not suitable for production or business-critical environments requiring stability guarantees.
+For those cases, we recommend using Synergy.
 
 ### Why have two projects?
 This model lets us move fast without breaking things. Deskflow empowers rapid community-driven innovation.
