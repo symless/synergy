@@ -18,9 +18,9 @@ However, if you're a customer looking to build Synergy from source, [contact us]
 If you're a developer looking to contribute to an open source community, join us in our [Deskflow](https://deskflow.org) project.
 
 ### What’s the difference between Synergy and Deskflow?
-Synergy is a stable, supported commercial product, Quality Assurance tested, security-reviewed, and backed by our team. 
+Synergy is a stable, supported commercial product. It is quality assurance tested, has a warranty, and is maintained by a team of full-time engineers.
 Deskflow is the upstream project where the open source community, including Synergy engineers, prototype and iterate on new features.
-Synergy is your production-ready solution; Deskflow is for open source contributors and early adopters.
+Synergy is your business-ready solution; Deskflow is for open source contributors and early adopters.
 
 ### Where should I file bugs or feature requests?
 For supported customers, reach out to our [support team](https://symless.com/synergy/contact) and we’ll triage and track issues internally.
