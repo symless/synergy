@@ -311,7 +311,7 @@ jobs:
 
       - name: Get version
         id: get-version
-        uses: ./.github/actions/get-version
+        uses: symless/actions/get-version@master
 
       - name: Upload to GitHub
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}

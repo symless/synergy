@@ -18,8 +18,8 @@ jobs:
 
       - name: Get version
         id: get-version
-        uses: ./.github/actions/get-version
-      
+        uses: symless/actions/get-version@master
+
       - name: Debug
         run: |
           echo "Version: ${{ steps.get-version.outputs.version }}"
