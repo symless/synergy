@@ -37,12 +37,10 @@ jobs:
         uses: ./.github/actions/get-version
 
       - name: Comment on merged PR
-        uses: actions/github-script@v7
+        uses: symless/actions/pr-merge-comment@v1
         with:
-          script: |
-            const { prMergeComment } = require('./.github/scripts/pr-merge-comment.js');
-            const version = "${{ steps.get-version.outputs.version }}";
-            await prMergeComment(github, context, version);
+          version: ${{ steps.get-version.outputs.version }}
+          sha: ${{ inputs.test-sha }}
 
   summary-comment:
     if: github.event.workflow_run.event == 'pull_request'
