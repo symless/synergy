@@ -1689,7 +1689,10 @@ void MSWindowsScreen::forceShowCursor()
 
   // check for mouse
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
+
   LOG_DEBUG1("has mouse: %s", m_hasMouse ? "yes" : "no");
+  LOG_DEBUG1("is primary: %s", m_isPrimary ? "yes" : "no");
+  LOG_DEBUG1("is on screen: %s", m_isOnScreen ? "yes" : "no");
 
   // decide if we should show the mouse
   bool showMouse = (!m_hasMouse && !m_isPrimary && m_isOnScreen);
