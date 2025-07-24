@@ -485,6 +485,8 @@ void MSWindowsDesks::deskEnter(Desk *desk)
   if (!m_isPrimary) {
     ReleaseCapture();
   }
+
+  LOG_DEBUG("entering desk, showing cursor");
   ShowCursor(TRUE);
   SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
 
@@ -505,6 +507,7 @@ void MSWindowsDesks::deskEnter(Desk *desk)
 
 void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
 {
+  LOG_DEBUG("leaving desk, hiding cursor");
   ShowCursor(FALSE);
   if (m_isPrimary) {
     // map a window to hide the cursor and to use whatever keyboard
