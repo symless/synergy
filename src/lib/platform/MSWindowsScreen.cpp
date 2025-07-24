@@ -1684,70 +1684,71 @@ void MSWindowsScreen::updateKeysCB(void *)
 
 void MSWindowsScreen::forceShowCursor()
 {
-  updateForceShowCursor();
-  // LOG_DEBUG("check if showing cursor");
+  LOG_DEBUG("check if showing cursor");
 
-  // LOG_DEBUG1("is primary: %s", m_isPrimary ? "yes" : "no");
-  // LOG_DEBUG1("is on screen: %s", m_isOnScreen ? "yes" : "no");
+  LOG_DEBUG1("is primary: %s", m_isPrimary ? "yes" : "no");
+  LOG_DEBUG1("is on screen: %s", m_isOnScreen ? "yes" : "no");
 
-  // // decide if we should show the mouse
-  // bool showMouse = (!m_isPrimary && m_isOnScreen);
-  // LOG_DEBUG1("should show mouse: %s", showMouse ? "yes" : "no");
+  // decide if we should show the mouse
+  bool showMouse = (!m_isPrimary && m_isOnScreen);
+  LOG_DEBUG1("should show mouse: %s", showMouse ? "yes" : "no");
 
-  // // show/hide the mouse
-  // if (showMouse != m_showingMouse) {
-  //   if (showMouse) {
-  //     m_oldMouseKeys.cbSize = sizeof(m_oldMouseKeys);
-  //     m_gotOldMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, 0) != 0);
-  //     if (m_gotOldMouseKeys) {
-  //       LOG_DEBUG1("showing mouse, restoring old mouse keys");
-  //       m_mouseKeys = m_oldMouseKeys;
-  //       m_showingMouse = true;
-  //       updateForceShowCursor();
-  //     } else {
-  //       LOG_DEBUG1("not showing mouse, no old mouse keys");
-  //       m_showingMouse = false;
-  //     }
-  //   } else {
-  //     if (m_gotOldMouseKeys) {
-  //       LOG_DEBUG1("hiding mouse");
-  //       SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
-  //       m_showingMouse = false;
-  //     } else {
-  //       LOG_DEBUG1("not hiding mouse, no old mouse keys");
-  //     }
-  //   }
-  // } else {
-  //   LOG_DEBUG1("mouse visibility unchanged");
-  // }
+  // show/hide the mouse
+  if (showMouse != m_showingMouse) {
+    if (showMouse) {
+      m_oldMouseKeys.cbSize = sizeof(m_oldMouseKeys);
+      m_gotOldMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, 0) != 0);
+      if (m_gotOldMouseKeys) {
+        LOG_DEBUG1("showing mouse, restoring old mouse keys");
+        m_mouseKeys = m_oldMouseKeys;
+        m_showingMouse = true;
+        updateForceShowCursor();
+      } else {
+        LOG_DEBUG1("not showing mouse, no old mouse keys");
+        m_showingMouse = false;
+      }
+    } else {
+      if (m_gotOldMouseKeys) {
+        LOG_DEBUG1("hiding mouse");
+        SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
+        m_showingMouse = false;
+      } else {
+        LOG_DEBUG1("not hiding mouse, no old mouse keys");
+      }
+    }
+  } else {
+    LOG_DEBUG1("mouse visibility unchanged");
+  }
+
+  LOG_DEBUG("changing cursor visibility: %s", m_isOnScreen ? "on" : "off");
+  ShowCursor(m_isOnScreen);
 }
 
 void MSWindowsScreen::updateForceShowCursor()
 {
-  ShowCursor(!m_isPrimary && m_isOnScreen);
-  // LOG_DEBUG("updating cursor visibility");
+  LOG_DEBUG("updating cursor visibility");
 
-  // DWORD oldFlags = m_mouseKeys.dwFlags;
-  // LOG_DEBUG1("old mouse keys flags: 0x%08x", oldFlags);
+  DWORD oldFlags = m_mouseKeys.dwFlags;
+  LOG_DEBUG1("old mouse keys flags: 0x%08x", oldFlags);
 
-  // // turn on MouseKeys
-  // m_mouseKeys.dwFlags = MKF_AVAILABLE | MKF_MOUSEKEYSON;
-  // LOG_DEBUG1("new mouse keys flags: 0x%08x", m_mouseKeys.dwFlags);
+  // turn on MouseKeys
+  m_mouseKeys.dwFlags = MKF_AVAILABLE | MKF_MOUSEKEYSON;
+  LOG_DEBUG1("new mouse keys flags: 0x%08x", m_mouseKeys.dwFlags);
 
-  // // make sure MouseKeys is active in whatever state the NumLock is
-  // // not currently in.
-  // if ((m_keyState->getActiveModifiers() & KeyModifierNumLock) != 0) {
-  //   m_mouseKeys.dwFlags |= MKF_REPLACENUMBERS;
-  //   LOG_DEBUG1("new mouse keys flags with numlock: 0x%08x", m_mouseKeys.dwFlags);
-  // }
+  // make sure MouseKeys is active in whatever state the NumLock is
+  // not currently in.
+  if ((m_keyState->getActiveModifiers() & KeyModifierNumLock) != 0) {
+    m_mouseKeys.dwFlags |= MKF_REPLACENUMBERS;
+    LOG_DEBUG1("new mouse keys flags with numlock: 0x%08x", m_mouseKeys.dwFlags);
+  }
 
-  // // update MouseKeys
-  // if (oldFlags != m_mouseKeys.dwFlags) {
-  //   LOG_DEBUG1("updating system parameters mouse keys");
-  //   SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
-  // } else {
-  //   LOG_DEBUG1("no change to system parameters mouse keys");
-  // }
+  // update MouseKeys
+  if (oldFlags != m_mouseKeys.dwFlags) {
+    LOG_DEBUG1("updating system parameters mouse keys");
+    SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
+  } else {
+    LOG_DEBUG1("no change to system parameters mouse keys");
+  }
 }
 
 LRESULT CALLBACK MSWindowsScreen::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
