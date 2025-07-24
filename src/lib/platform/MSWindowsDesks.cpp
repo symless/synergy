@@ -480,14 +480,61 @@ void MSWindowsDesks::deskMouseRelativeMove(SInt32 dx, SInt32 dy) const
   }
 }
 
+void setCursorVisibility(bool show)
+{
+  LOG_DEBUG("%s cursor", show ? "showing" : "hiding");
+
+  const int kMaxRetry = 10;
+  int retryCount = 0;
+  while (retryCount++ < kMaxRetry) {
+    int result = ShowCursor(static_cast<BOOL>(show));
+    const bool wasShown = (result >= 0);
+
+    LOG_DEBUG1("cursor visibility display counter: %d (%s)", result, wasShown ? "shown" : "hidden");
+
+    if (show && wasShown) {
+      LOG_DEBUG("cursor shown, attempts: %d", retryCount);
+      break;
+    } else if (!show && !wasShown) {
+      LOG_DEBUG("cursor hidden, attempts: %d", retryCount);
+      break;
+    }
+
+    LOG_DEBUG1("retrying cursor visibility (%d/%d)", retryCount, kMaxRetry);
+  }
+
+  if (retryCount >= kMaxRetry) {
+    LOG_ERR("failed to set cursor visibility after %d attempt(s)", retryCount);
+  }
+
+  // HACK: force default cursor
+  if (show) {
+    LOG_DEBUG("setting cursor to arrow");
+    SetCursor(LoadCursor(nullptr, IDC_ARROW));
+  } else {
+    LOG_DEBUG("clearing cursor");
+    SetCursor(nullptr);
+  }
+
+  // HACK: pump messages in case message loop is slowing cursor show/hide
+  LOG_DEBUG("pumping messages to ensure cursor visibility");
+  MSG msg;
+  while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+}
+
 void MSWindowsDesks::deskEnter(Desk *desk)
 {
+  LOG_DEBUG("entering desk");
+
   if (!m_isPrimary) {
     ReleaseCapture();
   }
 
-  LOG_DEBUG("entering desk, showing cursor");
-  ShowCursor(TRUE);
+  setCursorVisibility(true);
+
   SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
 
   // restore the foreground window
@@ -507,8 +554,9 @@ void MSWindowsDesks::deskEnter(Desk *desk)
 
 void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
 {
-  LOG_DEBUG("leaving desk, hiding cursor");
-  ShowCursor(FALSE);
+  LOG_DEBUG("leaving desk");
+  setCursorVisibility(false);
+
   if (m_isPrimary) {
     // map a window to hide the cursor and to use whatever keyboard
     // layout we choose rather than the keyboard layout of the last
