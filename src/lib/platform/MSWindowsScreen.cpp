@@ -1685,11 +1685,15 @@ void MSWindowsScreen::updateKeysCB(void *)
 
 void MSWindowsScreen::forceShowCursor()
 {
+  LOG_DEBUG("check if showing cursor");
+
   // check for mouse
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
+  LOG_DEBUG1("has mouse: %s", m_hasMouse ? "yes" : "no");
 
   // decide if we should show the mouse
   bool showMouse = (!m_hasMouse && !m_isPrimary && m_isOnScreen);
+  LOG_DEBUG1("should show mouse: %s", showMouse ? "yes" : "no");
 
   // show/hide the mouse
   if (showMouse != m_showingMouse) {
@@ -1697,35 +1701,52 @@ void MSWindowsScreen::forceShowCursor()
       m_oldMouseKeys.cbSize = sizeof(m_oldMouseKeys);
       m_gotOldMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, 0) != 0);
       if (m_gotOldMouseKeys) {
+        LOG_DEBUG1("showing mouse, restoring old mouse keys");
         m_mouseKeys = m_oldMouseKeys;
         m_showingMouse = true;
         updateForceShowCursor();
+      } else {
+        LOG_DEBUG1("not showing mouse, no old mouse keys");
+        m_showingMouse = false;
       }
     } else {
       if (m_gotOldMouseKeys) {
+        LOG_DEBUG1("hiding mouse");
         SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
         m_showingMouse = false;
+      } else {
+        LOG_DEBUG1("not hiding mouse, no old mouse keys");
       }
     }
+  } else {
+    LOG_DEBUG1("mouse visibility unchanged");
   }
 }
 
 void MSWindowsScreen::updateForceShowCursor()
 {
+  LOG_DEBUG("updating cursor visibility");
+
   DWORD oldFlags = m_mouseKeys.dwFlags;
+  LOG_DEBUG1("old mouse keys flags: 0x%08x", oldFlags);
 
   // turn on MouseKeys
   m_mouseKeys.dwFlags = MKF_AVAILABLE | MKF_MOUSEKEYSON;
+  LOG_DEBUG1("new mouse keys flags: 0x%08x", m_mouseKeys.dwFlags);
 
   // make sure MouseKeys is active in whatever state the NumLock is
   // not currently in.
   if ((m_keyState->getActiveModifiers() & KeyModifierNumLock) != 0) {
     m_mouseKeys.dwFlags |= MKF_REPLACENUMBERS;
+    LOG_DEBUG1("new mouse keys flags with numlock: 0x%08x", m_mouseKeys.dwFlags);
   }
 
   // update MouseKeys
   if (oldFlags != m_mouseKeys.dwFlags) {
+    LOG_DEBUG1("updating system parameters mouse keys");
     SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
+  } else {
+    LOG_DEBUG1("no change to system parameters mouse keys");
   }
 }
 
