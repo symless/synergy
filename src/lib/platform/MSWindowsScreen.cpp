@@ -122,7 +122,6 @@ MSWindowsScreen::MSWindowsScreen(
       m_ownClipboard(false),
       m_desks(NULL),
       m_keyState(NULL),
-      m_hasMouse(GetSystemMetrics(SM_MOUSEPRESENT) != 0),
       m_showingMouse(false),
       m_events(events),
       m_dropWindow(NULL),
@@ -1687,15 +1686,11 @@ void MSWindowsScreen::forceShowCursor()
 {
   LOG_DEBUG("check if showing cursor");
 
-  // check for mouse
-  m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
-
-  LOG_DEBUG1("has mouse: %s", m_hasMouse ? "yes" : "no");
   LOG_DEBUG1("is primary: %s", m_isPrimary ? "yes" : "no");
   LOG_DEBUG1("is on screen: %s", m_isOnScreen ? "yes" : "no");
 
   // decide if we should show the mouse
-  bool showMouse = (!m_hasMouse && !m_isPrimary && m_isOnScreen);
+  bool showMouse = (!m_isPrimary && m_isOnScreen);
   LOG_DEBUG1("should show mouse: %s", showMouse ? "yes" : "no");
 
   // show/hide the mouse
