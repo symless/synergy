@@ -480,23 +480,12 @@ void MSWindowsDesks::deskMouseRelativeMove(SInt32 dx, SInt32 dy) const
   }
 }
 
-bool isCursorVisible()
-{
-  CURSORINFO ci = {sizeof(ci)};
-  if (GetCursorInfo(&ci)) {
-    if (ci.flags == CURSOR_SHOWING) {
-      LOG_DEBUG("mouse cursor is showing at (%d, %d)", ci.ptScreenPos.x, ci.ptScreenPos.y);
-      return true;
-    } else {
-      LOG_DEBUG("mouse cursor is %s", ci.flags == CURSOR_SUPPRESSED ? "suppressed" : "hidden");
-    }
-  } else {
-    LOG_ERR("failed to get cursor info, error: %d", GetLastError());
-  }
-
-  return false;
-}
-
+// the system shows the mouse cursor when an internal display count
+// is >= 0.  this count is maintained per application but there's
+// apparently a system wide count added to the application's count.
+// this system count is 0 if there's a mouse attached to the system
+// and -1 otherwise.  the mouse keys accessibility feature can modify
+// this system count by making the system appear to have a mouse.
 void setCursorVisibility(bool visible)
 {
   LOG_DEBUG("%s cursor", visible ? "showing" : "hiding");
@@ -504,30 +493,24 @@ void setCursorVisibility(bool visible)
   const int max = 10;
   int attempts = 0;
   while (attempts++ < max) {
-    const auto cursorDisplayCounter = ShowCursor(visible ? TRUE : FALSE);
+    const auto displayCounter = ShowCursor(visible ? TRUE : FALSE);
+    LOG_DEBUG("cursor display counter: %d", displayCounter);
 
     if (visible) {
-      if (cursorDisplayCounter >= 0) {
-        LOG_DEBUG("cursor display counter: %d", cursorDisplayCounter);
-
-        if (!isCursorVisible()) {
-          LOG_WARN("mouse cursor expected to be visible but it is hidden");
-        }
-        return;
+      if (displayCounter < 0) {
+        LOG_DEBUG("cursor still hidden, retrying, attempt: %d", attempts);
+        continue;
       } else {
-        LOG_DEBUG("cursor is still hidden, display counter: %d", cursorDisplayCounter);
+        LOG_DEBUG("cursor is now visible, attempts: %d", attempts);
+        return;
       }
     } else {
-      if (cursorDisplayCounter < 0) {
-        LOG_DEBUG("cursor display counter: %d", cursorDisplayCounter);
-
-        if (isCursorVisible()) {
-          LOG_WARN("mouse cursor expected to be hidden but it is visible");
-        }
-
-        break;
+      if (displayCounter >= 0) {
+        LOG_DEBUG("cursor still visible, retrying, attempt: %d", attempts);
+        continue;
       } else {
-        LOG_DEBUG("cursor is still visible, display counter: %d", cursorDisplayCounter);
+        LOG_DEBUG("cursor is now hidden, attempts: %d", attempts);
+        return;
       }
     }
   }

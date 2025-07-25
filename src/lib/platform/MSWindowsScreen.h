@@ -332,13 +332,6 @@ private:
   // map of button state
   bool m_buttons[1 + kButtonExtra0 + 1];
 
-  // the system shows the mouse cursor when an internal display count
-  // is >= 0.  this count is maintained per application but there's
-  // apparently a system wide count added to the application's count.
-  // this system count is 0 if there's a mouse attached to the system
-  // and -1 otherwise.  the mouse keys accessibility feature can modify
-  // this system count by making the system appear to have a mouse.
-  //
   // m_hasMouse is true if there's a mouse attached to the system or
   // mouse keys is simulating one.  we track this so we can force the
   // cursor to be displayed when the user has entered this screen.
