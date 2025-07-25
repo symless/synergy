@@ -342,9 +342,7 @@ private:
   // m_hasMouse is true if there's a mouse attached to the system or
   // mouse keys is simulating one.  we track this so we can force the
   // cursor to be displayed when the user has entered this screen.
-  // m_mouseKeysEnabled is true when we're doing that.
   bool m_hasMouse;
-  bool m_mouseKeysEnabled;
   bool m_gotMouseKeys;
   bool m_gotOldMouseKeys;
   MOUSEKEYS m_mouseKeys;
