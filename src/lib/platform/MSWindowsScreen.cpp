@@ -1703,11 +1703,17 @@ void MSWindowsScreen::updateKeysCB(void *)
 
 void MSWindowsScreen::setupMouseKeys()
 {
+  // we only need to enable mouse keys on secondary screens.
+  if (m_isPrimary) {
+    // don't log; would be noisy.
+    return;
+  }
+
   // if there's a mouse then we don't need to use num keys to show the mouse cursor.
   // mouse keys enabled can also simulate a mouse being present.
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
   if (m_hasMouse) {
-    // don't log; this would be incredibly noisy.
+    // don't log; would be noisy.
     return;
   }
 
@@ -1727,7 +1733,8 @@ void MSWindowsScreen::setupMouseKeys()
 
 void MSWindowsScreen::updateMouseKeys()
 {
-  if (m_hasMouse || !m_gotMouseKeys) {
+  // a mouse could be either a real mouse or if mouse keys is enabled.
+  if (m_hasMouse || !m_gotMouseKeys || m_isPrimary) {
     // don't log; this would be incredibly noisy.
     return;
   }
