@@ -228,6 +228,9 @@ private: // HACK
   // if true and on secondary screen, enable mouse keys to show the cursor.
   void setupMouseKeys();
 
+  // restore the mouse keys accessibility feature to its previous state.
+  void restoreMouseKeys();
+
   // enables the mouse keys accessibility feature to to ensure the
   // mouse cursor can be shown.
   void updateMouseKeys();

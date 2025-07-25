@@ -128,6 +128,8 @@ MSWindowsScreen::MSWindowsScreen(
       m_dropWindow(NULL),
       m_dropWindowSize(20)
 {
+  LOG_DEBUG("settting up %s screen", m_isPrimary ? "primary" : "secondary");
+
   assert(s_windowInstance != NULL);
   assert(s_screen == NULL);
 
@@ -250,8 +252,29 @@ void MSWindowsScreen::enable()
   }
 }
 
+void MSWindowsScreen::restoreMouseKeys()
+{
+  if (m_gotOldMouseKeys) {
+    LOG_DEBUG("restoring old mouse keys setting");
+    const auto result = SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
+    if (!result) {
+      LOG_ERR("unable to restore old mouse keys setting, error: %d", GetLastError());
+    } else {
+      LOG_DEBUG("restored old mouse keys setting successfully");
+    }
+
+    // this doesn't neccesarily mean that the mouse keys feature is disabled,
+    // but rather that it was restored to the previous state.
+    m_mouseKeysEnabled = false;
+  } else {
+    LOG_WARN("unable to restore mouse keys setting, old mouse keys settings not available");
+  }
+}
+
 void MSWindowsScreen::disable()
 {
+  LOG_DEBUG("disabling %s screen", m_isPrimary ? "primary" : "secondary");
+
   // stop tracking the active desk
   m_desks->disable();
 
@@ -278,7 +301,7 @@ void MSWindowsScreen::disable()
   }
 
   m_isOnScreen = m_isPrimary;
-  setupMouseKeys();
+  restoreMouseKeys();
 }
 
 void MSWindowsScreen::enter()
@@ -1726,12 +1749,16 @@ void MSWindowsScreen::setupMouseKeys()
   // mouse keys enabled can also simulate a mouse being present.
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
   if (m_hasMouse) {
-    LOG_DEBUG("skipping mouse keys enable, mouse is present");
+    LOG_DEBUG1("skipping mouse keys enable, mouse is present");
     return;
   }
 
   m_mouseKeys.cbSize = sizeof(m_mouseKeys);
   m_gotMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, 0) != 0);
+
+  m_oldMouseKeys = m_mouseKeys;
+  m_gotOldMouseKeys = m_gotMouseKeys;
+
   if (!m_gotMouseKeys) {
     LOG_ERR("unable to get old mouse keys settings, error: %d", GetLastError());
     return;
