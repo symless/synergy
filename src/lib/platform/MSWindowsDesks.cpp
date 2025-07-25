@@ -480,12 +480,69 @@ void MSWindowsDesks::deskMouseRelativeMove(SInt32 dx, SInt32 dy) const
   }
 }
 
+bool isCursorVisible()
+{
+  CURSORINFO ci = {sizeof(ci)};
+  if (GetCursorInfo(&ci)) {
+    if (ci.flags == CURSOR_SHOWING) {
+      LOG_DEBUG("mouse cursor is showing at (%d, %d)", ci.ptScreenPos.x, ci.ptScreenPos.y);
+      return true;
+    } else {
+      LOG_DEBUG("mouse cursor is %s", ci.flags == CURSOR_SUPPRESSED ? "suppressed" : "hidden");
+    }
+  } else {
+    LOG_ERR("failed to get cursor info, error: %d", GetLastError());
+  }
+
+  return false;
+}
+
+void setCursorVisibility(bool visible)
+{
+  LOG_DEBUG("%s cursor", visible ? "showing" : "hiding");
+
+  const int max = 10;
+  int attempts = 0;
+  while (attempts++ < max) {
+    const auto cursorDisplayCounter = ShowCursor(visible ? TRUE : FALSE);
+
+    if (visible) {
+      if (cursorDisplayCounter >= 0) {
+        LOG_DEBUG("cursor display counter: %d", cursorDisplayCounter);
+
+        if (!isCursorVisible()) {
+          LOG_WARN("mouse cursor expected to be visible but it is hidden");
+        }
+        return;
+      } else {
+        LOG_DEBUG("cursor is still hidden, display counter: %d", cursorDisplayCounter);
+      }
+    } else {
+      if (cursorDisplayCounter < 0) {
+        LOG_DEBUG("cursor display counter: %d", cursorDisplayCounter);
+
+        if (isCursorVisible()) {
+          LOG_WARN("mouse cursor expected to be hidden but it is visible");
+        }
+
+        break;
+      } else {
+        LOG_DEBUG("cursor is still visible, display counter: %d", cursorDisplayCounter);
+      }
+    }
+  }
+
+  LOG_ERR("unable to set cursor visibility after %d attempts", attempts);
+}
+
 void MSWindowsDesks::deskEnter(Desk *desk)
 {
   if (!m_isPrimary) {
     ReleaseCapture();
   }
-  ShowCursor(TRUE);
+
+  setCursorVisibility(true);
+
   SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
 
   // restore the foreground window
@@ -505,7 +562,8 @@ void MSWindowsDesks::deskEnter(Desk *desk)
 
 void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
 {
-  ShowCursor(FALSE);
+  setCursorVisibility(false);
+
   if (m_isPrimary) {
     // map a window to hide the cursor and to use whatever keyboard
     // layout we choose rather than the keyboard layout of the last

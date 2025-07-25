@@ -123,7 +123,7 @@ MSWindowsScreen::MSWindowsScreen(
       m_desks(NULL),
       m_keyState(NULL),
       m_hasMouse(GetSystemMetrics(SM_MOUSEPRESENT) != 0),
-      m_showingMouse(false),
+      m_mouseKeysEnabled(false),
       m_events(events),
       m_dropWindow(NULL),
       m_dropWindowSize(20)
@@ -149,7 +149,7 @@ MSWindowsScreen::MSWindowsScreen(
     updateScreenShape();
     m_class = createWindowClass();
     m_window = createWindow(m_class, DESKFLOW_APP_NAME);
-    forceShowCursor();
+    setupMouseKeys();
     LOG((CLOG_DEBUG "screen shape: %d,%d %dx%d %s", m_x, m_y, m_w, m_h, m_multimon ? "(multi-monitor)" : ""));
     LOG((CLOG_DEBUG "window is 0x%08x", m_window));
 
@@ -278,7 +278,7 @@ void MSWindowsScreen::disable()
   }
 
   m_isOnScreen = m_isPrimary;
-  forceShowCursor();
+  setupMouseKeys();
 }
 
 void MSWindowsScreen::enter()
@@ -308,7 +308,7 @@ void MSWindowsScreen::enter()
 
   // now on screen
   m_isOnScreen = true;
-  forceShowCursor();
+  setupMouseKeys();
 }
 
 bool MSWindowsScreen::canLeave()
@@ -366,7 +366,7 @@ void MSWindowsScreen::leave()
 
   // now off screen
   m_isOnScreen = false;
-  forceShowCursor();
+  // setupMouseKeys();
 
   if (isDraggingStarted() && !m_isPrimary) {
     m_sendDragThread = new Thread(new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::sendDragThread));
@@ -790,27 +790,27 @@ void MSWindowsScreen::updateKeys()
 void MSWindowsScreen::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const String &lang)
 {
   PlatformScreen::fakeKeyDown(id, mask, button, lang);
-  updateForceShowCursor();
+  updateMouseKeys();
 }
 
 bool MSWindowsScreen::fakeKeyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang)
 {
   bool result = PlatformScreen::fakeKeyRepeat(id, mask, count, button, lang);
-  updateForceShowCursor();
+  updateMouseKeys();
   return result;
 }
 
 bool MSWindowsScreen::fakeKeyUp(KeyButton button)
 {
   bool result = PlatformScreen::fakeKeyUp(button);
-  updateForceShowCursor();
+  updateMouseKeys();
   return result;
 }
 
 void MSWindowsScreen::fakeAllKeysUp()
 {
   PlatformScreen::fakeAllKeysUp();
-  updateForceShowCursor();
+  updateMouseKeys();
 }
 
 HCURSOR
@@ -1063,12 +1063,12 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
     return true;
 
   case WM_DEVICECHANGE:
-    forceShowCursor();
+    setupMouseKeys();
     break;
 
   case WM_SETTINGCHANGE:
     if (wParam == SPI_SETMOUSEKEYS) {
-      forceShowCursor();
+      setupMouseKeys();
     }
     break;
   }
@@ -1683,49 +1683,135 @@ void MSWindowsScreen::updateKeysCB(void *)
   }
 }
 
-void MSWindowsScreen::forceShowCursor()
+void cursorLLSI()
 {
-  // check for mouse
-  m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
+  char envBuffer[1024];
+  DWORD envResult = GetEnvironmentVariableA("SYNERGY_CURSOR_LLSI", envBuffer, sizeof(envBuffer));
+  const auto envSet = envResult > 0 && (strcmp(envBuffer, "1") == 0);
+  LOG_DEBUG("SYNERGY_CURSOR_LLSI (low-level send info) is %s", envSet ? "set" : "not set");
 
-  // decide if we should show the mouse
-  bool showMouse = (!m_hasMouse && !m_isPrimary && m_isOnScreen);
+  if (envSet) {
+    LOG_DEBUG("sending low-level mouse event to force visibility");
+    INPUT input = {0};
+    input.type = INPUT_MOUSE;
+    input.mi.dwFlags = MOUSEEVENTF_MOVE;
+    input.mi.dx = 0;
+    input.mi.dy = 0;
 
-  // show/hide the mouse
-  if (showMouse != m_showingMouse) {
-    if (showMouse) {
-      m_oldMouseKeys.cbSize = sizeof(m_oldMouseKeys);
-      m_gotOldMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, 0) != 0);
-      if (m_gotOldMouseKeys) {
-        m_mouseKeys = m_oldMouseKeys;
-        m_showingMouse = true;
-        updateForceShowCursor();
-      }
+    const auto lowLevelResult = SendInput(1, &input, sizeof(INPUT));
+    if (lowLevelResult != 1) {
+      LOG_ERR("failed to send low-level mouse event to show cursor, error: %d", GetLastError());
     } else {
-      if (m_gotOldMouseKeys) {
-        SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
-        m_showingMouse = false;
-      }
+      LOG_DEBUG1("low-level mouse event sent successfully");
     }
   }
 }
 
-void MSWindowsScreen::updateForceShowCursor()
+void cursorLLBC()
 {
+  char envBuffer[1024];
+  DWORD envResult = GetEnvironmentVariableA("SYNERGY_CURSOR_LLBC", envBuffer, sizeof(envBuffer));
+  const auto envSet = envResult > 0 && (strcmp(envBuffer, "1") == 0);
+  LOG_DEBUG("SYNERGY_CURSOR_LLBC (low-level blank cursor) is %s", envSet ? "set" : "not set");
+
+  if (envSet) {
+    LOG_DEBUG("setting cursor to blank cursor to force visibility");
+    SystemParametersInfo(SPI_SETCURSORS, 0, NULL, 0);
+  }
+}
+
+void MSWindowsScreen::setupMouseKeys()
+{
+  // if there's a mouse then we don't need to use num keys to show the mouse cursor.
+  // mouse keys enabled can also simulate a mouse being present.
+  m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
+  if (m_hasMouse) {
+    LOG_DEBUG("skipping mouse keys enable, mouse is present");
+    return;
+  }
+
+  m_mouseKeys.cbSize = sizeof(m_mouseKeys);
+  m_gotMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, 0) != 0);
+  if (!m_gotMouseKeys) {
+    LOG_ERR("unable to get old mouse keys settings, error: %d", GetLastError());
+    return;
+  }
+
+  updateMouseKeys();
+  return;
+
+  // decide if we should show the mouse
+  bool useMouseKeys = (!m_hasMouse && !m_isPrimary && m_isOnScreen);
+
+  // show/hide the mouse
+  if (useMouseKeys != m_mouseKeysEnabled) {
+    if (useMouseKeys) {
+      m_oldMouseKeys.cbSize = sizeof(m_oldMouseKeys);
+      m_gotOldMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, 0) != 0);
+      if (m_gotOldMouseKeys) {
+        m_mouseKeys = m_oldMouseKeys;
+        m_mouseKeysEnabled = true;
+        updateMouseKeys();
+        cursorLLSI();
+        cursorLLBC();
+      } else {
+        LOG_WARN("unable to enable mouse keys, old mouse keys settings not available");
+      }
+    } else {
+      if (m_gotOldMouseKeys) {
+        LOG_DEBUG("restoring old mouse keys setting");
+        SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
+
+        // this doesn't neccesarily mean that the mouse keys feature is disabled,
+        // but rather that it was restored to the previous state.
+        m_mouseKeysEnabled = false;
+      } else {
+        LOG_WARN("unable to restore mouse keys setting, old mouse keys settings not available");
+      }
+    }
+  } else {
+    LOG_DEBUG1("skipping mouse keys configuration, no change needed");
+  }
+}
+
+void MSWindowsScreen::updateMouseKeys()
+{
+  if (m_hasMouse) {
+    LOG_DEBUG1("skipping update mouse keys, mouse is present");
+    return;
+  }
+
+  if (!m_gotMouseKeys) {
+    LOG_DEBUG1("skipping update mouse keys, settings not available");
+    return;
+  }
+
   DWORD oldFlags = m_mouseKeys.dwFlags;
 
-  // turn on MouseKeys
+  // turn on the mouse keys accessibility feature.
+  // this will make the mouse cursor visible if there is no real mouse.
   m_mouseKeys.dwFlags = MKF_AVAILABLE | MKF_MOUSEKEYSON;
 
-  // make sure MouseKeys is active in whatever state the NumLock is
-  // not currently in.
+  // TODO: test if this is still needed.
+  // make sure mouse keys feature is active in whatever state the num lock is not currently in.
+  // i.e. if num lock is on, then turn the 'replace numbers' feature off.
   if ((m_keyState->getActiveModifiers() & KeyModifierNumLock) != 0) {
+    LOG_DEBUG1("setting replace numbers mouse key flag");
     m_mouseKeys.dwFlags |= MKF_REPLACENUMBERS;
   }
 
-  // update MouseKeys
+  // update the mouse keys settings if different
   if (oldFlags != m_mouseKeys.dwFlags) {
-    SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
+    LOG_DEBUG("setting mouse keys to ensure cursor visibility");
+    const auto result = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
+    if (result == 0) {
+      LOG_ERR("failed to set mouse keys, error: %d", GetLastError());
+    } else {
+      LOG_DEBUG1("mouse keys enabled successfully");
+    }
+
+  } else {
+    LOG_DEBUG1("skipping mouse keys update, already enabled");
   }
 }
 
