@@ -1761,8 +1761,8 @@ void MSWindowsScreen::updateMouseKeys()
   }
 
   LOG_DEBUG("enabling mouse keys os feature to ensure cursor visibility");
-  const auto success = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
-  if (!success) {
+  const auto ok = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
+  if (!ok) {
     LOG_ERR("failed to set mouse keys, error: %d", GetLastError());
   } else {
     LOG_DEBUG1("mouse keys enabled successfully");
