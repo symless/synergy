@@ -1760,7 +1760,8 @@ void MSWindowsScreen::updateMouseKeys()
   // causes the mouse cursor to be come stuck in an invisible state even when there is a real mouse.
   // we may want to reintroduce it (restore old mouse keys flags) as a user option in the future,
   // e.g. for users who use periodically use their windows client directly and use the numpad for cursor keys.
-  LOG_DEBUG("enabling mouse keys to ensure cursor visibility, flags: 0x%08x", m_mouseKeys.dwFlags);
+  LOG_INFO("enabling mouse keys for cursor visibility");
+  LOG_DEBUG("setting mouse keys flags: 0x%08x", m_mouseKeys.dwFlags);
   const auto ok = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
   if (!ok) {
     LOG_ERR("failed to set mouse keys, error: %d", GetLastError());
