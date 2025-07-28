@@ -345,8 +345,6 @@ void MSWindowsScreen::leave()
   m_desks->leave(m_keyLayout);
 
   if (m_isPrimary) {
-
-    // warp to center
     LOG_DEBUG("centering cursor on leave: %+d, %+d", m_xCenter, m_yCenter);
     warpCursor(m_xCenter, m_yCenter);
 
@@ -1748,9 +1746,9 @@ void MSWindowsScreen::updateMouseKeys()
   //
   // historically, we would only set the `MKF_REPLACENUMBERS` flag when num lock is on.
   // however, this was a strange hidden feature that the user will most likely not expect;
-  // it's probably more sensible to use the default behavior of the mouse keys feature;
-  // set the `MKF_REPLACENUMBERS` flag unconditionally, which is what windows 11 does
-  // when the user turns on the mouse keys feature in the accessibility settings.
+  // it's probably more sensible to always set the `MKF_REPLACENUMBERS` flag, so that when the
+  // mouse keys feature is left on after the program exits, the num pad on a local keyboard still
+  // types numbers instead of moving the mouse cursor around (which would surprise most users).
   //
   // by default, windows 11 shows the mouse keys status in the system tray, but turning this on
   // might actually cause confusion for users who are not familiar with the mouse keys feature.
