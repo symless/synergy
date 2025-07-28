@@ -494,7 +494,7 @@ void setCursorVisibility(bool visible)
   int attempts = 0;
   while (attempts++ < max) {
     const auto displayCounter = ShowCursor(visible ? TRUE : FALSE);
-    LOG_DEBUG("cursor display counter: %d", displayCounter);
+    LOG_DEBUG1("cursor display counter: %d", displayCounter);
 
     if (visible) {
       if (displayCounter < 0) {

@@ -253,16 +253,17 @@ void MSWindowsScreen::enable()
 
 void MSWindowsScreen::restoreMouseKeys()
 {
-  if (m_gotOldMouseKeys) {
-    LOG_DEBUG("restoring old mouse keys setting");
-    const auto result = SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
-    if (!result) {
-      LOG_ERR("unable to restore old mouse keys setting, error: %d", GetLastError());
-    } else {
-      LOG_DEBUG("restored old mouse keys setting successfully");
-    }
-  } else {
+  if (!m_gotOldMouseKeys) {
     LOG_WARN("unable to restore mouse keys setting, old mouse keys settings not available");
+    return;
+  }
+
+  LOG_DEBUG("restoring old mouse keys setting");
+  const auto result = SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
+  if (!result) {
+    LOG_ERR("unable to restore old mouse keys setting, error: %d", GetLastError());
+  } else {
+    LOG_DEBUG("restored old mouse keys setting successfully");
   }
 }
 
@@ -1705,7 +1706,7 @@ void MSWindowsScreen::setupMouseKeys()
 {
   // we only need to enable mouse keys on secondary screens.
   if (m_isPrimary) {
-    // don't log; would be noisy.
+    // silent return to avoid noise.
     return;
   }
 
@@ -1713,7 +1714,7 @@ void MSWindowsScreen::setupMouseKeys()
   // mouse keys enabled can also simulate a mouse being present.
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
   if (m_hasMouse) {
-    // don't log; would be noisy.
+    // silent return to avoid noise.
     return;
   }
 
@@ -1735,7 +1736,7 @@ void MSWindowsScreen::updateMouseKeys()
 {
   // a mouse could be either a real mouse or if mouse keys is enabled.
   if (m_hasMouse || !m_gotMouseKeys || m_isPrimary) {
-    // don't log; this would be incredibly noisy.
+    // silent return to avoid noise.
     return;
   }
 
@@ -1753,18 +1754,18 @@ void MSWindowsScreen::updateMouseKeys()
     m_mouseKeys.dwFlags |= MKF_REPLACENUMBERS;
   }
 
-  // update the mouse keys settings if different
-  if (oldFlags != m_mouseKeys.dwFlags) {
-    LOG_DEBUG("setting mouse keys to ensure cursor visibility");
-    const auto result = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
-    if (result == 0) {
-      LOG_ERR("failed to set mouse keys, error: %d", GetLastError());
-    } else {
-      LOG_DEBUG1("mouse keys enabled successfully");
-    }
-
-  } else {
+  // only update the mouse keys settings if different to avoid noise.
+  if (oldFlags == m_mouseKeys.dwFlags) {
     LOG_DEBUG1("skipping mouse keys update, already enabled");
+    return;
+  }
+
+  LOG_DEBUG("enabling mouse keys os feature to ensure cursor visibility");
+  const auto success = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
+  if (!success) {
+    LOG_ERR("failed to set mouse keys, error: %d", GetLastError());
+  } else {
+    LOG_DEBUG1("mouse keys enabled successfully");
   }
 }
 
