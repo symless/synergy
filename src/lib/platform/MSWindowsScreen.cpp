@@ -83,8 +83,6 @@
 #define PBT_APMRESUMEAUTOMATIC 0x0012
 #endif
 
-using namespace std::chrono;
-
 //
 // MSWindowsScreen
 //
