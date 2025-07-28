@@ -499,7 +499,6 @@ void setCursorVisibility(bool visible)
     if (visible) {
       if (displayCounter < 0) {
         LOG_DEBUG1("cursor still hidden, retrying, attempt: %d", attempts);
-        continue;
       } else {
         LOG_DEBUG1("cursor is now visible, attempts: %d", attempts);
         return;
@@ -507,7 +506,6 @@ void setCursorVisibility(bool visible)
     } else {
       if (displayCounter >= 0) {
         LOG_DEBUG1("cursor still visible, retrying, attempt: %d", attempts);
-        continue;
       } else {
         LOG_DEBUG1("cursor is now hidden, attempts: %d", attempts);
         return;
