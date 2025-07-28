@@ -343,7 +343,7 @@ void MSWindowsScreen::leave()
   m_desks->leave(m_keyLayout);
 
   if (m_isPrimary) {
-    LOG_DEBUG("centering cursor on leave: %+d, %+d", m_xCenter, m_yCenter);
+    LOG_DEBUG1("centering cursor on leave: %+d, %+d", m_xCenter, m_yCenter);
     warpCursor(m_xCenter, m_yCenter);
 
     // disable special key sequences on win95 family
@@ -1419,10 +1419,8 @@ bool MSWindowsScreen::onDisplayChange()
   // do nothing if resolution hasn't changed
   if (xOld != m_x || yOld != m_y || wOld != m_w || hOld != m_h) {
     if (m_isPrimary) {
-      // warp mouse to center if off screen
       if (!m_isOnScreen) {
-
-        LOG_DEBUG("centering cursor on display change: %+d, %+d", m_xCenter, m_yCenter);
+        LOG_DEBUG1("centering cursor on display change: %+d, %+d", m_xCenter, m_yCenter);
         warpCursor(m_xCenter, m_yCenter);
       }
 
