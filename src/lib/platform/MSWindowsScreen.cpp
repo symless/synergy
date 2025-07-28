@@ -41,7 +41,6 @@
 #include "platform/MSWindowsScreenSaver.h"
 
 #include <Shlobj.h>
-#include <algorithm>
 #include <comutil.h>
 #include <string.h>
 
@@ -83,6 +82,8 @@
 #if !defined(PBT_APMRESUMEAUTOMATIC)
 #define PBT_APMRESUMEAUTOMATIC 0x0012
 #endif
+
+using namespace std::chrono;
 
 //
 // MSWindowsScreen
@@ -230,6 +231,9 @@ void MSWindowsScreen::enable()
 {
   assert(m_isOnScreen == m_isPrimary);
 
+  LOG_DEBUG("enabling %s screen", m_isPrimary ? "primary" : "secondary");
+  m_isEnabled = true;
+
   // we need to poll some things to fix them
   m_fixTimer = m_events->newTimer(1.0, NULL);
   m_events->adoptHandler(
@@ -251,25 +255,10 @@ void MSWindowsScreen::enable()
   }
 }
 
-void MSWindowsScreen::restoreMouseKeys()
-{
-  if (!m_gotOldMouseKeys) {
-    LOG_WARN("unable to restore mouse keys setting, old mouse keys settings not available");
-    return;
-  }
-
-  LOG_DEBUG("restoring old mouse keys setting");
-  const auto result = SystemParametersInfo(SPI_SETMOUSEKEYS, m_oldMouseKeys.cbSize, &m_oldMouseKeys, SPIF_SENDCHANGE);
-  if (!result) {
-    LOG_ERR("unable to restore old mouse keys setting, error: %d", GetLastError());
-  } else {
-    LOG_DEBUG("restored old mouse keys setting successfully");
-  }
-}
-
 void MSWindowsScreen::disable()
 {
   LOG_DEBUG("disabling %s screen", m_isPrimary ? "primary" : "secondary");
+  m_isEnabled = false;
 
   // stop tracking the active desk
   m_desks->disable();
@@ -297,7 +286,6 @@ void MSWindowsScreen::disable()
   }
 
   m_isOnScreen = m_isPrimary;
-  restoreMouseKeys();
 }
 
 void MSWindowsScreen::enter()
@@ -359,7 +347,7 @@ void MSWindowsScreen::leave()
   if (m_isPrimary) {
 
     // warp to center
-    LOG((CLOG_DEBUG1 "warping cursor to center: %+d, %+d", m_xCenter, m_yCenter));
+    LOG_DEBUG("centering cursor on leave: %+d, %+d", m_xCenter, m_yCenter);
     warpCursor(m_xCenter, m_yCenter);
 
     // disable special key sequences on win95 family
@@ -385,7 +373,6 @@ void MSWindowsScreen::leave()
 
   // now off screen
   m_isOnScreen = false;
-  // setupMouseKeys();
 
   if (isDraggingStarted() && !m_isPrimary) {
     m_sendDragThread = new Thread(new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::sendDragThread));
@@ -1081,12 +1068,22 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
     *result = TRUE;
     return true;
 
-  case WM_DEVICECHANGE:
+  case WM_DEVICECHANGE: {
+    // re-run mouse keys setup in case a mouse was plugged in or unplugged; i.e. if a mouse was
+    // unplugged from the client, make sure the mouse cursor is still visible.
+    // the device change event happens for every discreet hardware change, so if you're using a
+    // usb switcher, this generates many device change events. it would be nice to log here but
+    // the log would be too noisy.
     setupMouseKeys();
-    break;
+  } break;
 
   case WM_SETTINGCHANGE:
+    // sometimes fired when the mouse keys setting is changed, but doesn't seem very reliable.
+    // these events may arrive at any time (e.g. when the program is shutting down) if the message
+    // loop stops being processed for any reason. this may be a bug or something out of our control.
+    // forcing mouse keys on may help in scenarios where mouse keys are being turned off by another app.
     if (wParam == SPI_SETMOUSEKEYS) {
+      LOG_DEBUG("mouse keys setting was changed");
       setupMouseKeys();
     }
     break;
@@ -1353,7 +1350,7 @@ bool MSWindowsScreen::onMouseMove(SInt32 mx, SInt32 my)
     // center on the server screen. if we don't do this, then the mouse
     // will always try to return to the original entry point on the
     // secondary screen.
-    LOG((CLOG_DEBUG5 "warping server cursor to center: %+d,%+d", m_xCenter, m_yCenter));
+    LOG((CLOG_DEBUG5 "centering cursor on motion: %+d,%+d", m_xCenter, m_yCenter));
     warpCursorNoFlush(m_xCenter, m_yCenter);
 
     // examine the motion.  if it's about the distance
@@ -1429,7 +1426,7 @@ bool MSWindowsScreen::onDisplayChange()
       // warp mouse to center if off screen
       if (!m_isOnScreen) {
 
-        LOG((CLOG_DEBUG1 "warping cursor to center: %+d, %+d", m_xCenter, m_yCenter));
+        LOG_DEBUG("centering cursor on display change: %+d, %+d", m_xCenter, m_yCenter);
         warpCursor(m_xCenter, m_yCenter);
       }
 
@@ -1704,26 +1701,30 @@ void MSWindowsScreen::updateKeysCB(void *)
 
 void MSWindowsScreen::setupMouseKeys()
 {
-  // we only need to enable mouse keys on secondary screens.
+  // we only need to enable the mouse keys feature when on a secondary screen.
+  // this tricks windows into showing the mouse cursor when there is no real mouse.
   if (m_isPrimary) {
     // silent return to avoid noise.
     return;
   }
 
-  // if there's a mouse then we don't need to use num keys to show the mouse cursor.
-  // mouse keys enabled can also simulate a mouse being present.
+  // this is the case when there is some kind of a mouse (real or simulated by mouse keys).
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
   if (m_hasMouse) {
     // silent return to avoid noise.
     return;
   }
 
+  // prevents mouse keys being configured again when the program is shutting down since this function
+  // is called based on system events such as system setting changes or hardware changes which
+  // can occur at any time.
+  if (!m_isEnabled) {
+    LOG_DEBUG("mouse keys setup skipped, screen is not enabled");
+    return;
+  }
+
   m_mouseKeys.cbSize = sizeof(m_mouseKeys);
   m_gotMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, 0) != 0);
-
-  m_oldMouseKeys = m_mouseKeys;
-  m_gotOldMouseKeys = m_gotMouseKeys;
-
   if (!m_gotMouseKeys) {
     LOG_ERR("unable to get old mouse keys settings, error: %d", GetLastError());
     return;
@@ -1734,7 +1735,6 @@ void MSWindowsScreen::setupMouseKeys()
 
 void MSWindowsScreen::updateMouseKeys()
 {
-  // a mouse could be either a real mouse or if mouse keys is enabled.
   if (m_hasMouse || !m_gotMouseKeys || m_isPrimary) {
     // silent return to avoid noise.
     return;
@@ -1742,25 +1742,31 @@ void MSWindowsScreen::updateMouseKeys()
 
   DWORD oldFlags = m_mouseKeys.dwFlags;
 
-  // turn on the mouse keys accessibility feature.
-  // this will make the mouse cursor visible if there is no real mouse.
-  m_mouseKeys.dwFlags = MKF_AVAILABLE | MKF_MOUSEKEYSON;
-
-  // TODO: figure out if this works as intended and if it's still needed.
-  // make sure mouse keys feature is active in whatever state the num lock is not currently in.
-  // i.e. if num lock is on, then turn the 'replace numbers' feature off.
-  if ((m_keyState->getActiveModifiers() & KeyModifierNumLock) != 0) {
-    LOG_DEBUG1("setting replace numbers mouse key flag");
-    m_mouseKeys.dwFlags |= MKF_REPLACENUMBERS;
-  }
+  // turn on the windows mouse keys accessibility feature.
+  // this is referred to as 'MouseKeys' in the docs.
+  // makes the mouse cursor visible if there is no real mouse.
+  //
+  // historically, we would only set the `MKF_REPLACENUMBERS` flag when num lock is on.
+  // however, this was a strange hidden feature that the user will most likely not expect;
+  // it's probably more sensible to use the default behavior of the mouse keys feature;
+  // set the `MKF_REPLACENUMBERS` flag unconditionally, which is what windows 11 does
+  // when the user turns on the mouse keys feature in the accessibility settings.
+  //
+  // by default, windows 11 shows the mouse keys status in the system tray, but turning this on
+  // might actually cause confusion for users who are not familiar with the mouse keys feature.
+  m_mouseKeys.dwFlags = MKF_AVAILABLE | MKF_MOUSEKEYSON | MKF_REPLACENUMBERS;
 
   // only update the mouse keys settings if different to avoid noise.
   if (oldFlags == m_mouseKeys.dwFlags) {
-    LOG_DEBUG1("skipping mouse keys update, already enabled");
+    // silent return to avoid noise.
     return;
   }
 
-  LOG_DEBUG("enabling mouse keys os feature to ensure cursor visibility");
+  // we used to restore the old mouse keys settings but toggling the mouse keys feature on and off
+  // causes the mouse cursor to be come stuck in an invisible state even when there is a real mouse.
+  // we may want to reintroduce it (restore old mouse keys flags) as a user option in the future,
+  // e.g. for users who use periodically use their windows client directly and use the numpad for cursor keys.
+  LOG_DEBUG("enabling mouse keys to ensure cursor visibility, flags: 0x%08x", m_mouseKeys.dwFlags);
   const auto ok = SystemParametersInfo(SPI_SETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, SPIF_SENDCHANGE);
   if (!ok) {
     LOG_ERR("failed to set mouse keys, error: %d", GetLastError());

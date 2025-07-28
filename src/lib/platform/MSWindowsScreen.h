@@ -22,11 +22,8 @@
 #include "deskflow/ClientArgs.h"
 #include "deskflow/DragInformation.h"
 #include "deskflow/PlatformScreen.h"
-#include "mt/CondVar.h"
-#include "mt/Mutex.h"
 #include "platform/MSWindowsHook.h"
 #include "platform/MSWindowsPowerManager.h"
-#include "platform/dfwhook.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -226,10 +223,11 @@ private: // HACK
 
   // determine whether the mouse is hidden by the system.
   // if true and on secondary screen, enable mouse keys to show the cursor.
+  // we were previously restoring the old mouse key settings when not needed, but this was causing
+  // issues where the mouse cursor becomes permanently hidden, even if there is a real mouse
+  // attached to the system; this could be a windows bug, but losing your mouse is a nightmare
+  // so we shouldn't risk doing that.
   void setupMouseKeys();
-
-  // restore the mouse keys accessibility feature to its previous state.
-  void restoreMouseKeys();
 
   // enables the mouse keys accessibility feature to to ensure the
   // mouse cursor can be shown.
@@ -276,6 +274,9 @@ private:
 
   // true if mouse has entered the screen
   bool m_isOnScreen;
+
+  // true if the screen is enabled
+  bool m_isEnabled = false;
 
   // our resources
   ATOM m_class;
@@ -336,10 +337,9 @@ private:
   // mouse keys is simulating one.  we track this so we can force the
   // cursor to be displayed when the user has entered this screen.
   bool m_hasMouse;
-  bool m_gotMouseKeys;
-  bool m_gotOldMouseKeys;
+
+  bool m_gotMouseKeys = false;
   MOUSEKEYS m_mouseKeys;
-  MOUSEKEYS m_oldMouseKeys;
 
   MSWindowsHook m_hook;
 

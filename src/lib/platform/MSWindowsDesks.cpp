@@ -610,8 +610,7 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
     // we aren't notified when the mouse leaves our window.
     SetCapture(desk->m_window);
 
-    // warp the mouse to the cursor center
-    LOG((CLOG_DEBUG2 "warping cursor to center: %+d,%+d", m_xCenter, m_yCenter));
+    LOG_DEBUG("centering cursor on leave: %+d,%+d", m_xCenter, m_yCenter);
     deskMouseMove(m_xCenter, m_yCenter);
   }
 }
