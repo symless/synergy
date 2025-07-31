@@ -149,7 +149,22 @@ MSWindowsScreen::MSWindowsScreen(
     updateScreenShape();
     m_class = createWindowClass();
     m_window = createWindow(m_class, DESKFLOW_APP_NAME);
+
+    LOG_DEBUG("system has mouse: %s", m_hasMouse ? "yes" : "no");
+
+    loadMouseKeys();
+    if (m_gotMouseKeys) {
+      LOG_DEBUG(
+          "initial mouse keys setting: %s and %s", //
+          m_mouseKeys.dwFlags & MKF_AVAILABLE ? "available" : "not available",
+          m_mouseKeys.dwFlags & MKF_MOUSEKEYSON ? "on" : "off"
+      );
+    } else {
+      LOG_WARN("mouse keys settings not available");
+    }
+
     setupMouseKeys();
+
     LOG((CLOG_DEBUG "screen shape: %d,%d %dx%d %s", m_x, m_y, m_w, m_h, m_multimon ? "(multi-monitor)" : ""));
     LOG((CLOG_DEBUG "window is 0x%08x", m_window));
 
@@ -1693,6 +1708,12 @@ void MSWindowsScreen::updateKeysCB(void *)
   }
 }
 
+void MSWindowsScreen::loadMouseKeys()
+{
+  m_mouseKeys.cbSize = sizeof(m_mouseKeys);
+  m_gotMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, 0) != 0);
+}
+
 void MSWindowsScreen::setupMouseKeys()
 {
   // we only need to enable the mouse keys feature when on a secondary screen.
@@ -1702,7 +1723,8 @@ void MSWindowsScreen::setupMouseKeys()
     return;
   }
 
-  // this is the case when there is some kind of a mouse (real or simulated by mouse keys).
+  // mouse present may mean may be real or virtual mouse.
+  // re-init this value as this function is called when hardware changes.
   m_hasMouse = (GetSystemMetrics(SM_MOUSEPRESENT) != 0);
   if (m_hasMouse) {
     // silent return to avoid noise.
@@ -1717,8 +1739,8 @@ void MSWindowsScreen::setupMouseKeys()
     return;
   }
 
-  m_mouseKeys.cbSize = sizeof(m_mouseKeys);
-  m_gotMouseKeys = (SystemParametersInfo(SPI_GETMOUSEKEYS, m_mouseKeys.cbSize, &m_mouseKeys, 0) != 0);
+  // re-init as this function is called when system settings change.
+  loadMouseKeys();
   if (!m_gotMouseKeys) {
     LOG_ERR("unable to get old mouse keys settings, error: %d", GetLastError());
     return;

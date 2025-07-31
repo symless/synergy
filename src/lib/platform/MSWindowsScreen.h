@@ -221,6 +221,9 @@ private: // HACK
   // job to update the key state
   void updateKeysCB(void *);
 
+  // loads the current system mouse keys settings.
+  void loadMouseKeys();
+
   // determine whether the mouse is hidden by the system.
   // if true and on secondary screen, enable mouse keys to show the cursor.
   // we were previously restoring the old mouse key settings when not needed, but this was causing
