@@ -131,17 +131,42 @@ std::uint32_t EiKeyState::convert_mod_mask(std::uint32_t xkb_mask) const
     if ((xkb_mask & (1 << xkbmod)) == 0)
       continue;
 
-    const char *name = xkb_keymap_mod_get_name(xkb_keymap_, xkbmod);
+    /* added in libxkbcommon 1.8.0 in the same commit so we have all or none */
+#ifndef XKB_VMOD_NAME_ALT
+#define XKB_VMOD_NAME_ALT "Alt"
+#define XKB_VMOD_NAME_HYPER "Hyper"
+#define XKB_VMOD_NAME_LEVEL3 "LevelThree"
+#define XKB_VMOD_NAME_LEVEL5 "LevelFive"
+#define XKB_VMOD_NAME_META "Meta"
+#define XKB_VMOD_NAME_NUM "NumLock"
+#define XKB_VMOD_NAME_SCROLL "ScrollLock"
+#define XKB_VMOD_NAME_SUPER "Super"
+#define XKB_MOD_NAME_MOD5 "Mod5"
+#endif
+
+    const char *name = xkb_keymap_mod_get_name(m_xkbKeymap, xkbmod);
     if (strcmp(XKB_MOD_NAME_SHIFT, name) == 0)
       barrier_mask |= (1 << kKeyModifierBitShift);
     else if (strcmp(XKB_MOD_NAME_CAPS, name) == 0)
       barrier_mask |= (1 << kKeyModifierBitCapsLock);
     else if (strcmp(XKB_MOD_NAME_CTRL, name) == 0)
       barrier_mask |= (1 << kKeyModifierBitControl);
-    else if (strcmp(XKB_MOD_NAME_ALT, name) == 0)
+    else if (strcmp(XKB_MOD_NAME_ALT, name) == 0 || strcmp(XKB_VMOD_NAME_ALT, name) == 0)
       barrier_mask |= (1 << kKeyModifierBitAlt);
-    else if (strcmp(XKB_MOD_NAME_LOGO, name) == 0)
+    else if (strcmp(XKB_MOD_NAME_LOGO, name) == 0 || strcmp(XKB_VMOD_NAME_SUPER, name) == 0)
       barrier_mask |= (1 << kKeyModifierBitSuper);
+    else if (strcmp(XKB_MOD_NAME_MOD5, name) == 0 || strcmp(XKB_VMOD_NAME_LEVEL3, name) == 0)
+      barrier_mask |= (1 << kKeyModifierBitAltGr);
+    else if (strcmp(XKB_VMOD_NAME_LEVEL5, name) == 0)
+      barrier_mask |= (1 << kKeyModifierBitLevel5Lock);
+    else if (strcmp(XKB_VMOD_NAME_META, name) == 0)
+      barrier_mask |= (1 << kKeyModifierBitMeta);
+    else if (strcmp(XKB_VMOD_NAME_NUM, name) == 0)
+      barrier_mask |= (1 << kKeyModifierBitNumLock);
+    else if (strcmp(XKB_VMOD_NAME_SCROLL, name) == 0)
+      barrier_mask |= (1 << kKeyModifierBitScrollLock);
+    else
+      LOG_WARN("modifier mask %s not accounted for, this is a bug", name);
   }
 
   return barrier_mask;
