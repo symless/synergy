@@ -146,7 +146,7 @@ std::uint32_t EiKeyState::convert_mod_mask(std::uint32_t xkb_mask) const
 #define XKB_MOD_NAME_MOD3 "Mod3"
 #endif
 
-    const char *name = xkb_keymap_mod_get_name(m_xkbKeymap, xkbmod);
+    const char *name = xkb_keymap_mod_get_name(xkb_keymap_, xkbmod);
     if (strcmp(XKB_MOD_NAME_SHIFT, name) == 0)
       barrier_mask |= (1 << kKeyModifierBitShift);
     else if (strcmp(XKB_MOD_NAME_CAPS, name) == 0)
