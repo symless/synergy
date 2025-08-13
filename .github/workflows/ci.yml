@@ -35,8 +35,8 @@ on:
   push:
     branches:
       - master*
-    tags:
-      - v*
+  release:
+    types: [published]
   pull_request:
     types:
       - opened
@@ -323,7 +323,7 @@ jobs:
 
       - name: Upload to AWS S3
         uses: ./.github/actions/dist-upload
-        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
         with:
           aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
           aws-s3-package-version: ${{ steps.get-version.outputs.version }}
