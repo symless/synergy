@@ -227,6 +227,8 @@ macro(configure_wayland_libs)
     find_library(LIBM m)
     include_directories(${LIBXKBCOMMON_INCLUDE_DIRS} ${GLIB2_INCLUDE_DIRS}
                         ${LIBM_INCLUDE_DIRS})
+
+    message(STATUS "xkbcommon version: ${LIBXKBCOMMON_VERSION}")
   else()
     message(WARNING "pkg-config not found, skipping wayland libraries")
   endif()

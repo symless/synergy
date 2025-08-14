@@ -1,4 +1,4 @@
-# Deskflow -- mouse and keyboard sharing utility
+XKBCOMMON# Deskflow -- mouse and keyboard sharing utility
 # Copyright (C) 2012-2024 Symless Ltd.
 # Copyright (C) 2009-2012 Nick Bolton
 #
@@ -92,7 +92,12 @@ if(UNIX)
 
   if(NOT APPLE)
     find_package(Qt6 COMPONENTS DBus)
+
     target_link_libraries(platform Qt6::DBus)
+
+    if(${LIBXKBCOMMON_VERSION} VERSION_GREATER_EQUAL "1.10")
+      target_compile_definitions(platform PRIVATE HAVE_XKB_KEYMAP_MOD_GET_MASK=1)
+    endif()
 
     link_wayland_libs()
   endif()
