@@ -112,7 +112,13 @@ def get_filename_base(version, prefix, use_linux_distro=True):
         if not distro_name:
             raise RuntimeError("Failed to detect Linux distro")
 
-        if distro_version:
+        # Make Arch Linux name clearer (ID is 'arch')
+        if distro_name == "arch":
+            os_part = "arch-linux"
+
+        # Don't use the version numbers from rolling releases, as they make releases trickier.
+        rolling_releases = ["arch-linux", "opensuse-tumbleweed"]
+        if distro_version and not distro_name in rolling_releases:
             version_for_filename = distro_version.replace(".", "-")
             os_part = f"{distro_name}-{version_for_filename}"
         else:
