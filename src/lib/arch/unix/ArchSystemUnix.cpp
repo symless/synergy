@@ -17,12 +17,18 @@
  */
 
 #include "arch/unix/ArchSystemUnix.h"
-#include <array>
 
+#include <array>
+#include <fstream>
+#include <iostream>
+#include <map>
 #include <sys/utsname.h>
+
 #ifndef __APPLE__
 #include <QtDBus>
 #endif
+
+const auto kConfigFilePath = ".config/Synergy/synergy-core.ini";
 
 //
 // ArchSystemUnix
@@ -64,13 +70,54 @@ std::string ArchSystemUnix::getPlatformName() const
   return "unknown";
 }
 
-std::string ArchSystemUnix::setting(const std::string &) const
+std::string configPath()
 {
+  return std::filesystem::path(getenv("HOME")) / kConfigFilePath;
+}
+
+std::map<std::string, std::string> readConfig()
+{
+  const auto path = configPath();
+  if (!std::filesystem::exists(path)) {
+    return {};
+  }
+
+  std::map<std::string, std::string> kv;
+  std::ifstream in(path);
+
+  std::string line;
+  while (std::getline(in, line)) {
+    auto pos = line.find('=');
+    if (pos == std::string::npos)
+      continue;
+    kv[line.substr(0, pos)] = line.substr(pos + 1);
+  }
+
+  return kv;
+}
+
+std::string ArchSystemUnix::setting(const std::string &key) const
+{
+  auto kv = readConfig();
+  auto it = kv.find(key);
+  if (it != kv.end()) {
+    return it->second;
+  }
   return "";
 }
 
-void ArchSystemUnix::setting(const std::string &, const std::string &) const
+void ArchSystemUnix::setting(const std::string &key, const std::string &value) const
 {
+  auto kv = readConfig();
+  kv[key] = value;
+
+  const auto path = configPath();
+  std::filesystem::create_directories(path);
+
+  std::ofstream out(path, std::ios::trunc);
+  for (const auto &[k, v] : kv) {
+    out << k << "=" << v << "\n";
+  }
 }
 
 void ArchSystemUnix::clearSettings() const
