@@ -102,7 +102,7 @@ def package(
         raise RuntimeError(f"Unsupported platform: {env.get_os()}")
 
 
-def get_linux_filename_base(version, prefix):
+def get_linux_filename_base(version, prefix, machine):
     distro_name, _distro_like, distro_version = env.get_linux_distro()
     if not distro_name:
         raise RuntimeError("Failed to detect Linux distro")
@@ -133,7 +133,7 @@ def get_filename_base(version, prefix, use_linux_distro=True):
     os_part = os
 
     if os == "linux" and use_linux_distro:
-        os_part, machine = get_linux_filename_base(version, prefix)
+        os_part, machine = get_linux_filename_base(version, prefix, machine)
     else:
         # Some Windows users get confused by 'amd64' and think it's 'arm64',
         # so we'll use Intel's 'x64' branding (even though it's wrong).
