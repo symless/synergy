@@ -102,32 +102,38 @@ def package(
         raise RuntimeError(f"Unsupported platform: {env.get_os()}")
 
 
+def get_linux_filename_base(version, prefix):
+    distro_name, _distro_like, distro_version = env.get_linux_distro()
+    if not distro_name:
+        raise RuntimeError("Failed to detect Linux distro")
+
+    # Make Arch Linux name clearer (ID is 'arch')
+    if distro_name == "arch":
+        distro_name = "arch-linux"
+
+    # Don't use the version numbers from rolling releases, as they make releases trickier.
+    rolling_releases = ["arch-linux", "opensuse-tumbleweed"]
+    if distro_version and (distro_name not in rolling_releases):
+        version_for_filename = distro_version.replace(".", "-")
+        os_part = f"{distro_name}-{version_for_filename}"
+    else:
+        os_part = distro_name
+
+    # For consistency with existing filenames, we'll use 'amd64' instead of 'x86_64'.
+    # Also, that's what Linux distros tend to call that architecture anyway.
+    if machine == "x86_64":
+        machine = "amd64"
+
+    return os_part, machine
+
+
 def get_filename_base(version, prefix, use_linux_distro=True):
     os = env.get_os()
     machine = platform.machine().lower()
     os_part = os
 
     if os == "linux" and use_linux_distro:
-        distro_name, _distro_like, distro_version = env.get_linux_distro()
-        if not distro_name:
-            raise RuntimeError("Failed to detect Linux distro")
-
-        # Make Arch Linux name clearer (ID is 'arch')
-        if distro_name == "arch":
-            os_part = "arch-linux"
-
-        # Don't use the version numbers from rolling releases, as they make releases trickier.
-        rolling_releases = ["arch-linux", "opensuse-tumbleweed"]
-        if distro_version and not distro_name in rolling_releases:
-            version_for_filename = distro_version.replace(".", "-")
-            os_part = f"{distro_name}-{version_for_filename}"
-        else:
-            os_part = distro_name
-
-        # For consistency with existing filenames, we'll use 'amd64' instead of 'x86_64'.
-        # Also, that's what Linux distros tend to call that architecture anyway.
-        if machine == "x86_64":
-            machine = "amd64"
+        os_part, machine = get_linux_filename_base(version, prefix)
     else:
         # Some Windows users get confused by 'amd64' and think it's 'arm64',
         # so we'll use Intel's 'x64' branding (even though it's wrong).
