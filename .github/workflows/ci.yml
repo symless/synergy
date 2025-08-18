@@ -142,7 +142,7 @@ jobs:
             runs-on: ubuntu-latest
             container: opensuse/tumbleweed:latest
 
-          - name: archlinux-x86_64
+          - name: arch-linux-x86_64
             runs-on: ubuntu-latest
             container: archlinux:latest
 
