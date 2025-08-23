@@ -104,7 +104,7 @@ void PortalRemoteDesktop::cb_session_started(GObject *object, GAsyncResult *res)
 
   session_restore_token_ = xdp_session_get_restore_token(session);
   if (session_restore_token_) {
-    LOG_DEBUG("got remote desktop session restore token: %s", session_restore_token_);
+    LOG_DEBUG("saving xdp restore token: %s", session_restore_token_);
     ARCH->setting("xdpRestoreToken", session_restore_token_);
   }
 

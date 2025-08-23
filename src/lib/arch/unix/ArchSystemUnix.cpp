@@ -18,6 +18,8 @@
 
 #include "arch/unix/ArchSystemUnix.h"
 
+#include "base/Log.h"
+
 #include <array>
 #include <fstream>
 #include <iostream>
@@ -70,20 +72,21 @@ std::string ArchSystemUnix::getPlatformName() const
   return "unknown";
 }
 
-std::string configPath()
+std::filesystem::path configFilePath()
 {
   return std::filesystem::path(getenv("HOME")) / kConfigFilePath;
 }
 
 std::map<std::string, std::string> readConfig()
 {
-  const auto path = configPath();
-  if (!std::filesystem::exists(path)) {
+  const auto filePath = configFilePath();
+  LOG_DEBUG("reading config file: %s", filePath.c_str());
+  if (!std::filesystem::exists(filePath)) {
     return {};
   }
 
   std::map<std::string, std::string> kv;
-  std::ifstream in(path);
+  std::ifstream in(filePath);
 
   std::string line;
   while (std::getline(in, line)) {
@@ -111,10 +114,10 @@ void ArchSystemUnix::setting(const std::string &key, const std::string &value) c
   auto kv = readConfig();
   kv[key] = value;
 
-  const auto path = configPath();
-  std::filesystem::create_directories(path);
-
-  std::ofstream out(path, std::ios::trunc);
+  const auto filePath = configFilePath();
+  LOG_DEBUG("writing config file: %s", filePath.c_str());
+  std::filesystem::create_directories(filePath.parent_path());
+  std::ofstream out(filePath, std::ios::trunc);
   for (const auto &[k, v] : kv) {
     out << k << "=" << v << "\n";
   }
