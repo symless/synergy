@@ -126,7 +126,19 @@ std::uint32_t EiKeyState::convert_mod_mask(std::uint32_t xkbModMaskIn) const
   std::uint32_t modMaskOut = 0;
 
   for (xkb_mod_index_t xkbModIdx = 0; xkbModIdx < xkb_keymap_num_mods(xkb_keymap_); xkbModIdx++) {
-    if ((xkbModMaskIn & (1 << xkbModIdx)) == 0)
+    const char *name = xkb_keymap_mod_get_name(xkb_keymap_, xkbModIdx);
+
+#ifdef HAVE_XKB_KEYMAP_MOD_GET_MASK
+    // Available since xkbcommon v1.10
+    // Note: xkb_keymap_mod_get_mask2 was added in v1.11 which accepts xkb_mod_index_t.
+    const auto xkbModMask = xkb_keymap_mod_get_mask(m_xkbKeymap, name);
+#else
+    // HACK: in older xkbcommon we need to create the mask manually from the index.
+    const xkb_mod_mask_t xkbModMask = (1 << xkbModIdx);
+#endif
+
+    // Skip inactive modifiers.
+    if ((xkbModMaskIn & xkbModMask) == 0)
       continue;
 
     /* added in libxkbcommon 1.8.0 in the same commit so we have all or none */
@@ -144,7 +156,6 @@ std::uint32_t EiKeyState::convert_mod_mask(std::uint32_t xkbModMaskIn) const
 #define XKB_MOD_NAME_MOD3 "Mod3"
 #endif
 
-    const char *name = xkb_keymap_mod_get_name(xkb_keymap_, xkbModIdx);
     if (strcmp(XKB_MOD_NAME_SHIFT, name) == 0)
       modMaskOut |= (1 << kKeyModifierBitShift);
     else if (strcmp(XKB_MOD_NAME_CAPS, name) == 0)
