@@ -131,7 +131,7 @@ std::uint32_t EiKeyState::convert_mod_mask(std::uint32_t xkbModMaskIn) const
 #ifdef HAVE_XKB_KEYMAP_MOD_GET_MASK
     // Available since xkbcommon v1.10
     // Note: xkb_keymap_mod_get_mask2 was added in v1.11 which accepts xkb_mod_index_t.
-    const auto xkbModMask = xkb_keymap_mod_get_mask(m_xkbKeymap, name);
+    const auto xkbModMask = xkb_keymap_mod_get_mask(xkb_keymap_, name);
 #else
     // HACK: in older xkbcommon we need to create the mask manually from the index.
     const xkb_mod_mask_t xkbModMask = (1 << xkbModIdx);
