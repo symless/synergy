@@ -19,6 +19,7 @@
 #pragma once
 
 #include "config.h"
+#include "deskflow/ClientArgs.h"
 #include "deskflow/KeyMap.h"
 #include "deskflow/PlatformScreen.h"
 
@@ -45,8 +46,11 @@ class PortalInputCapture;
 class EiScreen : public PlatformScreen
 {
 public:
-  EiScreen(bool is_primary, IEventQueue *events, bool use_portal);
-  ~EiScreen();
+  EiScreen(
+      bool isPrimary, IEventQueue *events, bool usePortal,
+      deskflow::ClientScrollDirection scrollDirection = deskflow::ClientScrollDirection::SERVER
+  );
+  ~EiScreen() override;
 
   // IScreen overrides
   void *getEventTarget() const override;
