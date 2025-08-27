@@ -49,8 +49,10 @@ struct ScrollRemainder
 
 namespace deskflow {
 
-EiScreen::EiScreen(bool is_primary, IEventQueue *events, bool use_portal)
-    : PlatformScreen(events),
+EiScreen::EiScreen(
+    bool is_primary, IEventQueue *events, bool use_portal, deskflow::ClientScrollDirection scrollDirection
+)
+    : PlatformScreen(events, scrollDirection),
       is_primary_(is_primary),
       events_(events),
       w_(1),
@@ -321,6 +323,8 @@ void EiScreen::fakeMouseWheel(int32_t xDelta, int32_t yDelta) const
   if (!ei_pointer_)
     return;
 
+  xDelta = mapClientScrollDirection(xDelta);
+  yDelta = mapClientScrollDirection(yDelta);
   // libei and deskflow seem to use opposite directions, so we have
   // to send EI the opposite of the value received if we want to remain
   // compatible with other platforms (including X11).

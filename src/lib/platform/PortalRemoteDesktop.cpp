@@ -103,6 +103,10 @@ void PortalRemoteDesktop::cb_session_started(GObject *object, GAsyncResult *res)
   }
 
   session_restore_token_ = xdp_session_get_restore_token(session);
+  if (session_restore_token_) {
+    LOG_DEBUG("saving xdp restore token: %s", session_restore_token_);
+    ARCH->setting("xdpRestoreToken", session_restore_token_);
+  }
 
   // ConnectToEIS requires version 2 of the xdg-desktop-portal (and the same
   // version in the impl.portal), i.e. you'll need an updated compositor on
@@ -172,10 +176,16 @@ static inline void xdp_portal_create_remote_desktop_session_full(
 
 gboolean PortalRemoteDesktop::init_remote_desktop_session()
 {
+  if (const std::string sessionToken = ARCH->setting("xdpRestoreToken"); !sessionToken.empty()) {
+    LOG_DEBUG("using saved xdp restore token: %s", sessionToken.c_str());
+    free(session_restore_token_);
+    session_restore_token_ = strdup(sessionToken.c_str());
+  }
+
   LOG_DEBUG("setting up remote desktop session with restore token %s", session_restore_token_);
   xdp_portal_create_remote_desktop_session_full(
       portal_, static_cast<XdpDeviceType>(XDP_DEVICE_POINTER | XDP_DEVICE_KEYBOARD), XDP_OUTPUT_NONE,
-      XDP_REMOTE_DESKTOP_FLAG_NONE, XDP_CURSOR_MODE_HIDDEN, XDP_PERSIST_MODE_TRANSIENT, session_restore_token_,
+      XDP_REMOTE_DESKTOP_FLAG_NONE, XDP_CURSOR_MODE_HIDDEN, XDP_PERSIST_MODE_PERSISTENT, session_restore_token_,
       nullptr, // cancellable
       [](GObject *obj, GAsyncResult *res, gpointer data) {
         reinterpret_cast<PortalRemoteDesktop *>(data)->cb_init_remote_desktop_session(obj, res);
