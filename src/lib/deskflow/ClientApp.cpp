@@ -195,7 +195,9 @@ deskflow::Screen *ClientApp::createScreen()
   if (deskflow::platform::isWayland() && args().m_enableLibei) {
 #if WINAPI_LIBEI
     LOG((CLOG_INFO "using ei screen for wayland"));
-    return new deskflow::Screen(new deskflow::EiScreen(false, m_events, true), m_events);
+    return new deskflow::Screen(
+        new deskflow::EiScreen(false, m_events, true, args().m_clientScrollDirection), m_events
+    );
 #else
     LOG((CLOG_WARN "libei is not supported, falling back to x windows"));
 #endif
