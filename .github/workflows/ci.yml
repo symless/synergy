@@ -32,6 +32,12 @@ on:
         required: false
         description: "Whether to only package the binaries in a zip file. Defaults to false."
   workflow_dispatch:
+    inputs:
+      test-release:
+        description: "Test release"
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
       - master*
@@ -54,9 +60,14 @@ env:
   SYNERGY_PACKAGE_PREFIX: ${{ inputs.package-prefix || vars.SYNERGY_PACKAGE_PREFIX }}
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
   PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
-  SYNERGY_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
   GIT_REPOSITORY: ${{ inputs.repository || github.repository }}
   GIT_REF: ${{ inputs.ref || github.ref }}
+
+  # Used to determine the version number format (should simply use the contents of `VERSION` file).
+  SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'true') }}
+
+  # Used to determine the version number format (should set the stage part to "snapshot").
+  SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'false') }}
 
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
@@ -120,6 +131,10 @@ jobs:
 
           - name: ubuntu-22.04-x86_64
             runs-on: ubuntu-latest
+            container: ubuntu:22.04
+
+          - name: ubuntu-22.04-arm64
+            runs-on: ubuntu-24.04-8-core-arm64
             container: ubuntu:22.04
 
           - name: fedora-42-arm64
@@ -317,7 +332,7 @@ jobs:
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
         uses: actions/upload-artifact@v4
         with:
-          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ matrix.target.name }}
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-${{ matrix.target.name }}
           path: dist
           if-no-files-found: error
 
