@@ -63,7 +63,7 @@ env:
   GIT_REPOSITORY: ${{ inputs.repository || github.repository }}
   GIT_REF: ${{ inputs.ref || github.ref }}
 
-  # Used to determine the version number format (should simply use the `version` field from package.json).
+  # Used to determine the version number format (should simply use the contents of `VERSION` file).
   SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'true') }}
 
   # Used to determine the version number format (should set the stage part to "snapshot").
