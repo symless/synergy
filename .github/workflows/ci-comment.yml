@@ -35,6 +35,8 @@ jobs:
       - name: Get version
         id: get-version
         uses: ./.github/actions/get-version
+        env:
+          SYNERGY_VERSION_SNAPSHOT: true
 
       - name: Comment on merged PR
         uses: symless/actions/pr-merge-comment@v1
