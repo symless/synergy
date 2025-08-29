@@ -123,6 +123,10 @@ def get_linux_filename_base(version, prefix, machine):
     if machine == "amd64":
         machine = "x86_64"
 
+    # Less technical users don't recognize 'aarch64', so use 'arm64'.
+    if machine == "aarch64":
+        machine = "arm64"
+
     return os_part, machine
 
 
