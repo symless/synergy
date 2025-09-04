@@ -538,7 +538,7 @@ macro(configure_qt)
 
   find_package(
     Qt6
-    COMPONENTS Core Widgets Network
+    COMPONENTS Core Widgets Network Xml
     REQUIRED)
 
   message(STATUS "Qt version: ${Qt6_VERSION}")
