@@ -216,22 +216,12 @@ jobs:
           fi
 
       - name: Setup Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' && !steps.vars.outputs.is-flatpak }}
         id: setup-linux
         shell: bash
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # Skip normal setup for flatpak (it has its own setup).
-          if [[ "${{ matrix.target.name }}" == flatpak* ]]; then
-            echo "Creating dist dir for flatpak"
-            mkdir -p ${{ github.workspace }}/dist
-            echo "Created: $(realpath ${{ github.workspace }}/dist)"
-
-            echo "Skipping normal setup for Flatpak"
-            exit 0
-          fi
-
           . /etc/os-release
           os=${ID_LIKE}
           if [ -z "$os" ]; then
@@ -338,7 +328,7 @@ jobs:
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && steps.vars.outputs.is-flatpak }}
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: dist/${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-linux-${{matrix.target.arch}}.flatpak
+          bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-linux-${{matrix.target.arch}}.flatpak
           manifest-path: res/dist/flatpak/com.symless.synergy.yml
           cache-key: flatpak-builder-${{matrix.target.arch}}-2.0
           arch: ${{matrix.target.arch}}
@@ -368,6 +358,13 @@ jobs:
         with:
           source-dir: build/bin
           target-dir: dist
+      
+      - name: Copy Flatpak bundle to dist
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && steps.vars.outputs.is-flatpak }}
+        run: |
+          mkdir -p dist
+          cp *.flatpak dist/
+          ls -l dist
 
       - name: Upload to GitHub
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
