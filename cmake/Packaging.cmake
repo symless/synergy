@@ -128,18 +128,15 @@ macro(configure_linux_packaging)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, qt6-qpa-plugins, libqt6widgets6")
   set(CPACK_RPM_PACKAGE_REQUIRES "openssl")
 
-  # Required for Flatpak and other sandboxed formats.
-  set(rdnn_name "com.symless.${DESKFLOW_APP_ID}")
-
   install(
-    FILES ${DESKFLOW_RES_DIR}/linux/${rdnn_name}.desktop
+    FILES ${DESKFLOW_RES_DIR}/linux/com.symless.synergy.desktop
     DESTINATION share/applications
-    RENAME ${rdnn_name}.desktop)
+    RENAME com.symless.synergy.desktop)
 
   install(
     FILES ${DESKFLOW_RES_DIR}/app.png
     DESTINATION share/pixmaps
-    RENAME ${rdnn_name}.png)
+    RENAME com.symless.synergy.png)
 
   # Prepare PKGBUILD for Arch Linux
   configure_file(${DESKFLOW_PROJECT_RES_DIR}/dist/arch/PKGBUILD.in
