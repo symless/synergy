@@ -1,0 +1,42 @@
+name: "Slack Notify"
+description: "Send a notification to Slack and adds workflow URL"
+
+inputs:
+  token:
+    description: "The Slack bot token"
+    required: true
+
+  channel-id:
+    description: "The Slack channel ID to send the message to"
+    required: true
+
+  message:
+    description: "The message to send to Slack"
+    required: true
+
+  only-main-branch:
+    description: "Only send the message if the workflow is running on the main branch"
+    required: false
+    default: true
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Slack message
+      id: slack
+      if: ${{ !inputs.only-main-branch || github.ref == 'refs/heads/main' }}
+      uses: slackapi/slack-github-action@v1
+      with:
+        channel-id: ${{ inputs.channel-id }}
+        slack-message: |
+          <!channel>
+          ${{ inputs.message }}
+          <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>
+      env:
+        SLACK_BOT_TOKEN: ${{ inputs.token }}
+
+    - name: Outcome
+      run: |
+        echo "Slack outcome: ${{ steps.slack.outcome }}"
+      shell: bash
