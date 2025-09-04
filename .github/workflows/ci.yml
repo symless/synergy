@@ -83,11 +83,8 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     name: main / ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
+    container: ${{ matrix.target.container }}
     timeout-minutes: 20
-
-    container:
-      image: ${{ matrix.target.container || '' }}
-      options: ${{ matrix.target.options || '' }}
 
     strategy:
       # Normally, we want to fail fast, but in this case we shouldn't since one target may
@@ -170,15 +167,17 @@ jobs:
 
           - name: flatpak-x86_64
             runs-on: ubuntu-latest
-            container: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
-            options: --privileged
             arch: x86_64
+            container:
+              image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+              options: --privileged
 
           - name: flatpak-arm64
             runs-on: ubuntu-24.04-8-core-arm64
-            container: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
-            options: --privileged
             arch: aarch64
+            container:
+              image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+              options: --privileged
 
     steps:
       - name: Setup Linux
