@@ -226,6 +226,7 @@ jobs:
           if [[ "${{ matrix.target.name }}" == flatpak* ]]; then
             echo "Creating dist dir for flatpak"
             mkdir -p dist
+            echo "Created: $(realpath dist)"
 
             echo "Skipping normal setup for Flatpak"
             exit 0
