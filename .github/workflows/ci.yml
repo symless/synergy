@@ -59,7 +59,7 @@ env:
   SYNERGY_EDITION_TYPE: ${{ vars.SYNERGY_EDITION_TYPE }}
   SYNERGY_PACKAGE_PREFIX: ${{ inputs.package-prefix || vars.SYNERGY_PACKAGE_PREFIX }}
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
-  PACKAGE_BUILD: ${{ !github.event.pull_request.draft }}
+  PACKAGE_BUILD: ${{ !github.event.pull_request.draft && !inputs.package-bin-zip }}
   GIT_REPOSITORY: ${{ inputs.repository || github.repository }}
   GIT_REF: ${{ inputs.ref || github.ref }}
 
@@ -83,8 +83,11 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     name: main / ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
-    container: ${{ matrix.target.container }}
     timeout-minutes: 20
+
+    container:
+      image: ${{ matrix.target.container }}
+      options: ${{ matrix.target.options }}
 
     strategy:
       # Normally, we want to fail fast, but in this case we shouldn't since one target may
@@ -165,9 +168,21 @@ jobs:
             runs-on: ubuntu-latest
             container: manjarolinux/base:latest
 
+          - name: flatpak-x86_64
+            runs-on: ubuntu-latest
+            container: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+            options: --privileged
+            arch: x86_64
+
+          - name: flatpak-arm64
+            runs-on: ubuntu-24.04-8-core-arm64
+            container: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+            options: --privileged
+            arch: aarch64
+
     steps:
       - name: Setup Linux
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' && startsWith(matrix.target.name, 'flatpak-') == false }}
         id: setup-linux
         shell: bash
         env:
@@ -293,21 +308,35 @@ jobs:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
 
+      - name: Get version
+        id: get-version
+        uses: ./.github/actions/get-version
+
       - name: Package (Linux)
-        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'Linux' && !inputs.package-bin-zip }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'Linux' && startsWith(matrix.target.name, 'flatpak-') == false }}
         run: ./scripts/package.py
         env:
           LINUX_PACKAGE_USER: ${{ steps.setup-linux.outputs.package-user }}
 
+      - name: Package (Flatpak)
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && startsWith(matrix.target.name, 'flatpak-') }}
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-${{ matrix.target.name }}.flatpak
+          manifest-path: deploy/linux/flatpak/com.symless.synergy.yml
+          cache-key: flatpak-builder-${{matrix.target.arch}}-2.0
+          arch: ${{matrix.target.arch}}
+          upload-artifact: false
+
       - name: Package (Windows)
-        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'Windows' && !inputs.package-bin-zip }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'Windows' }}
         run: python ./scripts/package.py
         env:
           WINDOWS_PFX_CERTIFICATE: ${{ secrets.WINDOWS_PFX }}
           WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASS }}
 
       - name: Package (macOS)
-        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'macOS' && !inputs.package-bin-zip }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && runner.os == 'macOS' }}
         run: ./scripts/package.py
         env:
           APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
@@ -323,10 +352,6 @@ jobs:
         with:
           source-dir: build/bin
           target-dir: dist
-
-      - name: Get version
-        id: get-version
-        uses: ./.github/actions/get-version
 
       - name: Upload to GitHub
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}

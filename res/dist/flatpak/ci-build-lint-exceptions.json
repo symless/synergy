@@ -1,0 +1,6 @@
+{
+  "com.symless.synergy": [
+    "appstream-external-screenshot-url",
+    "appstream-screenshots-not-mirrored-in-ostree"
+  ]
+}
