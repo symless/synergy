@@ -87,7 +87,7 @@ jobs:
 
     container:
       image: ${{ matrix.target.container }}
-      options: ${{ matrix.target.options }}
+      options: ${{ matrix.target.options || '' }}
 
     strategy:
       # Normally, we want to fail fast, but in this case we shouldn't since one target may
