@@ -128,21 +128,23 @@ macro(configure_linux_packaging)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, qt6-qpa-plugins, libqt6widgets6")
   set(CPACK_RPM_PACKAGE_REQUIRES "openssl")
 
+  # Required for Flatpak and other sandboxed formats.
+  set(rdnn_name "com.symless.${DESKFLOW_APP_ID}")
+
   set(source_desktop_file ${DESKFLOW_PROJECT_RES_DIR}/dist/linux/app.desktop.in)
   set(configured_desktop_file ${PROJECT_BINARY_DIR}/app.desktop)
-  set(install_desktop_file ${DESKFLOW_APP_ID}.desktop)
 
   configure_file(${source_desktop_file} ${configured_desktop_file} @ONLY)
 
   install(
     FILES ${configured_desktop_file}
     DESTINATION share/applications
-    RENAME ${install_desktop_file})
+    RENAME ${rdnn_name}.desktop)
 
   install(
     FILES ${DESKFLOW_RES_DIR}/app.png
     DESTINATION share/pixmaps
-    RENAME ${DESKFLOW_APP_ID}.png)
+    RENAME ${rdnn_name}.png)
 
   # Prepare PKGBUILD for Arch Linux
   configure_file(${DESKFLOW_PROJECT_RES_DIR}/dist/arch/PKGBUILD.in
