@@ -372,7 +372,7 @@ jobs:
           ls -l dist
 
       - name: Report failure
-        if: failure()
+        if: ${{ failure() && github.event_name != 'pull_request' }}
         uses: slackapi/slack-github-action@v1
         with:
           channel-id: ${{ secrets.SLACK_NOTIFY_CHANNEL_ID }}
