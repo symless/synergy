@@ -180,6 +180,11 @@ jobs:
               options: --privileged
 
     steps:
+      - name: Test fail
+        if: ${{ matrix.target.name == 'windows-2022-x64' }}
+        shell: bash
+        run: exit 1
+
       - name: Setup variables
         id: vars
         shell: bash
