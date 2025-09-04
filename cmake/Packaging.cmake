@@ -129,7 +129,7 @@ macro(configure_linux_packaging)
   set(CPACK_RPM_PACKAGE_REQUIRES "openssl")
 
   install(
-    FILES ${DESKFLOW_RES_DIR}/linux/com.symless.synergy.desktop
+    FILES ${PROJECT_SOURCE_DIR}/res/linux/com.symless.synergy.desktop
     DESTINATION share/applications
     RENAME com.symless.synergy.desktop)
 
@@ -139,7 +139,7 @@ macro(configure_linux_packaging)
     RENAME com.symless.synergy.png)
 
   # Prepare PKGBUILD for Arch Linux
-  configure_file(${DESKFLOW_PROJECT_RES_DIR}/dist/arch/PKGBUILD.in
+  configure_file(${PROJECT_SOURCE_DIR}/res/dist/arch/PKGBUILD.in
                  ${CMAKE_BINARY_DIR}/PKGBUILD @ONLY)
 
 endmacro()
