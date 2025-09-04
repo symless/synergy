@@ -143,7 +143,6 @@ macro(configure_linux_packaging)
   set(source_icon_file ${DESKFLOW_PROJECT_RES_DIR}/app.png)
   set(configured_icon_file ${PROJECT_BINARY_DIR}/${icon_filename})
 
-
   configure_file(${source_desktop_file} ${configured_desktop_file} @ONLY)
   configure_file(${source_icon_file} ${configured_icon_file} COPYONLY)
 
