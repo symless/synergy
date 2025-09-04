@@ -375,6 +375,7 @@ jobs:
         if: failure()
         uses: ./.github/actions/slack-notify
         with:
+          only-main-branch: false # test
           token: ${{ secrets.SLACK_TOKEN }}
           channel-id: ${{ secrets.SLACK_NOTIFY_CHANNEL_ID }}
           message: ❌ Synergy 1 CI failed (${{ matrix.target.name }})
