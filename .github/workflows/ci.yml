@@ -181,7 +181,7 @@ jobs:
 
     steps:
       - name: Test fail
-        if: ${{ matrix.target.name == 'windows-2022-x64' }}
+        if: ${{ matrix.target.name == 'arch-linux-x86_64' }}
         shell: bash
         run: exit 1
 
