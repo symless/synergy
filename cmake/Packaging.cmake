@@ -135,7 +135,7 @@ macro(configure_linux_packaging)
 
   install(
     FILES ${DESKFLOW_RES_DIR}/app.png
-    DESTINATION share/pixmaps
+    DESTINATION share/icons/hicolor/512x512/apps/
     RENAME com.symless.synergy.png)
 
   # Prepare PKGBUILD for Arch Linux
