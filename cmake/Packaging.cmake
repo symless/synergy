@@ -135,21 +135,25 @@ macro(configure_linux_packaging)
   # apps install to.
   set(CMAKE_INSTALL_PREFIX /usr)
 
+  set(desktop_filename com.symless.synergy.desktop)
   set(source_desktop_file ${DESKFLOW_PROJECT_RES_DIR}/dist/linux/app.desktop.in)
-  set(configured_desktop_file ${PROJECT_BINARY_DIR}/app.desktop)
-  set(install_desktop_file ${DESKFLOW_APP_ID}.desktop)
+  set(configured_desktop_file ${PROJECT_BINARY_DIR}/${desktop_filename})
+
+  set(icon_filename ${DESKFLOW_APP_ID}.png)
+  set(source_icon_file ${DESKFLOW_PROJECT_RES_DIR}/app.png)
+  set(configured_icon_file ${PROJECT_BINARY_DIR}/${icon_filename})
+
 
   configure_file(${source_desktop_file} ${configured_desktop_file} @ONLY)
+  configure_file(${source_icon_file} ${configured_icon_file} COPYONLY)
 
   install(
     FILES ${configured_desktop_file}
-    DESTINATION share/applications
-    RENAME ${install_desktop_file})
+    DESTINATION share/applications)
 
   install(
-    FILES ${DESKFLOW_RES_DIR}/app.png
-    DESTINATION share/pixmaps
-    RENAME ${DESKFLOW_APP_ID}.png)
+    FILES ${configured_icon_file}
+    DESTINATION share/pixmaps)
 
   # Prepare PKGBUILD for Arch Linux
   configure_file(${DESKFLOW_PROJECT_RES_DIR}/dist/arch/PKGBUILD.in
