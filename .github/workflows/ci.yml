@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 20
 
     container:
-      image: ${{ matrix.target.container }}
+      image: ${{ matrix.target.container || '' }}
       options: ${{ matrix.target.options || '' }}
 
     strategy:
