@@ -3,7 +3,6 @@ Type=Application
 Version=1.0
 Name=Synergy
 Comment=Mouse and keyboard sharing utility
-Path=/usr/bin
 Exec=synergy
 Icon=com.symless.synergy
 Terminal=false
