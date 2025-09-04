@@ -180,11 +180,6 @@ jobs:
               options: --privileged
 
     steps:
-      - name: Test fail
-        if: ${{ matrix.target.name == 'arch-linux-x86_64' }}
-        shell: bash
-        run: exit 1
-
       - name: Setup variables
         id: vars
         shell: bash
