@@ -196,9 +196,12 @@ jobs:
 
             "Linux")
               cmake_args="$cmake_args --preset=linux-release"
+              
               if [ "${{ matrix.target.static-libportal }}" == "true" ]; then
                 cmake_args="$cmake_args -DSYSTEM_LIBPORTAL=OFF -DSTATIC_LIBPORTAL=ON"
               fi
+
+              cmake_args="$cmake_args -DCMAKE_INSTALL_PREFIX=/usr"
               ;;
           esac
 

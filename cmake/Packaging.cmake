@@ -128,31 +128,21 @@ macro(configure_linux_packaging)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl, qt6-qpa-plugins, libqt6widgets6")
   set(CPACK_RPM_PACKAGE_REQUIRES "openssl")
 
-  # The default for CMake seems to be /usr/local, which seems uncommon. While
-  # the default /usr/local prefix causes the app to appear on Debian and Fedora,
-  # it doesn't seem to appear on Arch Linux. Setting the prefix to /usr seems to
-  # work on a wider variety of distros, and that also seems to be where most
-  # apps install to.
-  set(CMAKE_INSTALL_PREFIX /usr)
-
-  set(desktop_filename com.symless.synergy.desktop)
   set(source_desktop_file ${DESKFLOW_PROJECT_RES_DIR}/dist/linux/app.desktop.in)
-  set(configured_desktop_file ${PROJECT_BINARY_DIR}/${desktop_filename})
-
-  set(icon_filename ${DESKFLOW_APP_ID}.png)
-  set(source_icon_file ${DESKFLOW_PROJECT_RES_DIR}/app.png)
-  set(configured_icon_file ${PROJECT_BINARY_DIR}/${icon_filename})
+  set(configured_desktop_file ${PROJECT_BINARY_DIR}/app.desktop)
+  set(install_desktop_file ${DESKFLOW_APP_ID}.desktop)
 
   configure_file(${source_desktop_file} ${configured_desktop_file} @ONLY)
-  configure_file(${source_icon_file} ${configured_icon_file} COPYONLY)
 
   install(
     FILES ${configured_desktop_file}
-    DESTINATION share/applications)
+    DESTINATION share/applications
+    RENAME ${install_desktop_file})
 
   install(
-    FILES ${configured_icon_file}
-    DESTINATION share/pixmaps)
+    FILES ${DESKFLOW_RES_DIR}/app.png
+    DESTINATION share/pixmaps
+    RENAME ${DESKFLOW_APP_ID}.png)
 
   # Prepare PKGBUILD for Arch Linux
   configure_file(${DESKFLOW_PROJECT_RES_DIR}/dist/arch/PKGBUILD.in
