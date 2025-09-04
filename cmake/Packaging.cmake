@@ -129,7 +129,7 @@ macro(configure_linux_packaging)
   set(CPACK_RPM_PACKAGE_REQUIRES "openssl")
 
   install(
-    FILES ${PROJECT_SOURCE_DIR}/res/linux/com.symless.synergy.desktop
+    FILES ${PROJECT_SOURCE_DIR}/res/dist/linux/com.symless.synergy.desktop
     DESTINATION share/applications
     RENAME com.symless.synergy.desktop)
 
