@@ -324,7 +324,7 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
           bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-${{ matrix.target.name }}.flatpak
-          manifest-path: deploy/linux/flatpak/com.symless.synergy.yml
+          manifest-path: res/dist/flatpak/com.symless.synergy.yml
           cache-key: flatpak-builder-${{matrix.target.arch}}-2.0
           arch: ${{matrix.target.arch}}
           upload-artifact: false
