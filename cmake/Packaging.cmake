@@ -131,13 +131,8 @@ macro(configure_linux_packaging)
   # Required for Flatpak and other sandboxed formats.
   set(rdnn_name "com.symless.${DESKFLOW_APP_ID}")
 
-  set(source_desktop_file ${DESKFLOW_PROJECT_RES_DIR}/dist/linux/app.desktop.in)
-  set(configured_desktop_file ${PROJECT_BINARY_DIR}/app.desktop)
-
-  configure_file(${source_desktop_file} ${configured_desktop_file} @ONLY)
-
   install(
-    FILES ${configured_desktop_file}
+    FILES ${DESKFLOW_RES_DIR}/linux/${rdnn_name}.desktop
     DESTINATION share/applications
     RENAME ${rdnn_name}.desktop)
 

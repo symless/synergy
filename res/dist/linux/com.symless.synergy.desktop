@@ -1,11 +1,11 @@
 [Desktop Entry]
 Type=Application
 Version=1.0
-Name=@DESKFLOW_APP_NAME@
+Name=Synergy
 Comment=Mouse and keyboard sharing utility
 Path=/usr/bin
-Exec=/usr/bin/@GUI_BINARY_NAME@
-Icon=@DESKFLOW_APP_ID@
+Exec=synergy
+Icon=com.symless.synergy
 Terminal=false
 Categories=Utility;
 Keywords=keyboard;mouse;sharing;network;share;
