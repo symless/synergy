@@ -285,7 +285,7 @@ jobs:
           key: ${{ matrix.target.name }}-bin-${{ inputs.ref }}
 
       - name: Install dependencies
-        if: ${{ !steps.cache-bin.outputs.cache-hit }}
+        if: ${{ !steps.cache-bin.outputs.cache-hit && startsWith(matrix.target.name, 'flatpak-') == false }}
         id: get-deps
         uses: ./.github/actions/install-deps
         with:
