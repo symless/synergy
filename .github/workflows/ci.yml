@@ -180,6 +180,11 @@ jobs:
               options: --privileged
 
     steps:
+      - name: Test fail
+        if: ${{ matrix.target.name == 'windows-2022-x64' }}
+        shell: bash
+        run: exit 1
+
       - name: Setup variables
         id: vars
         shell: bash
@@ -282,11 +287,6 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Test fail
-        if: ${{ matrix.target.name == 'windows-2022-x64' }}
-        shell: bash
-        run: exit 1
-
       # Only use caching for workflow calls, since in every other case the SHA will likely change.
       - name: Cache binaries
         if: ${{ inputs.ref }}
@@ -371,14 +371,17 @@ jobs:
           cp *.flatpak dist/
           ls -l dist
 
-      - name: Report failure to Slack
+      - name: Report failure
         if: failure()
-        uses: ./.github/actions/slack-notify
+        uses: slackapi/slack-github-action@v1
         with:
-          only-main-branch: false # test
-          token: ${{ secrets.SLACK_TOKEN }}
           channel-id: ${{ secrets.SLACK_NOTIFY_CHANNEL_ID }}
-          message: ❌ Synergy 1 CI failed (${{ matrix.target.name }})
+          slack-message: |
+            <!channel>
+            ❌ Synergy 1 CI failed for: *${{ matrix.target.name }}*
+            <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_TOKEN }}
 
       - name: Upload to GitHub
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
