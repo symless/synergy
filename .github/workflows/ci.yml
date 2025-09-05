@@ -380,6 +380,18 @@ jobs:
     needs: main
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GIT_REPOSITORY }}
+          ref: ${{ env.GIT_REF }}
+          fetch-depth: 0
+          submodules: true
+
+      - name: Get version
+        id: get-version
+        uses: ./.github/actions/get-version
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
