@@ -400,10 +400,33 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Upload all to AWS S3
-        uses: ./.github/actions/dist-upload
+      - name: AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
-          aws-s3-package-version: ${{ steps.get-version.outputs.version }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Upload to AWS S3
+        run: |
+          source_dir="./dist/"
+
+          # Should be the product name
+          base_dir="${{ vars.AWS_S3_UPLOAD_DIR }}"
+
+          # Separate snapshot and release versions for easier navigation
+          if [[ "${{ steps.get-version.outputs.version }}" =~ snapshot ]]; then
+            # Organize by major.minor.patch dir (i.e. 1.0.0/1.0.0-foobar+r123)
+            short_version=$(echo "${{ steps.get-version.outputs.version }}" | cut -d'-' -f1 | cut -d'+' -f1)
+            sub_dir="snapshot/$short_version"
+          else
+            sub_dir="release"
+          fi
+
+          target_dir="$base_dir/$sub_dir/${{ steps.get-version.outputs.version }}"
+          url="s3://muskoka-packages/$target_dir"
+
+          echo "Uploading to AWS S3: $url"
+          aws s3 cp $source_dir $url --recursive
+
+        shell: bash
