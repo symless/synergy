@@ -395,7 +395,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: package-*
+          pattern: package-*
           path: dist
 
       - name: Extract all zips
