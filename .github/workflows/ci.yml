@@ -407,7 +407,7 @@ jobs:
           ls -la zips
           mkdir -p dist
 
-          find zips -name '*.zip' -type f -exec unzip -j -o {} -d dist \;
+          find zips -name '*.zip' -type f -exec unzip -j -o -v {} -d dist \;
           ls -laR dist
 
       - name: Upload all to AWS S3
