@@ -402,7 +402,7 @@ jobs:
         run: |
           mkdir -p dist
           find dist -name '*.zip' -exec unzip -o {} -d dist \;
-          ls -l dist
+          ls -laR dist
 
       - name: Upload all to AWS S3
         uses: ./.github/actions/dist-upload
