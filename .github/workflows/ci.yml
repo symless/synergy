@@ -407,10 +407,7 @@ jobs:
           ls -la zips
           mkdir -p dist
 
-          for f in zips/*.zip; do
-            unzip -j -o -v "$f" '*.*' -d dist
-          done
-
+          find zips -name '*.zip' -type f -exec unzip -j -o {} -d dist \;
           ls -laR dist
 
       - name: Upload all to AWS S3
