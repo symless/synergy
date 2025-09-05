@@ -398,6 +398,7 @@ jobs:
         with:
           pattern: package-*
           path: zips
+          merge-multiple: true
 
       - name: Extract all zips
         run: |
