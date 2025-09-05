@@ -375,8 +375,7 @@ jobs:
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_TOKEN }}
 
-  deploy:
-    name: Deploy to AWS S3
+  upload:
     runs-on: ubuntu-latest
     needs: main
 
@@ -384,7 +383,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-${{ matrix.target.name }}
+          name: package-*
           path: dist
 
       - name: Extract all zips
