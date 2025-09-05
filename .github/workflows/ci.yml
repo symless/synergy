@@ -378,6 +378,7 @@ jobs:
   main-upload:
     runs-on: ubuntu-latest
     needs: main
+    # if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
 
     steps:
       - name: Checkout
@@ -406,7 +407,6 @@ jobs:
 
       - name: Upload all to AWS S3
         uses: ./.github/actions/dist-upload
-        if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
         with:
           aws-s3-target-dir: ${{ vars.AWS_S3_UPLOAD_DIR }}
           aws-s3-package-version: ${{ steps.get-version.outputs.version }}
