@@ -402,12 +402,14 @@ jobs:
       - name: Extract all zips
         run: |
           set -x # echo commands
+
+          ls -la zips
           mkdir -p dist
+
           for f in zips/*.zip; do
-            echo ">>> Extracting $f"
             unzip -j -o -v "$f" '*.*' -d dist
           done
-          echo ">>> Final contents of dist/"
+
           ls -laR dist
 
       - name: Upload all to AWS S3
