@@ -396,12 +396,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: package-*
-          path: dist
+          path: zips
 
       - name: Extract all zips
         run: |
           mkdir -p dist
-          find dist -name '*.zip' -exec unzip -o {} -d dist \;
+          find zips -name '*.zip' -exec unzip -jo {} -d dist \;
           ls -laR dist
 
       - name: Upload all to AWS S3
