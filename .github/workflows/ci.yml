@@ -347,13 +347,25 @@ jobs:
         with:
           source-dir: build/bin
           target-dir: dist
-      
+
       - name: Copy Flatpak bundle to dist
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD && steps.vars.outputs.is-flatpak }}
         run: |
           mkdir -p dist
           cp *.flatpak dist/
           ls -l dist
+
+      - name: Report failure
+        if: ${{ failure() && github.event_name != 'pull_request' }}
+        uses: slackapi/slack-github-action@v1
+        with:
+          channel-id: ${{ secrets.SLACK_NOTIFY_CHANNEL_ID }}
+          slack-message: |
+            <!channel>
+            ❌ Synergy 1 CI failed for: *${{ matrix.target.name }}*
+            <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Workflow run>
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_TOKEN }}
 
       - name: Upload to GitHub
         if: ${{ !steps.cache-bin.outputs.cache-hit && env.PACKAGE_BUILD }}
