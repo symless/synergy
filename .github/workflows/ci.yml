@@ -231,17 +231,6 @@ jobs:
           echo "Detected Linux: ${os}"
           case "${os}" in
             *debian*)
-              # The default Ubuntu mirror is often flakey, so use the US mirror instead.
-              if [[ "${{ matrix.target.name }}" == ubuntu* ]]; then
-                # Sources were moved to `/etc/apt/sources.list.d/ubuntu.sources` in Ubuntu 24.10
-                if [[ -f /etc/apt/sources.list.d/ubuntu.sources ]]; then
-                  sources=/etc/apt/sources.list.d/ubuntu.sources
-                else
-                  sources=/etc/apt/sources.list
-                fi
-                sed -i 's|http://archive.ubuntu.com/ubuntu/|http://us.archive.ubuntu.com/ubuntu/|g' $sources
-              fi
-              
               apt update
               apt install -y git python3 python3-venv
               ;;
