@@ -14,7 +14,7 @@ install_deps() {
 }
 
 install_darwin() {
-  brew install cmake googletest ninja openssl --quiet
+  brew install googletest ninja openssl --quiet
 }
 
 install_linux() {
