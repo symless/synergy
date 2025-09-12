@@ -22,6 +22,7 @@
 #include "deskflow/ClientArgs.h"
 #include "deskflow/KeyMap.h"
 #include "deskflow/PlatformScreen.h"
+#include "platform/XWindowsPowerManager.h"
 
 #include <libei.h>
 #include <mutex>
@@ -201,6 +202,9 @@ private:
   using HotKeyMap = std::map<KeyID, HotKeySet>;
 
   HotKeyMap hotkeys_;
+
+  // Despite the name XWindowsPowerManager, this works on Wayland too
+  XWindowsPowerManager m_powerManager;
 };
 
 } // namespace deskflow
