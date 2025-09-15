@@ -117,10 +117,6 @@ jobs:
             runs-on: ubuntu-latest
             container: ubuntu:25.04
 
-          - name: ubuntu-24.10-x86_64
-            runs-on: ubuntu-latest
-            container: ubuntu:24.10
-
           - name: ubuntu-24.04-x86_64
             runs-on: ubuntu-latest
             container: ubuntu:24.04
