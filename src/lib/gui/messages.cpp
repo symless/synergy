@@ -63,7 +63,7 @@ void showErrorDialog(const QString &message, const QString &fileLine, QtMsgType 
   }
 
   text += QString(
-              R"(<p>Please <a href="%1" style="color: %2">report a bug</a>)"
+              R"(<p>Please <a href="%1" style="color: %2">contact our support team</a>)"
               " and copy/paste the following error:</p>"
   )
               .arg(kUrlHelp, kColorSecondary);
@@ -356,6 +356,19 @@ bool showDaemonOffline(QWidget *parent)
   message.exec();
 
   return message.clickedButton() != ignore;
+}
+
+void showPermissionError(QWidget *parent, QString what)
+{
+  QMessageBox::critical(
+      parent, "Permission error",
+      QString(
+          "<p>%1 does not have sufficient permissions to %2</p>"
+          "<p>Please fix the permissions and try again.</p>"
+          R"(<p>If you need help, please <a href="%3" style="color: %4">contact our support team</a>.</p>)"
+      )
+          .arg(kAppName, what, kUrlHelp, kColorSecondary)
+  );
 }
 
 } // namespace deskflow::gui::messages

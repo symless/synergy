@@ -525,7 +525,7 @@ bool CoreProcess::addGenericArgs(QStringList &args, const ProcessMode processMod
 #endif
 
   // Used to find TLS fingerprint files.
-  QDir dir = m_appConfig.isSystemScope() ? paths::systemConfigDir(true) : paths::userConfigDir(true);
+  QDir dir = m_appConfig.isSystemScope() ? paths::systemConfigDir() : paths::userConfigDir();
   args << "--profile-dir" << dir.absolutePath();
 
   if (m_appConfig.preventSleep()) {
@@ -632,9 +632,9 @@ bool CoreProcess::addClientArgs(QStringList &args, QString &app)
 QDir CoreProcess::getConfigDir() const
 {
   if (m_appConfig.isSystemScope()) {
-    return paths::systemConfigDir(true);
+    return paths::systemConfigDir();
   } else {
-    return paths::userConfigDir(true);
+    return paths::userConfigDir();
   }
 }
 

@@ -113,10 +113,8 @@ int main(int argc, char *argv[])
 
   Settings settings;
   if (settings.isUnavailable()) {
-    QMessageBox::critical(
-        NULL, DESKFLOW_APP_NAME,
-        "No settings exist and settings are not writable. "
-        "Please check your file permissions or contact your system administrator."
+    messages::showPermissionError(
+        nullptr, QString("read existing system settings, and user settings are not writable.")
     );
     return 1;
   }
@@ -146,6 +144,16 @@ int main(int argc, char *argv[])
     }
 
     settings.sync();
+  }
+
+  if (appConfig.isSystemScope()) {
+    if (!paths::persistSystemConfigDir()) {
+      return 1;
+    }
+  } else {
+    if (!paths::persistUserConfigDir()) {
+      return 1;
+    }
   }
 
   MainWindow mainWindow(settings, appConfig);

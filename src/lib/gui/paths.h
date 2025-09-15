@@ -28,8 +28,10 @@ const auto kSslDir = "SSL";
 
 namespace deskflow::gui::paths {
 
-QDir userConfigDir(const bool persist = false);
-QDir systemConfigDir(const bool persist = false);
+QDir userConfigDir();
+QDir systemConfigDir();
 QString tlsFilePath(const QString customPath, const bool isSystemScope);
+bool persistUserConfigDir();
+bool persistSystemConfigDir();
 
 } // namespace deskflow::gui::paths

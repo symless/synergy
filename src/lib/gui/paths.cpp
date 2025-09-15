@@ -16,42 +16,56 @@
  */
 
 #include "paths.h"
+
 #include "constants.h"
+#include "messages.h"
 
 namespace deskflow::gui::paths {
 
-QDir userConfigDir(const bool persist)
+bool persistUserConfigDir()
+{
+  const auto dir = userConfigDir();
+  const auto dirPath = dir.absolutePath();
+  if (!QDir().mkpath(dirPath)) {
+    deskflow::gui::messages::showPermissionError(
+        nullptr, QString("create user config directory: <code>%1</code>").arg(dirPath)
+    );
+    return false;
+  }
+  return true;
+}
+
+bool persistSystemConfigDir()
+{
+  const auto dir = systemConfigDir();
+  const auto dirPath = dir.absolutePath();
+  if (!QDir().mkpath(dirPath)) {
+    deskflow::gui::messages::showPermissionError(
+        nullptr, QString("create system config directory: <code>%1</code>").arg(dirPath)
+    );
+    return false;
+  }
+  return true;
+}
+
+QDir userConfigDir()
 {
   QSettings settings(
       QSettings::IniFormat, QSettings::UserScope, //
       QCoreApplication::organizationName(), QCoreApplication::applicationName()
   );
 
-  const auto dir = QDir(QFileInfo(settings.fileName()).absolutePath());
-  if (persist) {
-    const auto dirPath = dir.absolutePath();
-    if (!QDir().mkpath(dirPath)) {
-      qFatal("failed to persist user config dir: %s", qUtf8Printable(dirPath));
-    }
-  }
-  return dir;
+  return QDir(QFileInfo(settings.fileName()).absolutePath());
 }
 
-QDir systemConfigDir(const bool persist)
+QDir systemConfigDir()
 {
   QSettings settings(
       QSettings::IniFormat, QSettings::SystemScope, //
       QCoreApplication::organizationName(), QCoreApplication::applicationName()
   );
 
-  const auto dir = QDir(QFileInfo(settings.fileName()).absolutePath());
-  if (persist) {
-    const auto dirPath = dir.absolutePath();
-    if (!QDir().mkpath(dirPath)) {
-      qFatal("failed to persist system config dir: %s", qUtf8Printable(dirPath));
-    }
-  }
-  return dir;
+  return QDir(QFileInfo(settings.fileName()).absolutePath());
 }
 
 QString tlsFilePath(const QString customPath, const bool isSystemScope)

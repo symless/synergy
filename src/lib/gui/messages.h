@@ -63,4 +63,6 @@ bool showUpdateCheckOption(QWidget *parent);
 
 bool showDaemonOffline(QWidget *parent);
 
+void showPermissionError(QWidget *parent, QString what);
+
 } // namespace deskflow::gui::messages
