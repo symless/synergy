@@ -133,7 +133,7 @@ install_fedora_deps() {
 
 install_suse_deps() {
   zypper refresh
-  zypper install -y --force-resolution \
+  zypper --non-interactive --no-gpg-checks install -y --force-resolution \
     cmake \
     make \
     ninja \
