@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 main() {
+  set -x
   uname_out="$(uname -s)"
   case "${uname_out}" in
     Darwin*) install_darwin_deps ;;
