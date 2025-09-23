@@ -14,15 +14,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-set(target ${DAEMON_BINARY_NAME})
-
-file(GLOB headers "*.h")
-file(GLOB sources "*.cpp")
-
 # Daemon is only needed on Windows for elevating processes to deal with UAC.
 if(WIN32)
-  add_executable(${target} WIN32 ${sources}
-                                 ${PROJECT_BINARY_DIR}/src/version.rc)
+
+  set(target ${DAEMON_BINARY_NAME})
+
+  file(GLOB headers "*.h")
+  file(GLOB sources "*.cpp")
+
+  add_executable(${target} WIN32 ${sources} ${PROJECT_BINARY_DIR}/src/version.rc)
 
   target_link_libraries(
     ${target}
@@ -36,5 +36,12 @@ if(WIN32)
     app
     ${libs}
     Qt6::Core)
+  
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+  get_target_property(WINDEPLOYQT_EXE Qt6::windeployqt IMPORTED_LOCATION)
+  add_custom_command(TARGET ${DAEMON_BINARY_NAME} POST_BUILD
+    COMMAND ${WINDEPLOYQT_EXE} --release $<TARGET_FILE:${DAEMON_BINARY_NAME}>
+    COMMENT "Deploying Qt runtime for ${DAEMON_BINARY_NAME}.exe"
+  )
 
 endif()
