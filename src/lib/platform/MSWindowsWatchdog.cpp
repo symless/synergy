@@ -438,11 +438,29 @@ void MSWindowsWatchdog::shutdownExistingProcesses()
   CloseHandle(snapshot);
 }
 
+bool fileExists(const char *path)
+{
+  DWORD attribs = GetFileAttributes(path);
+  return (attribs != INVALID_FILE_ATTRIBUTES && !(attribs & FILE_ATTRIBUTE_DIRECTORY));
+}
+
 std::string MSWindowsWatchdog::runActiveDesktopUtility()
 {
   const auto installDir = ARCH->getInstalledDirectory();
-  const auto coreBinPath = installDir + "\\" SERVER_BINARY_NAME;
-  std::string utilityCommand = "\"" + coreBinPath + "\" --active-desktop";
+  const auto serverBinPath = installDir + "\\" SERVER_BINARY_NAME ".exe";
+  const auto coreBinPath = installDir + "\\" CORE_BINARY_NAME ".exe";
+
+  LOG_DEBUG("checking for server binary: %s", serverBinPath.c_str());
+  const auto serverBinExists = fileExists(serverBinPath.c_str());
+
+  LOG_DEBUG("looking for core binary: %s", coreBinPath.c_str());
+  const auto coreBinExists = fileExists(coreBinPath.c_str());
+
+  if (!serverBinExists && !coreBinExists) {
+    throw XArch("could not find server or core binary to get active desktop");
+  }
+
+  std::string utilityCommand = "\"" + (serverBinExists ? serverBinPath : coreBinPath) + "\" --active-desktop";
 
   LOG_DEBUG("starting active desktop utility: %s", utilityCommand.c_str());
 
