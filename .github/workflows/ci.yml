@@ -46,7 +46,6 @@ jobs:
       - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
 
   get-version:
-    name: Get version
     runs-on: ubuntu-latest
 
     outputs:
