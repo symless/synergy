@@ -92,6 +92,15 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - "-DCMAKE_BUILD_TYPE=Release"
+    
+    # Use `envsubst` to replace with environment variables.
+    env:
+      SYNERGY_PRODUCT_NAME: $SYNERGY_PRODUCT_NAME
+      SYNERGY_ENABLE_ACTIVATION: $SYNERGY_ENABLE_ACTIVATION
+      SYNERGY_VERSION_RELEASE: $SYNERGY_VERSION_RELEASE
+      SYNERGY_VERSION_SNAPSHOT: $SYNERGY_VERSION_SNAPSHOT
+      SYNERGY_VERSION_GIT_SHA: $SYNERGY_VERSION_GIT_SHA
+
     sources:
       - type: dir
         path: ../../../
