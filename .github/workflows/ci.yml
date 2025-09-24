@@ -30,6 +30,7 @@ env:
   SYNERGY_PRODUCT_NAME: ${{ vars.SYNERGY_PRODUCT_NAME }}
   SYNERGY_PACKAGE_PREFIX: ${{ vars.SYNERGY_PACKAGE_PREFIX }}
   SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION }}
+  SYNERGY_VERSION_CHECK: ${{ vars.SYNERGY_VERSION_CHECK }}
 
   # Used to determine the version number format (should simply use the contents of `VERSION` file).
   SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'true') }}
@@ -239,9 +240,9 @@ jobs:
           target-name: ${{ matrix.target.name }}
           target-arch: ${{ matrix.target.arch }}
           cmake-args: |
-            -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}
             -DSYNERGY_PRODUCT_NAME=\"${{ env.SYNERGY_PRODUCT_NAME }}\"
             -DSYNERGY_ENABLE_ACTIVATION=${{ env.SYNERGY_ENABLE_ACTIVATION }}
+            -DSYNERGY_VERSION_CHECK=${{ env.SYNERGY_VERSION_CHECK }}
             -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }}
             -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }}
             -DSYNERGY_VERSION_GIT_SHA=${{ env.SYNERGY_VERSION_GIT_SHA }}
@@ -266,6 +267,7 @@ jobs:
           vars=$(cat <<'EOF'
           ${SYNERGY_PRODUCT_NAME}
           ${SYNERGY_ENABLE_ACTIVATION}
+          ${SYNERGY_VERSION_CHECK}
           ${SYNERGY_VERSION_RELEASE}
           ${SYNERGY_VERSION_SNAPSHOT}
           ${SYNERGY_VERSION_GIT_SHA}
