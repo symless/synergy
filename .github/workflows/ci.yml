@@ -167,6 +167,7 @@ jobs:
 
     steps:
       - name: Write version file
+        shell: bash
         run: |
           mkdir -p build
           echo "${{ needs.get-version.outputs.version }}" > build/VERSION
