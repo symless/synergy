@@ -38,7 +38,7 @@ env:
   # Used to determine the version number format (should set the stage part to "snapshot").
   SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'false') }}
 
-  # Gotcha: Git checks out to a detached head state, so the local SHA is not the real head SHA.
+  # Gotcha: GitHub checks out a detached head, so the local SHA is not the real head SHA.
   SYNERGY_VERSION_GIT_SHA: ${{ github.sha }}
 
 jobs:
