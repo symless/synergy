@@ -167,7 +167,9 @@ jobs:
 
     steps:
       - name: Write version file
-        run: echo "${{ needs.get-version.outputs.version }}" > build/VERSION
+        run: |
+          mkdir -p build
+          echo "${{ needs.get-version.outputs.version }}" > build/VERSION
 
       - name: Setup variables
         id: vars
