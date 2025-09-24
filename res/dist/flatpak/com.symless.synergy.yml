@@ -90,16 +90,14 @@ modules:
       - '*'
   - name: synergy
     buildsystem: cmake-ninja
-    build-options:
-      # Use `envsubst` to replace with environment variables.
-      env:
-        SYNERGY_PRODUCT_NAME: ${SYNERGY_PRODUCT_NAME}
-        SYNERGY_ENABLE_ACTIVATION: ${SYNERGY_ENABLE_ACTIVATION}
-        SYNERGY_VERSION_RELEASE: ${SYNERGY_VERSION_RELEASE}
-        SYNERGY_VERSION_SNAPSHOT: ${SYNERGY_VERSION_SNAPSHOT}
-        SYNERGY_VERSION_GIT_SHA: ${SYNERGY_VERSION_GIT_SHA}
+    # Use `envsubst` to replace with environment variables.
     config-opts:
       - "-DCMAKE_BUILD_TYPE=Release"
+      - "-DSYNERGY_PRODUCT_NAME=\"${SYNERGY_PRODUCT_NAME}\""
+      - "-DSYNERGY_ENABLE_ACTIVATION=${SYNERGY_ENABLE_ACTIVATION}"
+      - "-DSYNERGY_VERSION_RELEASE=${SYNERGY_VERSION_RELEASE}"
+      - "-DSYNERGY_VERSION_SNAPSHOT=${SYNERGY_VERSION_SNAPSHOT}"
+      - "-DSYNERGY_VERSION_GIT_SHA=${SYNERGY_VERSION_GIT_SHA}"
     sources:
       - type: dir
         path: ../../../
