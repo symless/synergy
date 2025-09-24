@@ -18,11 +18,6 @@ inputs:
     required: false
     description: "Additional CMake arguments to pass to the configure step."
 
-outputs:
-  version:
-    description: 'The version of the build'
-    value: ${{ steps.get-version.outputs.version }}
-
 runs:
   using: 'composite'
   steps:
