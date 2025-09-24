@@ -241,7 +241,14 @@ jobs:
         with:
           target-name: ${{ matrix.target.name }}
           target-arch: ${{ matrix.target.arch }}
-          cmake-args: -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }} ${{ steps.install-deps.outputs.vcpkg-cmake-config }}
+          cmake-args: |
+            -DSYNERGY_VERSION_CHECK=${{ vars.SYNERGY_VERSION_CHECK }}
+            -DSYNERGY_PRODUCT_NAME=\"${{ env.SYNERGY_PRODUCT_NAME }}\"
+            -DSYNERGY_ENABLE_ACTIVATION=${{ env.SYNERGY_ENABLE_ACTIVATION }}
+            -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }}
+            -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }}
+            -DSYNERGY_VERSION_GIT_SHA=${{ env.SYNERGY_VERSION_GIT_SHA }}
+            ${{ steps.install-deps.outputs.vcpkg-cmake-config }}
 
       - name: Tests
         if: ${{ !steps.vars.outputs.is-flatpak }}
