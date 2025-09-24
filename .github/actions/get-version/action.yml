@@ -20,6 +20,9 @@ runs:
         run: |
           cmake --log-level VERBOSE \
           -DVERSION_FILE=${{ steps.constants.outputs.version-file }} \
+          -DSYNERGY_VERSION_RELEASE=${SYNERGY_VERSION_RELEASE} \
+          -DSYNERGY_VERSION_SNAPSHOT=${SYNERGY_VERSION_SNAPSHOT} \
+          -DSYNERGY_VERSION_GIT_SHA=${SYNERGY_VERSION_GIT_SHA} \
           -P ext/synergy-extra/cmake/SaveVersion.cmake
         shell: bash
 
