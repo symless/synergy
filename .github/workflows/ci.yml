@@ -163,6 +163,9 @@ jobs:
               options: --privileged
 
     steps:
+      - name: Write version file
+        run: echo "${{ needs.get-version.outputs.version }}" > build/VERSION
+
       - name: Setup variables
         id: vars
         shell: bash
