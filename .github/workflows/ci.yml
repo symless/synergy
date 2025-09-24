@@ -19,9 +19,6 @@ on:
     types: [published]
   pull_request:
     types:
-      - opened
-      - reopened
-      - synchronize
       - ready_for_review
   schedule:
     - cron: "0 5 * * *" # 5am UTC
