@@ -21,7 +21,7 @@
 #include "deskflow/AppUtil.h"
 
 #define WIN32_LEAN_AND_MEAN
-#include "Windows.h"
+#include "Windows.h" // IWYU pragma: keep
 
 #include <condition_variable>
 #include <mutex>
