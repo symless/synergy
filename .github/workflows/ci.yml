@@ -259,8 +259,8 @@ jobs:
         run: |
           set -x
           manifest="res/dist/flatpak/com.symless.synergy.yml"
-          envsubst < $manifest > build/flatpak-manifest.yml
-          mv build/flatpak-manifest.yml $manifest
+          envsubst < $manifest > $manifest.tmp
+          mv $manifest.tmp $manifest
           cat $manifest
 
       - name: Package (Linux)
