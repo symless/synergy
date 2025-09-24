@@ -46,7 +46,9 @@ runs:
         esac
 
         cmake_args="$cmake_args -DUSE_TOMLPLUSPLUS=OFF -DUSE_CLI11=OFF"
-        cmake_args="$cmake_args ${{ inputs.cmake-args }}"
+
+        cmake_args_input=$(echo "${{ inputs.cmake-args }}" | tr '\n' ' ')
+        cmake_args="$cmake_args $cmake_args_input"
 
         echo "cmake-args=$cmake_args" >> $GITHUB_OUTPUT
 
