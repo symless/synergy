@@ -19,6 +19,9 @@ on:
     types: [published]
   pull_request:
     types:
+      - opened
+      - reopened
+      - synchronize
       - ready_for_review
   schedule:
     - cron: "0 5 * * *" # 5am UTC
@@ -46,6 +49,7 @@ jobs:
       - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
 
   get-version:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
 
     outputs:
