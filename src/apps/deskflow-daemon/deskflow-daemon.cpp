@@ -13,8 +13,8 @@
 #include "base/EventQueue.h"
 #include "base/Log.h"
 #include "common/constants.h"
-#include "deskflow/ipc/DaemonIpcServer.h"
 #include "deskflow/win32/DaemonApp.h"
+#include "deskflow/win32/DaemonIpcServer.h"
 
 #include "arch/win32/ArchMiscWindows.h"
 

@@ -12,7 +12,7 @@
 #include "base/log_outputters.h"
 #include "common/constants.h"
 #include "deskflow/App.h"
-#include "deskflow/ipc/DaemonIpcServer.h"
+#include "deskflow/win32/DaemonIpcServer.h"
 
 #include "arch/win32/ArchMiscWindows.h" // IWYU pragma: keep
 #include "deskflow/Screen.h"
