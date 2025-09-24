@@ -49,6 +49,7 @@ jobs:
       - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
 
   main:
+    if: ${{ !github.event.pull_request.draft }}
     name: main / ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
     container: ${{ matrix.target.container }}
