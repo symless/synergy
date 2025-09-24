@@ -225,7 +225,7 @@ jobs:
           bin-dir: build/bin
 
       - name: Get version
-        if: ${{ !steps.vars.outputs.skip-package && !steps.vars.outputs.is-flatpak }}
+        if: ${{ !steps.vars.outputs.skip-package }}
         id: get-version
         uses: ./.github/actions/get-version
 
