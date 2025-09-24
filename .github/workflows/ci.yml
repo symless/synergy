@@ -48,7 +48,27 @@ jobs:
     steps:
       - run: echo "✅ CI passed" > $GITHUB_STEP_SUMMARY
 
+  get-version:
+    if: github.event_name == 'pull_request'
+    name: Get version
+    runs-on: ubuntu-latest
+
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Get version
+        id: get-version
+        uses: ./.github/actions/get-version
+
   main:
+    needs: get-version
     if: ${{ !github.event.pull_request.draft }}
     name: main / ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
@@ -225,11 +245,6 @@ jobs:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
 
-      - name: Get version
-        if: ${{ !steps.vars.outputs.skip-package && !steps.vars.outputs.is-flatpak }}
-        id: get-version
-        uses: ./.github/actions/get-version
-
       - name: Package (Linux)
         if: ${{ !steps.vars.outputs.skip-package && !steps.vars.outputs.is-flatpak && runner.os == 'Linux' }}
         run: ./scripts/package.py
@@ -240,7 +255,7 @@ jobs:
         if: ${{ !steps.vars.outputs.skip-package && steps.vars.outputs.is-flatpak }}
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-linux-${{ matrix.target.arch }}.flatpak
+          bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ needs.get-version.outputs.version }}-linux-${{ matrix.target.arch }}.flatpak
           manifest-path: res/dist/flatpak/com.symless.synergy.yml
           cache-key: flatpak-builder-${{ matrix.target.arch }}-2.0
           arch: ${{ matrix.target.arch }}
@@ -275,7 +290,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !steps.vars.outputs.skip-package }}
         with:
-          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-${{ matrix.target.name }}
+          name: package-${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ needs.get-version.outputs.version }}-${{ matrix.target.name }}
           path: dist
           if-no-files-found: error
 
@@ -293,7 +308,7 @@ jobs:
 
   main-upload:
     runs-on: ubuntu-latest
-    needs: main
+    needs: [main, get-version]
     if: ${{ always() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') }}
 
     steps:
@@ -302,10 +317,6 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-
-      - name: Get version
-        id: get-version
-        uses: ./.github/actions/get-version
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -324,20 +335,19 @@ jobs:
       - name: Upload to AWS S3
         run: |
           source_dir="./dist/"
-
-          # Should be the product name
           base_dir="${{ vars.AWS_S3_UPLOAD_DIR }}"
+          version="${{ needs.get-version.outputs.version }}"
 
           # Separate snapshot and release versions for easier navigation
-          if [[ "${{ steps.get-version.outputs.version }}" =~ snapshot ]]; then
+          if [[ "$version" =~ snapshot ]]; then
             # Organize by major.minor.patch dir (i.e. 1.0.0/1.0.0-foobar+r123)
-            short_version=$(echo "${{ steps.get-version.outputs.version }}" | cut -d'-' -f1 | cut -d'+' -f1)
+            short_version=$(echo "$version" | cut -d'-' -f1 | cut -d'+' -f1)
             sub_dir="snapshot/$short_version"
           else
             sub_dir="release"
           fi
 
-          target_dir="$base_dir/$sub_dir/${{ steps.get-version.outputs.version }}"
+          target_dir="$base_dir/$sub_dir/$version"
           url="s3://muskoka-packages/$target_dir"
 
           echo "Uploading to AWS S3: $url"
