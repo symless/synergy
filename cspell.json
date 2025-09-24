@@ -17,6 +17,7 @@
     "distros",
     "dmgbuild",
     "dotenv",
+    "envsubst",
     "Evenson",
     "Feder",
     "Fourdan",

@@ -255,8 +255,11 @@ jobs:
         if: ${{ !steps.vars.outputs.skip-package && steps.vars.outputs.is-flatpak }}
         id: set-flatpak-env-vars
         run: |
-          envsubst < res/dist/flatpak/com.symless.synergy.yml > build/flatpak-manifest.yml
-          mv build/flatpak-manifest.yml res/dist/flatpak/com.symless.synergy.yml
+          set -x
+          manifest="res/dist/flatpak/com.symless.synergy.yml"
+          envsubst < $manifest > build/flatpak-manifest.yml
+          mv build/flatpak-manifest.yml $manifest
+          cat $manifest
 
       - name: Package (Linux)
         if: ${{ !steps.vars.outputs.skip-package && !steps.vars.outputs.is-flatpak && runner.os == 'Linux' }}
