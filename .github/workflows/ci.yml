@@ -165,12 +165,6 @@ jobs:
               options: --privileged
 
     steps:
-      - name: Write version file
-        shell: bash
-        run: |
-          mkdir -p build
-          echo "${{ needs.get-version.outputs.version }}" > build/VERSION
-
       - name: Setup variables
         id: vars
         shell: bash
@@ -182,6 +176,9 @@ jobs:
           if [[ "${{ matrix.target.name }}" == flatpak* ]]; then
             echo "is-flatpak=true" >> $GITHUB_OUTPUT
           fi
+
+          # Used by the package script to name the output files.
+          echo "SYNERGY_VERSION=${{ needs.get-version.outputs.version }}" >> $GITHUB_ENV
 
       - name: Setup Linux
         if: ${{ runner.os == 'Linux' && !steps.vars.outputs.is-flatpak }}
