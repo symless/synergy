@@ -42,8 +42,6 @@ endif()
 
 add_library(${lib_name} STATIC ${sources})
 
-target_link_libraries(${lib_name} PRIVATE Qt6::Core Qt6::Network)
-
 if(UNIX)
   target_link_libraries(
     ${lib_name}
@@ -60,7 +58,7 @@ if(UNIX)
     ${tomlplusplus_lib})
 
   if(NOT APPLE)
-    target_link_libraries(${lib_name} PRIVATE Qt6::Xml)
+    target_link_libraries(${lib_name} PRIVATE Qt6::Xml Qt6::Core Qt6::Network)
 
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)
