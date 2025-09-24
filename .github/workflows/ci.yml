@@ -253,13 +253,24 @@ jobs:
       
       # HACK: Use `envsubst` to replace environment variables in the Flatpak manifest,
       # since the Flatpak GitHub Action doesn't support passing environment variables.
+      # Only replace the SYNERGY_* variables to avoid accidentally replacing other vars
+      # like ${PWD} and ${FLATPAK_DEST}.
       - name: Set Flatpak env vars
         if: ${{ !steps.vars.outputs.skip-package && steps.vars.outputs.is-flatpak }}
         id: set-flatpak-env-vars
         run: |
+          vars=$(cat <<'EOF'
+          ${SYNERGY_PRODUCT_NAME}
+          ${SYNERGY_ENABLE_ACTIVATION}
+          ${SYNERGY_VERSION_RELEASE}
+          ${SYNERGY_VERSION_SNAPSHOT}
+          ${SYNERGY_VERSION_GIT_SHA}
+          EOF
+          )
+
           set -x
           manifest="res/dist/flatpak/com.symless.synergy.yml"
-          envsubst < $manifest > $manifest.tmp
+          envsubst "$vars" < $manifest > $manifest.tmp
           mv $manifest.tmp $manifest
           cat $manifest
 
