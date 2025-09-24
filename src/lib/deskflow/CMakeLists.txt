@@ -42,10 +42,11 @@ endif()
 add_library(${lib_name} STATIC ${sources})
 
 if(WIN32)
-  target_link_libraries(${lib_name} PRIVATE Qt6::Core Qt6::Network)
-endif()
 
-if(UNIX)
+  target_link_libraries(${lib_name} PRIVATE Qt6::Core Qt6::Network)
+
+elseif(UNIX)
+
   target_link_libraries(
     ${lib_name}
     PRIVATE

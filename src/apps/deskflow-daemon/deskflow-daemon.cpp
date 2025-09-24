@@ -5,21 +5,21 @@
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
+#if !defined(_WIN32)
+#error Only Windows is supported
+#endif
+
 #include "arch/Arch.h"
 #include "base/EventQueue.h"
 #include "base/Log.h"
 #include "common/constants.h"
-#include "deskflow/DaemonApp.h"
 #include "deskflow/ipc/DaemonIpcServer.h"
-
-#if SYSAPI_WIN32
+#include "deskflow/win32/DaemonApp.h"
 
 #include "arch/win32/ArchMiscWindows.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
-#endif
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -31,10 +31,8 @@ void handleError(const char *message = "Unrecognized error.");
 
 int main(int argc, char **argv)
 {
-#if SYSAPI_WIN32
   // Save window instance for later use, e.g. `GetModuleFileName` which is used when installing the daemon.
   ArchMiscWindows::setInstanceWin32(GetModuleHandle(nullptr));
-#endif
 
   Arch arch;
   arch.init();
@@ -115,8 +113,6 @@ int main(int argc, char **argv)
   }
 }
 
-#if SYSAPI_WIN32
-
 // Win32 subsystem entry point (simply forwards to main).
 // We need this because using regular main under the Win32 subsystem results in empty args.
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -124,15 +120,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
   return main(__argc, __argv);
 }
 
-#endif
-
 void handleError(const char *message)
 {
   // Always print error to stdout in case run as CLI program.
   LOG_ERR("%s", message);
 
-#if SYSAPI_WIN32
   // Show a message box for when run from MSI in Win32 subsystem.
   MessageBoxA(nullptr, message, "Deskflow daemon error", MB_OK | MB_ICONERROR);
-#endif
 }

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
-#include "deskflow/DaemonApp.h"
+#include "deskflow/win32/DaemonApp.h"
 
 #include "arch/XArch.h"
 #include "base/IEventQueue.h"
@@ -14,8 +14,6 @@
 #include "deskflow/App.h"
 #include "deskflow/ipc/DaemonIpcServer.h"
 
-#if SYSAPI_WIN32
-
 #include "arch/win32/ArchMiscWindows.h" // IWYU pragma: keep
 #include "deskflow/Screen.h"
 #include "platform/MSWindowsDebugOutputter.h"
@@ -24,8 +22,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-
-#endif
 
 #include <filesystem>
 #include <iostream>
