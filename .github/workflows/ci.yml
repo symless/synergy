@@ -251,6 +251,8 @@ jobs:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
       
+      # HACK: Use `envsubst` to replace environment variables in the Flatpak manifest,
+      # since the Flatpak GitHub Action doesn't support passing environment variables.
       - name: Set Flatpak env vars
         if: ${{ !steps.vars.outputs.skip-package && steps.vars.outputs.is-flatpak }}
         id: set-flatpak-env-vars
