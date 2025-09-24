@@ -32,7 +32,6 @@ DEFAULT_PROJECT_BUILD_DIR = "build"
 DEFAULT_DIST_DIR = "dist"
 DEFAULT_TEST_CMD = "synergy-server --version"
 DEFAULT_PACKAGE_NAME = "synergy"
-VERSION_FILE = "build/VERSION"
 
 
 def main():
@@ -48,7 +47,7 @@ def main():
 
     package(
         env.get_env("SYNERGY_PACKAGE_PREFIX", default=DEFAULT_FILENAME_BASE),
-        get_app_version(VERSION_FILE),
+        env.get_env("SYNERGY_VERSION", required=True),
         DEFAULT_PROJECT_BUILD_DIR,
         DEFAULT_DIST_DIR,
         DEFAULT_TEST_CMD,
@@ -56,18 +55,6 @@ def main():
         DEFAULT_PACKAGE_NAME,
         leave_test_installed=args.leave_test_installed,
     )
-
-
-def get_app_version(filename):
-    """
-    Returns the version either from the env var, or from the version file.
-    """
-    version = env.get_env("SYNERGY_VERSION", required=False)
-    if version:
-        return version
-
-    with open(filename, "r") as f:
-        return f.read().strip()
 
 
 def package(
