@@ -48,7 +48,6 @@
       "inherits": "base",
       "generator": "Unix Makefiles",
       "cacheVariables": {
-        "QT_PATH": "~/Qt/6.8.3/clang_64",
         "CMAKE_OSX_SYSROOT": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
       }
     },
