@@ -15,7 +15,7 @@ main() {
 }
 
 install_darwin_deps() {
-  brew install googletest ninja openssl --quiet
+  brew install googletest ninja openssl qt --quiet
 }
 
 install_linux_deps() {
