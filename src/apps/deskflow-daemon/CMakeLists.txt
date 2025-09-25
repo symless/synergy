@@ -40,7 +40,12 @@ if(WIN32)
   find_package(Qt6 REQUIRED COMPONENTS Widgets)
   get_target_property(WINDEPLOYQT_EXE Qt6::windeployqt IMPORTED_LOCATION)
   add_custom_command(TARGET ${DAEMON_BINARY_NAME} POST_BUILD
-    COMMAND ${WINDEPLOYQT_EXE} --release $<TARGET_FILE:${DAEMON_BINARY_NAME}>
+    COMMAND ${WINDEPLOYQT_EXE}
+      --no-compiler-runtime
+      --no-system-d3d-compiler
+      --no-opengl-sw
+      --no-quick-import
+      $<TARGET_FILE:${DAEMON_BINARY_NAME}>
     COMMENT "Deploying Qt runtime for ${DAEMON_BINARY_NAME}.exe"
   )
 
