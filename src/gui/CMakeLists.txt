@@ -86,7 +86,8 @@ elseif(WIN32)
   find_package(Qt6 REQUIRED COMPONENTS Widgets)
   get_target_property(WINDEPLOYQT_EXE Qt6::windeployqt IMPORTED_LOCATION)
   add_custom_command(TARGET ${GUI_BINARY_NAME} POST_BUILD
-    COMMAND ${WINDEPLOYQT_EXE} 
+    COMMAND ${WINDEPLOYQT_EXE}
+      --force-openssl
       --no-compiler-runtime
       --no-system-d3d-compiler
       --no-opengl-sw
