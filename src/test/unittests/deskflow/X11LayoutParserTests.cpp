@@ -152,9 +152,9 @@ TEST(X11LayoutsParsingTests, xmlParsingIncorrectEvdevFileTest)
 
 TEST(X11LayoutsParsingTests, layoutConvertTest)
 {
-  EXPECT_EQ(X11LayoutsParser::convertLayotToISO(testDir + "/correctEvdev.xml", "us", true), "en");
-  EXPECT_EQ(X11LayoutsParser::convertLayotToISO(testDir + "/incorrectEvdev1.xml", "us", true), "");
-  EXPECT_EQ(X11LayoutsParser::convertLayotToISO(testDir + "/evdevFromFuture.xml", "us", true), "");
+  EXPECT_EQ(X11LayoutsParser::convertLayoutToISO(testDir + "/correctEvdev.xml", "us", true), "en");
+  EXPECT_EQ(X11LayoutsParser::convertLayoutToISO(testDir + "/incorrectEvdev1.xml", "us", true), "");
+  EXPECT_EQ(X11LayoutsParser::convertLayoutToISO(testDir + "/evdevFromFuture.xml", "us", true), "");
 }
 
 #endif
