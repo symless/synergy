@@ -186,8 +186,9 @@ std::vector<String> X11LayoutsParser::getX11LanguageList(const String &pathToEvd
   return convertISO639_2ToISO639_1(iso639_2Codes);
 }
 
-String
-X11LayoutsParser::convertLayotToISO(const String &pathToEvdevFile, const String &layoutLangCode, bool needToReloadFiles)
+String X11LayoutsParser::convertLayoutToISO(
+    const String &pathToEvdevFile, const String &layoutLangCode, bool needToReloadFiles
+)
 {
   if (layoutLangCode.empty()) {
     LOG((CLOG_DEBUG "skip converting empty layout lang code"));

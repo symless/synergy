@@ -145,7 +145,7 @@ String AppUtilUnix::getCurrentLanguageCode()
   XFree(kbdDescr);
   XCloseDisplay(display);
 
-  result = X11LayoutsParser::convertLayotToISO("/usr/share/X11/xkb/rules/evdev.xml", result);
+  result = X11LayoutsParser::convertLayoutToISO("/usr/share/X11/xkb/rules/evdev.xml", result);
 
 #elif WINAPI_CARBON
   auto layoutLanguages =
