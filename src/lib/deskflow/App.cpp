@@ -68,6 +68,25 @@ using namespace deskflow;
 App *App::s_instance = nullptr;
 
 //
+// Free functions
+//
+
+void printVersion(const char *processName)
+{
+  const auto version = deskflow::version();
+  const auto copyright = deskflow::copyright();
+
+  const auto kBufferLength = 1024;
+  std::vector<char> buffer(kBufferLength);
+  std::snprintf(                                                   // NOSONAR
+      buffer.data(), kBufferLength, "%s v%s, protocol v%d.%d\n%s", //
+      processName, version.c_str(), kProtocolMajorVersion, kProtocolMinorVersion, copyright.c_str()
+  );
+
+  std::cout << std::string(buffer.data()) << std::endl;
+}
+
+//
 // App
 //
 
@@ -97,17 +116,7 @@ App::~App()
 
 void App::version()
 {
-  const auto version = deskflow::version();
-  const auto copyright = deskflow::copyright();
-
-  const auto kBufferLength = 1024;
-  std::vector<char> buffer(kBufferLength);
-  std::snprintf(                                                   // NOSONAR
-      buffer.data(), kBufferLength, "%s v%s, protocol v%d.%d\n%s", //
-      argsBase().m_pname, version.c_str(), kProtocolMajorVersion, kProtocolMinorVersion, copyright.c_str()
-  );
-
-  std::cout << std::string(buffer.data()) << std::endl;
+  printVersion(argsBase().m_pname);
 }
 
 int App::run(int argc, char **argv)

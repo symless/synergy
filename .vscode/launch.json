@@ -15,7 +15,7 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/unittests",
-      "args": [ "${input:gtest-args}" ],
+      "args": ["${input:gtest-args}"],
       "preLaunchTask": "build-silent"
     },
     {
@@ -24,8 +24,8 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/integtests",
-      "args": [ "${input:gtest-args}" ],
-      "preLaunchTask": "build-silent",
+      "args": ["${input:gtest-args}"],
+      "preLaunchTask": "build-silent"
     },
     {
       "name": "unix - server",
@@ -70,12 +70,21 @@
       "preLaunchTask": "build-kill-gui"
     },
     {
+      "name": "windows - version",
+      "type": "cppvsdbg",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/bin-copy/synergy-core",
+      "args": ["--version"],
+      "internalConsoleOptions": "openOnSessionStart"
+    },
+    {
       "name": "windows - unittests",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin-copy/unittests",
-      "args": [ "${input:gtest-args}" ],
+      "args": ["${input:gtest-args}"],
       "internalConsoleOptions": "openOnSessionStart"
     },
     {
@@ -84,7 +93,7 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin-copy/integtests",
-      "args": [ "${input:gtest-args}" ],
+      "args": ["${input:gtest-args}"],
       "internalConsoleOptions": "openOnSessionStart"
     },
     {
@@ -161,7 +170,7 @@
       "name": "windows - attach",
       "type": "cppvsdbg",
       "request": "attach",
-      "processId": "${command:pickProcess}",
+      "processId": "${command:pickProcess}"
     }
   ],
   "inputs": [

@@ -37,13 +37,16 @@ class IArchTaskBarReceiver;
 class BufferedLogOutputter;
 class ILogOutputter;
 class FileLogOutputter;
-namespace deskflow {
-class Screen;
-}
 class IEventQueue;
 class SocketMultiplexer;
 
+namespace deskflow {
+class Screen;
+}
+
 typedef IArchTaskBarReceiver *(*CreateTaskBarReceiverFunc)(const BufferedLogOutputter *, IEventQueue *events);
+
+void printVersion(const char *processName);
 
 class App : public IApp
 {

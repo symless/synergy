@@ -56,6 +56,14 @@ int main(int argc, char **argv)
   Log log;
   EventQueue events;
 
+  // No need to start server/client just to show version.
+  for (int i = 1; i < argc; ++i) {
+    if (std::string(argv[i]) == "--version" || std::string(argv[i]) == "-v") {
+      printVersion(ARCH->getBasename(argv[0]));
+      return 0;
+    }
+  }
+
   if (isServer(argc, argv)) {
     ServerApp app(&events, nullptr);
     return app.run(argc, argv);
