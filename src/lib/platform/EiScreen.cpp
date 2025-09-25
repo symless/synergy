@@ -24,7 +24,6 @@
 #include "base/Log.h"
 #include "base/Stopwatch.h"
 #include "base/TMethodEventJob.h"
-#include "common/Constants.h"
 #include "deskflow/App.h"
 #include "deskflow/Clipboard.h"
 #include "deskflow/KeyMap.h"
