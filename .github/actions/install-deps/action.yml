@@ -10,7 +10,7 @@ inputs:
   qt-version:
     description: "The version of Qt to install on macOS and Windows."
     required: false
-    default: "6.8.3"
+    default: "6.9.0"
 
 outputs:
   vcpkg-cmake-config:
