@@ -17,7 +17,15 @@
 
 #pragma once
 
-#include "constants.h"
+const auto kVersion = DESKFLOW_VERSION;
+
+#ifdef GIT_SHA_SHORT
+const auto kVersionGitSha = GIT_SHA_SHORT;
+const auto kDisplayVersion = DESKFLOW_VERSION " (" GIT_SHA_SHORT ")";
+#else
+const auto kVersionGitSha = "";
+const auto kDisplayVersion = DESKFLOW_VERSION;
+#endif
 
 #include <string>
 

@@ -25,18 +25,9 @@
 const auto kAppId = DESKFLOW_APP_ID;
 const auto kAppName = DESKFLOW_APP_NAME;
 const auto kAppDescription = "Mouse and keyboard sharing utility";
-const auto kVersion = DESKFLOW_VERSION;
 const auto kDaemonBinName = DESKFLOW_APP_ID "-daemon";
 const auto kDaemonIpcName = DESKFLOW_APP_ID "-daemon";
 const auto kDaemonLogFilename = DESKFLOW_APP_ID "-daemon.log";
-
-#ifdef GIT_SHA_SHORT
-const auto kVersionGitSha = GIT_SHA_SHORT;
-const auto kDisplayVersion = DESKFLOW_VERSION " (" GIT_SHA_SHORT ")";
-#else
-const auto kVersionGitSha = "";
-const auto kDisplayVersion = DESKFLOW_VERSION;
-#endif
 
 #ifndef NDEBUG
 const auto kDebugBuild = true;

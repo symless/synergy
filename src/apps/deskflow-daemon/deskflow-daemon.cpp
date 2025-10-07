@@ -10,13 +10,13 @@
 #endif
 
 #include "arch/Arch.h"
+#include "arch/win32/ArchMiscWindows.h"
 #include "base/EventQueue.h"
 #include "base/Log.h"
 #include "common/constants.h"
+#include "common/version.h"
 #include "deskflow/win32/DaemonApp.h"
 #include "deskflow/win32/DaemonIpcServer.h"
-
-#include "arch/win32/ArchMiscWindows.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
