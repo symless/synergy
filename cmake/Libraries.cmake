@@ -493,7 +493,6 @@ macro(configure_windows_libs)
     /DWIN32
     /D_WINDOWS
     /D_CRT_SECURE_NO_WARNINGS
-    /DDESKFLOW_VERSION=\"${DESKFLOW_VERSION}\"
     /D_XKEYCHECK_H)
 
   configure_file(${PROJECT_SOURCE_DIR}/res/win/version.rc.in

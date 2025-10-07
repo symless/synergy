@@ -29,13 +29,13 @@
 #include "common/constants.h"
 #include "common/copyright.h"
 #include "common/ipc.h"
-#include "common/version.h"
 #include "deskflow/ArgsBase.h"
 #include "deskflow/Config.h"
 #include "deskflow/XDeskflow.h"
 #include "deskflow/protocol_types.h"
 #include "ipc/IpcMessage.h"
 #include "ipc/IpcServerProxy.h"
+#include "version.h"
 
 #if SYSAPI_WIN32
 #include "arch/win32/ArchMiscWindows.h"
@@ -73,14 +73,13 @@ App *App::s_instance = nullptr;
 
 void printVersion(const char *processName)
 {
-  const auto version = deskflow::version();
   const auto copyright = deskflow::copyright();
 
   const auto kBufferLength = 1024;
   std::vector<char> buffer(kBufferLength);
   std::snprintf(                                                   // NOSONAR
       buffer.data(), kBufferLength, "%s v%s, protocol v%d.%d\n%s", //
-      processName, version.c_str(), kProtocolMajorVersion, kProtocolMinorVersion, copyright.c_str()
+      processName, kVersion, kProtocolMajorVersion, kProtocolMinorVersion, copyright.c_str()
   );
 
   std::cout << std::string(buffer.data()) << std::endl;

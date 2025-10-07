@@ -19,8 +19,8 @@
 #include "AboutDialog.h"
 
 #include "common/copyright.h"
-#include "common/version.h"
 #include "gui/style_utils.h"
+#include "version.h"
 
 #include <QDateTime>
 #include <QGuiApplication>
@@ -37,7 +37,7 @@ AboutDialog::AboutDialog(MainWindow *parent)
 
   this->setFixedSize(this->size());
 
-  QString version = QString::fromStdString(deskflow::version());
+  QString version = QString::fromStdString(kVersion);
   m_pLabelDeskflowVersion->setText(version);
 
   QString buildDateString = QString::fromLocal8Bit(BUILD_DATE).simplified();

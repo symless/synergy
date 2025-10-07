@@ -23,13 +23,6 @@ macro(configure_definitions)
   set(INTEG_TESTS_BIN integtests)
   set(UNIT_TESTS_BIN unittests)
 
-  if(NOT ${SYNERGY_VERSION_GIT_SHA} STREQUAL "")
-    message(VERBOSE "Getting Git SHA from env var")
-    set(git_sha "${SYNERGY_VERSION_GIT_SHA}")
-    string(SUBSTRING ${git_sha} 0 7 git_sha)
-    add_definitions(-DGIT_SHA_SHORT="${git_sha}")
-  endif()
-
   if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     message(STATUS "Disabling debug build")
     add_definitions(-DNDEBUG)
@@ -47,6 +40,8 @@ macro(configure_definitions)
   else()
     set(ADD_HEADERS_TO_SOURCES TRUE)
   endif()
+
+  configure_file(res/version.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/lib/version.h @ONLY)
 
 endmacro()
 

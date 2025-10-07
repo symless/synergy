@@ -14,9 +14,9 @@
 #include "base/EventQueue.h"
 #include "base/Log.h"
 #include "common/constants.h"
-#include "common/version.h"
 #include "deskflow/win32/DaemonApp.h"
 #include "deskflow/win32/DaemonIpcServer.h"
+#include "version.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
   // useful for troubleshooting Windows services.
   // It's important to write the version number to the log file so we can be certain the old daemon
   // was uninstalled, since sometimes Windows services can get stuck and fail to be removed.
-  LOG_PRINT("%s v%s", QCoreApplication::applicationName().toStdString().c_str(), kDisplayVersion);
+  LOG_PRINT("%s v%s", QCoreApplication::applicationName().toStdString().c_str(), kVersion);
 
   // Default log level to system setting (found in Registry).
   if (std::string logLevel = ARCH->setting("LogLevel"); logLevel != "") {

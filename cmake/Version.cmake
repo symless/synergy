@@ -19,7 +19,7 @@
 macro(set_version)
 
   include(${SYNERGY_EXTRA_ROOT}/cmake/Version.cmake)
-  version_from_git_tags(VERSION VERSION_MAJOR VERSION_MINOR VERSION_PATCH VERSION_REVISION)
+  version_from_git_tags(VERSION VERSION_MAJOR VERSION_MINOR VERSION_PATCH VERSION_REVISION GIT_SHA_SHORT)
   set(DESKFLOW_VERSION "${VERSION}")
 
   set(version_file "${CMAKE_BINARY_DIR}/VERSION")
@@ -27,7 +27,6 @@ macro(set_version)
   message(VERBOSE "Version file output: ${version_file}")
 
   message(STATUS "Version number (semver): " ${DESKFLOW_VERSION})
-  add_definitions(-DDESKFLOW_VERSION="${DESKFLOW_VERSION}")
 
   # Arch does not support SemVer or DEB/RPM version format, so use the four-part
   # version format which funnily enough is what Microsoft requires for MSI.
