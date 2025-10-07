@@ -18,6 +18,5 @@
 // clang-format off
 
 const auto kVersion = "@DESKFLOW_VERSION@";
-const auto kVersionGitSha = "@GIT_SHA_SHORT@";
 
 // clang-format on
