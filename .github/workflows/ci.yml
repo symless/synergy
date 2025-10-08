@@ -255,7 +255,7 @@ jobs:
         with:
           job: ${{ matrix.target.name }}
           bin-dir: build/bin
-      
+
       # HACK: Use `envsubst` to replace environment variables in the Flatpak manifest,
       # since the Flatpak GitHub Action doesn't support passing environment variables.
       # Only replace the SYNERGY_* variables to avoid accidentally replacing other vars
@@ -290,7 +290,7 @@ jobs:
         if: ${{ !steps.vars.outputs.skip-package && steps.vars.outputs.is-flatpak }}
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}-${{ needs.get-version.outputs.version }}-linux-${{ matrix.target.arch }}.flatpak
+          bundle: ${{ env.SYNERGY_PACKAGE_PREFIX }}_${{ needs.get-version.outputs.version }}_linux_${{ matrix.target.arch }}.flatpak
           manifest-path: res/dist/flatpak/com.symless.synergy.yml
           cache-key: flatpak-builder-${{ matrix.target.arch }}-2.0
           arch: ${{ matrix.target.arch }}

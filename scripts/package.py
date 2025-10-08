@@ -106,13 +106,15 @@ def get_linux_filename_base(version, prefix, machine):
     else:
         os_part = distro_name
 
-    # Less technical users mix up 'amd64' and 'arm64', so always use 'x86_64'.
+    # Always use 'x86_64' as it's clearer and is widely recognized across all Linux distros.
+    # The term 'amd64' is a Deb-ism, and less technical users often confuse it with 'arm64'.
     if machine == "amd64":
         machine = "x86_64"
 
-    # Less technical users don't recognize 'aarch64', so use 'arm64'.
-    if machine == "aarch64":
-        machine = "arm64"
+    # Always use 'aarch64'. The term 'arm64' is mainly used in Debian-like distros,
+    # but most other Linux distros use 'aarch64'.
+    if machine == "arm64":
+        machine = "aarch64"
 
     return os_part, machine
 
