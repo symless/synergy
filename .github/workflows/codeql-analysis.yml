@@ -1,5 +1,7 @@
 name: "CodeQL Analysis"
 
+# This is best run as a standalone workflow, not as part of another workflow like CI
+# because of how GitHub understands the code scanning workflows in it's UI.
 on:
   workflow_dispatch:
   pull_request:
