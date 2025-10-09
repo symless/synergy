@@ -37,8 +37,8 @@ jobs:
         id: get-deps
         uses: ./.github/actions/install-deps
 
-      - name: Install sonar-scanner and build-wrapper
-        uses: sonarsource/sonarcloud-github-c-cpp@v3
+      - name: Install Build Wrapper
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
 
       - name: Configure
         run: |
@@ -74,10 +74,11 @@ jobs:
           fi
           echo "csv=$paths" >> $GITHUB_OUTPUT
 
-      - name: Run SonarScanner
-        run: |
-          sonar-scanner \
-            -Dsonar.coverageReportPaths=${{ steps.coverage-paths.outputs.csv }} \
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        with:
+          args: >
+            -Dsonar.coverageReportPaths=${{ steps.coverage-paths.outputs.csv }}
             -Dsonar.cfamily.threads=${{ env.CPU_CORE_COUNT }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
