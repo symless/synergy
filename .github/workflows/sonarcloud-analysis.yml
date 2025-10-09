@@ -3,9 +3,9 @@ name: "SonarCloud Analysis"
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches:
-      - master*
+    branches: [master]
 
 env:
   QT_VERSION: 6.9.3

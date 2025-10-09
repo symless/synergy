@@ -1,0 +1,47 @@
+name: "CodeQL Analysis"
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [master]
+
+jobs:
+  analyze:
+    if: ${{ !github.event.pull_request.draft }}
+
+    name: Analyze
+    runs-on: ubuntu-latest
+    container: debian:trixie-slim
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["cpp"]
+
+    steps:
+      - name: Install container dependencies
+        run: |
+          apt update -qqq > /dev/null
+          apt install -qqq git > /dev/null
+
+      - name: Fancy Checkout
+        uses: sithlord48/fancy-checkout@v1
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
+        with:
+          like: "debian"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

@@ -69,6 +69,17 @@ jobs:
         id: get-version
         uses: ./.github/actions/get-version
 
+  lint-clang:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Lint Checker
+        uses: ./.github/actions/lint-clang
+
   main:
     needs: get-version
     name: main / ${{ matrix.target.name }}
