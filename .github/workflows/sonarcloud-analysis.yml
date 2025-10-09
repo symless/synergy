@@ -9,7 +9,7 @@ on:
 
 jobs:
   analyze:
-    if: ${{ !github.event.pull_request.draft && vars.SONARCLOUD_ENABLED }}
+    if: ${{ !github.event.pull_request.draft && vars.SONAR_SCANNER_ENABLED }}
 
     runs-on: ubuntu-24.04-16-core-x64
     container: debian:trixie-slim
