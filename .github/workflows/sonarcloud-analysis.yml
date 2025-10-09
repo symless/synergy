@@ -8,12 +8,12 @@ on:
     branches: [master]
 
 jobs:
-  sonarcloud-analysis:
+  analyze:
+    if: ${{ !github.event.pull_request.draft && vars.SONARCLOUD_ENABLED }}
+
     runs-on: ubuntu-24.04-16-core-x64
     container: debian:trixie-slim
     timeout-minutes: 20
-
-    if: vars.SONARCLOUD_ENABLED
 
     env:
       CPU_CORE_COUNT: 16

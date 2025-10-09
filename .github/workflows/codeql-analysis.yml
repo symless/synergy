@@ -11,15 +11,9 @@ jobs:
   analyze:
     if: ${{ !github.event.pull_request.draft }}
 
-    name: Analyze
     runs-on: ubuntu-latest
     container: debian:trixie-slim
     timeout-minutes: 20
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ["cpp"]
 
     steps:
       - name: Install container dependencies
@@ -43,7 +37,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: cpp
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
