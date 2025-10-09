@@ -24,16 +24,21 @@ jobs:
     steps:
       - name: Install container dependencies
         run: |
-          apt update -qqq > /dev/null
-          apt install -qqq git > /dev/null
+          apt update
+          apt install -y git python3 python3-venv curl unzip gcovr
 
-      - name: Fancy Checkout
-        uses: sithlord48/fancy-checkout@v1
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0 # SonarCloud needs the full history to assign issues properly
+
+      - name: Config Git safe dir
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Install dependencies
-        uses: ./.github/actions/install-dependencies
-        with:
-          like: "debian"
+        id: get-deps
+        uses: ./.github/actions/install-deps
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

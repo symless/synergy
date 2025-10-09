@@ -7,9 +7,6 @@ on:
   push:
     branches: [master]
 
-env:
-  QT_VERSION: 6.9.3
-
 jobs:
   sonarcloud-analysis:
     runs-on: ubuntu-24.04-16-core-x64
@@ -39,8 +36,6 @@ jobs:
       - name: Install dependencies
         id: get-deps
         uses: ./.github/actions/install-deps
-        with:
-          qt-version: ${{ env.QT_VERSION }}
 
       - name: Install sonar-scanner and build-wrapper
         uses: sonarsource/sonarcloud-github-c-cpp@v3
