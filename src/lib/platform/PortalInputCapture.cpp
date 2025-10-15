@@ -370,14 +370,18 @@ void PortalInputCapture::cb_zones_changed(XdpInputCaptureSession *session, GVari
     list = g_list_append(list, b);
   }
 
-  xdp_input_capture_session_set_pointer_barriers(
-      session_, list,
-      nullptr, // cancellable
-      [](GObject *obj, GAsyncResult *res, gpointer data) {
-        reinterpret_cast<PortalInputCapture *>(data)->cb_set_pointer_barriers(obj, res);
-      },
-      this
-  );
+  if (list != nullptr) {
+    xdp_input_capture_session_set_pointer_barriers(
+        session_, list,
+        nullptr, // cancellable
+        [](GObject *obj, GAsyncResult *res, gpointer data) {
+          reinterpret_cast<PortalInputCapture *>(data)->cb_set_pointer_barriers(obj, res);
+        },
+        this
+    );
+  } else {
+    LOG_WARN("no input capture pointer barriers found");
+  }
 }
 
 void PortalInputCapture::glib_thread(void *)
