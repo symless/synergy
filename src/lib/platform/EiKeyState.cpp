@@ -321,4 +321,13 @@ void EiKeyState::update_xkb_state(uint32_t keyval, bool is_pressed)
   xkb_state_update_key(xkb_state_, keyval, is_pressed ? XKB_KEY_DOWN : XKB_KEY_UP);
 }
 
+void EiKeyState::clearStaleModifiers()
+{
+  // Recreate the XKB state to clear stuck modifiers that happen when
+  // modifier keys are press on client and released on server
+  if (xkb_state_) {
+    xkb_state_unref(xkb_state_);
+  }
+  xkb_state_ = xkb_state_new(xkb_keymap_);
+}
 } // namespace deskflow

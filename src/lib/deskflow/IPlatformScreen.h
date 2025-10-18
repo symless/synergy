@@ -198,12 +198,13 @@ public:
   virtual KeyModifierMask pollActiveModifiers() const = 0;
   virtual SInt32 pollActiveGroup() const = 0;
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const = 0;
+  virtual void clearStaleModifiers() override = 0;
 
+  // Drag-and-drop overrides
   virtual String &getDraggingFilename() = 0;
   virtual void clearDraggingFilename() = 0;
   virtual bool isDraggingStarted() = 0;
   virtual bool isFakeDraggingStarted() = 0;
-
   virtual void fakeDraggingFiles(DragFileList fileList) = 0;
   virtual const String &getDropTarget() const = 0;
 

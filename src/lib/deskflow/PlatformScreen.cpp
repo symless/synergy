@@ -99,6 +99,11 @@ void PlatformScreen::pollPressedKeys(KeyButtonSet &pressedKeys) const
   getKeyState()->pollPressedKeys(pressedKeys);
 }
 
+void PlatformScreen::clearStaleModifiers()
+{
+  getKeyState()->clearStaleModifiers();
+}
+
 bool PlatformScreen::isDraggingStarted()
 {
   if (App::instance().argsBase().m_enableDragDrop) {
