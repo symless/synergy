@@ -54,14 +54,14 @@ protected:
   void fakeKey(const Keystroke &keystroke) override;
 
 private:
-  std::uint32_t convert_mod_mask(std::uint32_t xkbModMaskIn) const;
+  std::uint32_t convertModMask(std::uint32_t xkbModMaskIn) const;
   void assign_generated_modifiers(std::uint32_t keycode, KeyMap::KeyItem &item);
 
-  EiScreen *screen_ = nullptr;
+  EiScreen *m_screen = nullptr;
 
-  xkb_context *xkb_ = nullptr;
-  xkb_keymap *xkb_keymap_ = nullptr;
-  xkb_state *xkb_state_ = nullptr;
+  xkb_context *m_xkb = nullptr;
+  xkb_keymap *m_xkbKeymap = nullptr;
+  xkb_state *m_xkbState = nullptr;
 };
 
 } // namespace deskflow
