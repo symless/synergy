@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "unix - gui",
-      "type": "lldb",
+      "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy",
@@ -11,7 +11,7 @@
     },
     {
       "name": "unix - unittests",
-      "type": "lldb",
+      "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/unittests",
@@ -20,7 +20,7 @@
     },
     {
       "name": "unix - integtests",
-      "type": "lldb",
+      "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/integtests",
@@ -29,7 +29,7 @@
     },
     {
       "name": "unix - server",
-      "type": "lldb",
+      "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-server",
@@ -38,7 +38,7 @@
     },
     {
       "name": "unix - client",
-      "type": "lldb",
+      "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-client",
@@ -47,7 +47,7 @@
     },
     {
       "name": "unix - daemon",
-      "type": "lldb",
+      "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-daemon",
@@ -56,7 +56,7 @@
     },
     {
       "name": "unix - attach",
-      "type": "lldb",
+      "type": "lldb-dap",
       "request": "attach",
       "pid": "${command:pickProcess}"
     },
