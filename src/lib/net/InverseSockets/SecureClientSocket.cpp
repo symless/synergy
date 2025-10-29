@@ -385,7 +385,6 @@ void SecureClientSocket::checkResult(int status, int &retry)
 
 void SecureClientSocket::disconnect()
 {
-  sendEvent(getEvents()->forISocket().stopRetry());
   sendEvent(getEvents()->forISocket().disconnected());
   sendEvent(getEvents()->forIStream().inputShutdown());
 }

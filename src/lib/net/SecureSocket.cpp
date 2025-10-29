@@ -355,7 +355,10 @@ void SecureSocket::initContext(bool server)
 
   // Prevent the usage of of all version prior to TLSv1.2 as they are known to
   // be vulnerable
-  SSL_CTX_set_options(m_ssl->m_context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+  SSL_CTX_set_options(
+      m_ssl->m_context,
+      SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_IGNORE_UNEXPECTED_EOF
+  );
 
   if (m_ssl->m_context == NULL) {
     SslLogger::logError();
@@ -594,7 +597,6 @@ void SecureSocket::checkResult(int status, int &retry)
 
 void SecureSocket::disconnect()
 {
-  sendEvent(getEvents()->forISocket().stopRetry());
   sendEvent(getEvents()->forISocket().disconnected());
   sendEvent(getEvents()->forIStream().inputShutdown());
 }

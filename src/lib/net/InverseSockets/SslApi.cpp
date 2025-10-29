@@ -196,7 +196,9 @@ void SslApi::createContext(bool isServer)
   }
   // Prevent the usage of of all version prior to TLSv1.2 as they are known to
   // be vulnerable
-  SSL_CTX_set_options(m_context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1);
+  SSL_CTX_set_options(
+      m_context, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1 | SSL_OP_NO_TLSv1_1 | SSL_OP_IGNORE_UNEXPECTED_EOF
+  );
 
   if (m_context) {
     m_ssl = SSL_new(m_context);
