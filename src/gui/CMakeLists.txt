@@ -67,7 +67,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_BINARY_DIR}/bundle/Synergy.app/Contents/Info.plist"
   )
 
-  install(TARGETS ${target} BUNDLE DESTINATION .)
+  install(TARGETS ${target} BUNDLE DESTINATION ${CMAKE_BINARY_DIR}/bundle)
 
   find_program(MACDEPLOYQT_BIN macdeployqt6)
   message(STATUS "Found macdeployqt6: ${MACDEPLOYQT_BIN}")
