@@ -7,7 +7,10 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy",
-      "preLaunchTask": "build-silent"
+      "preLaunchTask": "build-silent",
+      "osx": {
+        "program": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy"
+      }
     },
     {
       "name": "unix - unittests",
@@ -34,7 +37,10 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-server",
       "args": ["--config-toml", "synergy-config.toml"],
-      "preLaunchTask": "build-silent"
+      "preLaunchTask": "build-silent",
+      "osx": {
+        "program": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy-server"
+      }
     },
     {
       "name": "unix - client",
@@ -43,7 +49,10 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/synergy-client",
       "args": ["--config-toml", "synergy-config.toml"],
-      "preLaunchTask": "build-silent"
+      "preLaunchTask": "build-silent",
+      "osx": {
+        "program": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy-client"
+      }
     },
     {
       "name": "unix - daemon",

@@ -46,7 +46,7 @@ include_directories(${PROJECT_BINARY_DIR}/src/lib/gui/gui_autogen/include)
 # generated includes
 include_directories(${PROJECT_BINARY_DIR}/config)
 
-add_executable(${target} WIN32 ${sources} ${ui_files} ${rc_files} ${qrc_file})
+add_executable(${target} WIN32 MACOSX_BUNDLE ${sources} ${ui_files} ${rc_files} ${qrc_file})
 
 target_link_libraries(
   ${target}
@@ -62,15 +62,47 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
+  set_target_properties(${target} PROPERTIES
+    INSTALL_RPATH "@loader_path/../Libraries;@loader_path/../Frameworks"
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_BINARY_DIR}/bundle/Synergy.app/Contents/Info.plist"
+  )
+
+  install(TARGETS ${target} BUNDLE DESTINATION .)
+
   find_program(MACDEPLOYQT_BIN macdeployqt6)
   message(STATUS "Found macdeployqt6: ${MACDEPLOYQT_BIN}")
 
   set(MACDEPLOYQT_CMD
       "${MACDEPLOYQT_BIN} ${DESKFLOW_BUNDLE_DIR} -always-overwrite")
-
-  install(TARGETS ${target} DESTINATION ${DESKFLOW_BUNDLE_BINARY_DIR})
   install(CODE "MESSAGE (\"Running: ${MACDEPLOYQT_CMD}\")")
   install(CODE "execute_process(COMMAND ${MACDEPLOYQT_CMD})")
+
+  # Warning: Do not use for CI/production, as the `entitlements-dev.plist` file adds special 
+  # entitlements that are only appropriate for local development.
+  #
+  # macOS made TCC stricter so that if you don't sign your local dev builds properly, macOS will
+  # nag you to remove and re-approve the app every time you make a change to the binary which is
+  # extremely annoying during development.
+  #
+  # If you were to use ad-hoc signing (i.e. not specify a certificate), TCC would still nag you
+  # because the binary identity is anchored not on the app ID, but on the CD hash (which changes
+  # based on the binary contents).
+  #
+  # To use, simply generate a personal certificate for free with Xcode and pass the ID to CMake.
+  # Full instructions are in the docs.
+  if (NOT "${APPLE_CODESIGN_DEV}" STREQUAL "")
+    message(STATUS "Apple codesign ID for development only: ${APPLE_CODESIGN_DEV}")
+    add_custom_command(
+      TARGET ${target} POST_BUILD
+      COMMAND /usr/bin/codesign
+              --force
+              --options runtime
+              --entitlements "$<SHELL_PATH:${CMAKE_SOURCE_DIR}/res/mac/entitlements-dev.plist>"
+              --sign "${APPLE_CODESIGN_DEV}"
+              "$<TARGET_BUNDLE_DIR:${target}>"
+      VERBATIM
+    )
+  endif()
 
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
