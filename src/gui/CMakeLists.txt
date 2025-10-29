@@ -62,16 +62,11 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-set_target_properties(${target} PROPERTIES
-      BUNDLE True
-      INSTALL_RPATH "@loader_path/../Libraries;@loader_path/../Frameworks"
-      MACOSX_BUNDLE_INFO_PLIST "${CMAKE_BINARY_DIR}/bundle/Synergy.app/Contents/Info.plist"
-      MACOSX_BUNDLE_BUNDLE_NAME ${target}
-      MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION}
-      MACOSX_BUNDLE_GUI_IDENTIFIER com.example.${target}
-      MACOSX_BUNDLE_ICON_FILE AppIcon
-      MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION}
+  set_target_properties(${target} PROPERTIES
+    INSTALL_RPATH "@loader_path/../Libraries;@loader_path/../Frameworks"
+    MACOSX_BUNDLE_INFO_PLIST "${CMAKE_BINARY_DIR}/bundle/Synergy.app/Contents/Info.plist"
   )
+
   install(TARGETS ${target} BUNDLE DESTINATION .)
 
   find_program(MACDEPLOYQT_BIN macdeployqt6)
