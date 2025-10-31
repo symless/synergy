@@ -836,7 +836,7 @@ void MSWindowsDesks::checkDesk()
 
     // always sync keys when switching desks to ensure keyboard modifier
     // states are correct.
-    LOG_DEBUG("switched to desk \"%ls\"", name.c_str());
+    LOG_DEBUG("switched to desk \"%s\"", name.c_str());
     bool syncKeys = false;
     if (isDeskAccessible(desk)) {
       LOG_DEBUG("desktop is accessible - syncing keyboard state after desk switch");
