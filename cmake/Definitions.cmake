@@ -150,6 +150,13 @@ macro(configure_bin_names)
   set(LEGACY_BINARY_NAME
       "deskflow-legacy"
       CACHE STRING "Filename of the legacy binary")
+  
+  if (BUILD_GUI)
+    set(APPLE_CORE_BINARY_PATH
+        $<TARGET_BUNDLE_CONTENT_DIR:${GUI_BINARY_NAME}>/MacOS)
+  else()
+    set(APPLE_CORE_BINARY_PATH bin)
+  endif()
 
   message(VERBOSE "GUI binary: ${GUI_BINARY_NAME}")
   message(VERBOSE "Server binary: ${SERVER_BINARY_NAME}")
