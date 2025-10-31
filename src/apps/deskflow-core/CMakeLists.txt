@@ -39,11 +39,13 @@ target_link_libraries(
   ${libs})
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set_target_properties(${target} PROPERTIES
-    BUILD_WITH_INSTALL_RPATH TRUE
-    INSTALL_RPATH "@loader_path/../Libraries;@loader_path/../Frameworks"
-    RUNTIME_OUTPUT_DIRECTORY ${APPLE_CORE_BINARY_PATH}
-  )
+  if (BUILD_GUI)
+    set_target_properties(${target} PROPERTIES
+      BUILD_WITH_INSTALL_RPATH TRUE
+      INSTALL_RPATH "@loader_path/../Libraries;@loader_path/../Frameworks"
+      RUNTIME_OUTPUT_DIRECTORY $<TARGET_BUNDLE_CONTENT_DIR:${GUI_BINARY_NAME}>/MacOS
+    )
+  endif()
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   install(TARGETS ${target} DESTINATION bin)
 endif()
