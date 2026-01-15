@@ -49,4 +49,10 @@ public:
   static int installScreenSaver();
 
   static int uninstallScreenSaver();
+
+  //! Set whether touch input should stay on this computer
+  void setTouchInputLocal(bool enable);
+
+  //! Set whether cursor is currently on this screen
+  void setIsOnScreen(bool onScreen);
 };

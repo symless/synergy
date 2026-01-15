@@ -128,6 +128,10 @@ public:
   {
     return m_ClipboardSharingSize;
   }
+  bool touchInputLocal() const
+  {
+    return m_TouchInputLocal;
+  }
   static size_t defaultClipboardSharingSize();
 
   //
@@ -224,6 +228,10 @@ private:
   {
     m_ClipboardSharing = on;
   }
+  void setTouchInputLocal(bool on)
+  {
+    m_TouchInputLocal = on;
+  }
   void setConfigFile(const QString &configFile);
   void setUseExternalConfig(bool useExternalConfig);
   size_t setClipboardSharingSize(size_t size);
@@ -253,6 +261,7 @@ private:
   int m_SwitchCornerSize = 0;
   bool m_DisableLockToScreen = false;
   bool m_ClipboardSharing = true;
+  bool m_TouchInputLocal = false;
   QString m_ClientAddress = "";
   QList<bool> m_SwitchCorners;
   HotkeyList m_Hotkeys;

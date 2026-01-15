@@ -44,6 +44,12 @@ static BYTE g_keyState[256] = {0};
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+static bool g_touchInputLocal = false;
+static bool g_isOnScreen = true;
+
+// Touch input signature in dwExtraInfo (bit 7 set indicates touch/pen)
+#define TOUCH_SIGNATURE_MASK 0xFFFFFF00
+#define TOUCH_SIGNATURE      0xFF515700
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -146,6 +152,17 @@ void MSWindowsHook::setMode(EHookMode mode)
     return;
   }
   g_mode = mode;
+}
+
+void MSWindowsHook::setTouchInputLocal(bool enable)
+{
+  g_touchInputLocal = enable;
+  LOG((CLOG_DEBUG "hook: touchInputLocal = %s", enable ? "true" : "false"));
+}
+
+void MSWindowsHook::setIsOnScreen(bool onScreen)
+{
+  g_isOnScreen = onScreen;
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -582,6 +599,19 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
 
     bool const injected = info->flags & LLMHF_INJECTED;
     if (!g_isPrimary && injected) {
+      return CallNextHookEx(g_mouseLL, code, wParam, lParam);
+    }
+
+    // Check if this mouse event was generated from touch input
+    // Touch input has a specific signature in dwExtraInfo
+    bool isTouchGenerated = ((info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE);
+
+    // If touchInputLocal is enabled and cursor is on client screen,
+    // let the touch event work locally but don't forward it to the client
+    if (g_touchInputLocal && !g_isOnScreen && isTouchGenerated) {
+      LOG((CLOG_DEBUG "touch event - processing locally, not forwarding to client"));
+      // Don't call mouseHookHandler - this skips forwarding to client
+      // Don't return 1 - this lets the event proceed to local applications
       return CallNextHookEx(g_mouseLL, code, wParam, lParam);
     }
 

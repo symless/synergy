@@ -568,6 +568,16 @@
              </layout>
             </item>
             <item>
+             <widget class="QCheckBox" name="m_pCheckBoxTouchInputLocal">
+              <property name="text">
+               <string>Keep touch input on this computer</string>
+              </property>
+              <property name="toolTip">
+               <string>When enabled, touch screen input stays on this computer even when the cursor moves to another screen</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <spacer name="verticalSpacer_3">
               <property name="orientation">
                <enum>Qt::Vertical</enum>
