@@ -19,7 +19,6 @@
 #include "platform/MSWindowsScreen.h"
 
 #include "arch/Arch.h"
-#include "deskflow/option_types.h"
 #include "arch/win32/ArchMiscWindows.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
@@ -33,6 +32,7 @@
 #include "deskflow/Clipboard.h"
 #include "deskflow/KeyMap.h"
 #include "deskflow/XScreen.h"
+#include "deskflow/option_types.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsClipboard.h"
 #include "platform/MSWindowsDesks.h"
@@ -100,7 +100,6 @@
 #define PT_PEN 3
 #define PT_MOUSE 4
 #endif
-
 
 //
 // MSWindowsScreen
@@ -1422,44 +1421,6 @@ bool MSWindowsScreen::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
     sendEvent(m_events->forIPrimaryScreen().wheel(), WheelInfo::alloc(xDelta, yDelta));
   }
   return true;
-}
-
-bool MSWindowsScreen::isPointerTypeTouch(UINT32 pointerId) const
-{
-  DWORD pointerType = PT_POINTER;
-  if (GetPointerType(pointerId, &pointerType)) {
-    return (pointerType == PT_TOUCH || pointerType == PT_PEN);
-  }
-  return false;
-}
-
-bool MSWindowsScreen::onPointerInput(WPARAM wParam, LPARAM lParam)
-{
-  UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
-
-  LOG((CLOG_DEBUG "onPointerInput: pointerId=%d, touchInputLocal=%s, isOnScreen=%s",
-       pointerId, m_touchInputLocal ? "true" : "false", m_isOnScreen ? "true" : "false"));
-
-  // Check if this is touch/pen input
-  if (isPointerTypeTouch(pointerId)) {
-    m_lastInputWasTouch = true;
-    LOG((CLOG_DEBUG "pointer is touch input"));
-
-    // If touchInputLocal is enabled and cursor is on another screen,
-    // consume the event so it stays local
-    if (m_touchInputLocal && !m_isOnScreen) {
-      LOG((CLOG_INFO "touch input kept local (cursor on client screen)"));
-      // Return true to indicate we handled it - this prevents
-      // DefWindowProc from converting it to mouse input
-      return true;
-    }
-  } else {
-    m_lastInputWasTouch = false;
-  }
-
-  // Let the system handle the pointer input normally
-  // It will be converted to mouse messages and caught by our hook
-  return false;
 }
 
 bool MSWindowsScreen::onScreensaver(bool activated)
