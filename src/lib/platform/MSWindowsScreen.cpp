@@ -101,10 +101,6 @@
 #define PT_MOUSE 4
 #endif
 
-// Function pointer type for GetPointerType (loaded dynamically for Win7 compat)
-typedef BOOL(WINAPI *GetPointerTypeFunc)(UINT32 pointerId, DWORD *pointerType);
-static GetPointerTypeFunc s_getPointerType = NULL;
-static bool s_pointerApiChecked = false;
 
 //
 // MSWindowsScreen
@@ -1430,22 +1426,8 @@ bool MSWindowsScreen::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
 
 bool MSWindowsScreen::isPointerTypeTouch(UINT32 pointerId) const
 {
-  // Dynamically load GetPointerType for Windows 7 compatibility
-  if (!s_pointerApiChecked) {
-    s_pointerApiChecked = true;
-    HMODULE user32 = GetModuleHandle("user32.dll");
-    if (user32 != NULL) {
-      s_getPointerType = (GetPointerTypeFunc)GetProcAddress(user32, "GetPointerType");
-    }
-  }
-
-  if (s_getPointerType == NULL) {
-    // API not available (Windows 7 or earlier)
-    return false;
-  }
-
   DWORD pointerType = PT_POINTER;
-  if (s_getPointerType(pointerId, &pointerType)) {
+  if (GetPointerType(pointerId, &pointerType)) {
     return (pointerType == PT_TOUCH || pointerType == PT_PEN);
   }
   return false;
