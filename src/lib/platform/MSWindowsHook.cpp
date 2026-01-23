@@ -49,7 +49,7 @@ static bool g_isOnScreen = true;
 
 // Touch input signature in dwExtraInfo (bit 7 set indicates touch/pen)
 #define TOUCH_SIGNATURE_MASK 0xFFFFFF00
-#define TOUCH_SIGNATURE      0xFF515700
+#define TOUCH_SIGNATURE 0xFF515700
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -602,16 +602,10 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
       return CallNextHookEx(g_mouseLL, code, wParam, lParam);
     }
 
-    // Check if this mouse event was generated from touch input
-    // Touch input has a specific signature in dwExtraInfo
-    bool isTouchGenerated = ((info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE);
-
-    // If touchInputLocal is enabled and cursor is on client screen,
-    // let the touch event work locally but don't forward it to the client
-    if (g_touchInputLocal && !g_isOnScreen && isTouchGenerated) {
-      LOG((CLOG_DEBUG "touch event - processing locally, not forwarding to client"));
-      // Don't call mouseHookHandler - this skips forwarding to client
-      // Don't return 1 - this lets the event proceed to local applications
+    // touch gestures don't translate well to remote clients, so optionally keep them local
+    bool const mouseFromTouchInput = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
+    if (g_touchInputLocal && !g_isOnScreen && mouseFromTouchInput) {
+      LOG((CLOG_DEBUG "touch-generated mouse event, keeping input on server"));
       return CallNextHookEx(g_mouseLL, code, wParam, lParam);
     }
 
