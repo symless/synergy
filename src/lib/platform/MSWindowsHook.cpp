@@ -605,7 +605,7 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     // touch gestures don't translate well to remote clients, so optionally keep them local
     bool const mouseFromTouchInput = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
     if (g_touchInputLocal && !g_isOnScreen && mouseFromTouchInput) {
-      LOG((CLOG_DEBUG "touch-generated mouse event, keeping input on server"));
+      LOG((CLOG_DEBUG1 "touch-generated mouse event, keeping input on server"));
       return CallNextHookEx(g_mouseLL, code, wParam, lParam);
     }
 
