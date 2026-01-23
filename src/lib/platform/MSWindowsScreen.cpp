@@ -1080,7 +1080,7 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
   case WM_POINTERDOWN:
   case WM_POINTERUP:
   case WM_POINTERUPDATE:
-    if (m_isPrimary && onPointerInput(wParam, lParam)) {
+    if (m_isPrimary && m_touchInputLocal) {
       // Touch input was consumed (kept local)
       *result = 0;
       return true;
