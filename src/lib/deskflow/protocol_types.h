@@ -31,9 +31,10 @@
 // 1.6:  adds clipboard streaming
 // 1.7   adds security input notifications
 // 1.8   adds language synchronization functionality
+// 1.9   adds touch-activated screen switching
 // NOTE: with new version, deskflow minor version should increment
 static const SInt16 kProtocolMajorVersion = 1;
-static const SInt16 kProtocolMinorVersion = 8;
+static const SInt16 kProtocolMinorVersion = 9;
 
 // default contact port number
 static const UInt16 kDefaultPort = 24800;

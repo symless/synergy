@@ -488,6 +488,11 @@ void Screen::leaveSecondary()
   m_screen->fakeAllKeysUp();
 }
 
+void Screen::activateWindowAt(SInt32 x, SInt32 y)
+{
+  m_screen->activateWindowAt(x, y);
+}
+
 String Screen::getSecureInputApp() const
 {
   return m_screen->getSecureInputApp();

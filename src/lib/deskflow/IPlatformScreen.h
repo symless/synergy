@@ -200,6 +200,15 @@ public:
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const = 0;
   virtual void clearStaleModifiers() = 0;
 
+  //! Activate the window at the given screen coordinates
+  /*!
+  Brings the window at position \c x, \c y to the foreground.
+  Default implementation does nothing; platforms override as needed.
+  */
+  virtual void activateWindowAt(SInt32 x, SInt32 y)
+  {
+  }
+
   // Drag-and-drop overrides
   virtual String &getDraggingFilename() = 0;
   virtual void clearDraggingFilename() = 0;

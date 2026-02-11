@@ -47,11 +47,6 @@
 #include <cstring>
 #include <ctime>
 
-#if WINAPI_MSWINDOWS
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-#endif
-
 using namespace deskflow::server;
 
 //
@@ -787,8 +782,7 @@ bool Server::isSwitchOkay(
     return false;
   }
 
-  // check if we're in touch switch cooldown period
-  // this prevents edge-triggered switches from immediately undoing
+  // Cooldown prevents edge-triggered switches from immediately undoing
   // a touch-triggered switch (which causes rapid bounce switching)
   if (m_touchSwitchCooldown.getTime() < kTouchSwitchCooldownTime) {
     LOG((CLOG_DEBUG1 "edge switch blocked by touch cooldown (%.2fs remaining)",
@@ -1362,19 +1356,15 @@ void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
   LOG((CLOG_DEBUG1 "touch activated primary at %d,%d", info->m_x, info->m_y));
 
-  // reject if still in cooldown from a recent touch switch
   if (m_touchSwitchCooldown.getTime() < kTouchSwitchCooldownTime) {
     LOG((CLOG_DEBUG1 "touch switch rejected (cooldown active)"));
     return;
   }
 
   if (m_active != m_primaryClient) {
-    // Save current cursor position on the screen we're leaving
-    // (same as jumpToScreen does for edge-triggered switches)
     m_active->setJumpCursorPos(m_x, m_y);
 
-    // Clamp touch coordinates away from screen edges to avoid landing
-    // in the jump zone, which would trigger an immediate edge switch
+    // Clamp away from jump zones to avoid triggering an immediate edge switch
     SInt32 x = info->m_x;
     SInt32 y = info->m_y;
     SInt32 dx, dy, dw, dh;
@@ -1385,45 +1375,13 @@ void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
     y = (std::max)(y, dy + z);
     y = (std::min)(y, dy + dh - 1 - z);
 
-    // Switch back to primary screen at clamped touch position
     switchScreen(m_primaryClient, x, y, false);
 
-    // Synthesize a click at the touch position to focus the target window.
-    // The hook eats the original touch event to prevent edge detection race,
-    // so without this the window under the touch point never receives focus.
-    m_primaryClient->mouseDown(kButtonLeft);
-    m_primaryClient->mouseUp(kButtonLeft);
+    // The hook eats the original touch event, so the window under the
+    // touch point never receives it. Explicitly activate that window.
+    m_primaryClient->activateWindowAt(x, y);
 
-    // Force the window under the touch point to the foreground.
-    // The hook eats the original touch event, so the target window
-    // never receives the click. We must explicitly activate it.
-    // Windows restricts SetForegroundWindow to prevent focus stealing,
-    // so we use AttachThreadInput to bypass the restriction.
-#if WINAPI_MSWINDOWS
-    {
-      POINT pt = { x, y };
-      HWND hwnd = WindowFromPoint(pt);
-      if (hwnd != NULL) {
-        HWND root = GetAncestor(hwnd, GA_ROOT);
-        if (root != NULL) {
-          DWORD foreThread = GetWindowThreadProcessId(
-              GetForegroundWindow(), NULL);
-          DWORD curThread = GetCurrentThreadId();
-          if (foreThread != curThread) {
-            AttachThreadInput(foreThread, curThread, TRUE);
-          }
-          SetForegroundWindow(root);
-          if (foreThread != curThread) {
-            AttachThreadInput(foreThread, curThread, FALSE);
-          }
-          LOG((CLOG_DEBUG1 "touch: forced foreground window 0x%08x", root));
-        }
-      }
-    }
-#endif
-
-    // Start cooldown to prevent edge-triggered switches from immediately
-    // undoing this touch-triggered switch
+    // Cooldown prevents edge-triggered switches from undoing this touch switch
     m_touchSwitchCooldown.reset();
     LOG((CLOG_DEBUG1 "touch switch cooldown started"));
   }
@@ -1436,21 +1394,15 @@ void Server::handleGrabScreenEvent(const Event &event, void *vclient)
 
   LOG((CLOG_DEBUG1 "client \"%s\" requests grab at %d,%d", getName(client).c_str(), info->m_x, info->m_y));
 
-  // reject if still in cooldown from a recent touch switch
   if (m_touchSwitchCooldown.getTime() < kTouchSwitchCooldownTime) {
     LOG((CLOG_DEBUG1 "grab rejected (cooldown active)"));
     return;
   }
 
   if (client != m_active) {
-    // Save current cursor position on the screen we're leaving
-    // (same as jumpToScreen does for edge-triggered switches)
     m_active->setJumpCursorPos(m_x, m_y);
 
-    // Clamp touch coordinates away from screen edges to avoid landing
-    // in the jump zone on the primary screen (which would trigger an
-    // immediate edge switch back). Only matters when switching away
-    // from primary, since jump zones only exist on primary.
+    // Clamp away from jump zones to avoid triggering an immediate edge switch
     SInt32 x = info->m_x;
     SInt32 y = info->m_y;
     SInt32 dx, dy, dw, dh;
@@ -1461,11 +1413,9 @@ void Server::handleGrabScreenEvent(const Event &event, void *vclient)
     y = (std::max)(y, dy + z);
     y = (std::min)(y, dy + dh - 1 - z);
 
-    // Switch to the requesting client at clamped touch position
     switchScreen(client, x, y, false);
 
-    // Start cooldown to prevent edge-triggered switches from immediately
-    // undoing this touch-triggered switch
+    // Cooldown prevents edge-triggered switches from undoing this touch switch
     m_touchSwitchCooldown.reset();
     LOG((CLOG_DEBUG1 "touch switch cooldown started"));
   }

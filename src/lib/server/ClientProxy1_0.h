@@ -87,7 +87,6 @@ private:
 
   bool recvInfo();
   bool recvGrabClipboard();
-  bool recvGrabScreen();
 
 protected:
   struct ClientClipboard

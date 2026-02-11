@@ -2002,6 +2002,33 @@ String MSWindowsScreen::getSecureInputApp() const
   return "";
 }
 
+void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
+{
+  POINT pt = {x, y};
+  HWND hwnd = WindowFromPoint(pt);
+  if (hwnd == NULL) {
+    return;
+  }
+
+  HWND root = GetAncestor(hwnd, GA_ROOT);
+  if (root == NULL) {
+    return;
+  }
+
+  // Windows restricts SetForegroundWindow to prevent focus stealing,
+  // so we use AttachThreadInput to bypass the restriction.
+  DWORD foreThread = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+  DWORD curThread = GetCurrentThreadId();
+  if (foreThread != curThread) {
+    AttachThreadInput(foreThread, curThread, TRUE);
+  }
+  SetForegroundWindow(root);
+  if (foreThread != curThread) {
+    AttachThreadInput(foreThread, curThread, FALSE);
+  }
+  LOG((CLOG_DEBUG1 "touch: forced foreground window 0x%08x", root));
+}
+
 bool MSWindowsScreen::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask state, WPARAM wParam) const
 {
   bool result = false;

@@ -83,6 +83,9 @@ public:
   */
   void fakeInputEnd();
 
+  //! Activate the window at the given screen coordinates
+  void activateWindowAt(SInt32 x, SInt32 y);
+
   //@}
   //! @name accessors
   //@{

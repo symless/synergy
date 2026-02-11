@@ -236,6 +236,9 @@ public:
 
   void setEnableDragDrop(bool enabled);
 
+  //! Activate the window at the given screen coordinates
+  void activateWindowAt(SInt32 x, SInt32 y);
+
   //! Determine the name of the app causing a secure input state
   /*!
   On MacOS check which app causes a secure input state to be enabled. No
