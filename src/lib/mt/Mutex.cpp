@@ -17,39 +17,3 @@
  */
 
 #include "mt/Mutex.h"
-
-#include "arch/Arch.h"
-
-//
-// Mutex
-//
-
-Mutex::Mutex()
-{
-  m_mutex = ARCH->newMutex();
-}
-
-Mutex::Mutex(const Mutex &)
-{
-  m_mutex = ARCH->newMutex();
-}
-
-Mutex::~Mutex()
-{
-  ARCH->closeMutex(m_mutex);
-}
-
-Mutex &Mutex::operator=(const Mutex &)
-{
-  return *this;
-}
-
-void Mutex::lock() const
-{
-  ARCH->lockMutex(m_mutex);
-}
-
-void Mutex::unlock() const
-{
-  ARCH->unlockMutex(m_mutex);
-}

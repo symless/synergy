@@ -17,11 +17,11 @@
 
 #pragma once
 
-#include "arch/Arch.h"
-#include "arch/IArchMultithread.h"
 #include "base/Event.h"
 #include "base/EventTypes.h"
 #include "common/ipc.h"
+
+#include <mutex>
 
 namespace deskflow {
 class IStream;
@@ -60,6 +60,6 @@ private:
   IEventQueue *m_events;
   IpcClientType m_clientType = IpcClientType::Unknown;
   bool m_disconnecting = false;
-  ArchMutex m_readMutex = ARCH->newMutex();
-  ArchMutex m_writeMutex = ARCH->newMutex();
+  std::recursive_mutex m_readMutex;
+  std::recursive_mutex m_writeMutex;
 };

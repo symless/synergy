@@ -54,7 +54,6 @@ void IpcServer::init()
 {
   m_socket = new TCPListenSocket(m_events, m_socketMultiplexer, IArchNetwork::EAddressFamily::kINET);
 
-  m_clientsMutex = ARCH->newMutex();
   m_address.resolve();
 
   m_events->adoptHandler(
@@ -73,14 +72,14 @@ IpcServer::~IpcServer()
     delete m_socket;
   }
 
-  ARCH->lockMutex(m_clientsMutex);
-  ClientList::iterator it;
-  for (it = m_clients.begin(); it != m_clients.end(); it++) {
-    deleteClient(*it);
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_clientsMutex);
+    ClientList::iterator it;
+    for (it = m_clients.begin(); it != m_clients.end(); it++) {
+      deleteClient(*it);
+    }
+    m_clients.clear();
   }
-  m_clients.clear();
-  ARCH->unlockMutex(m_clientsMutex);
-  ARCH->closeMutex(m_clientsMutex);
 
   m_events->removeHandler(m_events->forIListenSocket().connecting(), m_socket);
 }
@@ -99,10 +98,12 @@ void IpcServer::handleClientConnecting(const Event &, void *)
 
   LOG((CLOG_DEBUG "accepted ipc client connection"));
 
-  ARCH->lockMutex(m_clientsMutex);
-  IpcClientProxy *proxy = new IpcClientProxy(*stream, m_events);
-  m_clients.push_back(proxy);
-  ARCH->unlockMutex(m_clientsMutex);
+  IpcClientProxy *proxy;
+  {
+    std::lock_guard<std::recursive_mutex> lock(m_clientsMutex);
+    proxy = new IpcClientProxy(*stream, m_events);
+    m_clients.push_back(proxy);
+  }
 
   m_events->adoptHandler(
       m_events->forIpcClientProxy().disconnected(), proxy,
@@ -121,7 +122,7 @@ void IpcServer::handleClientDisconnected(const Event &e, void *)
 {
   IpcClientProxy *proxy = static_cast<IpcClientProxy *>(e.getTarget());
 
-  ArchMutexLock lock(m_clientsMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_clientsMutex);
   m_clients.remove(proxy);
   deleteClient(proxy);
 
@@ -144,7 +145,7 @@ void IpcServer::deleteClient(IpcClientProxy *proxy)
 
 bool IpcServer::hasClients(IpcClientType clientType) const
 {
-  ArchMutexLock lock(m_clientsMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_clientsMutex);
 
   if (m_clients.empty()) {
     return false;
@@ -165,7 +166,7 @@ bool IpcServer::hasClients(IpcClientType clientType) const
 
 void IpcServer::send(const IpcMessage &message, IpcClientType filterType)
 {
-  ArchMutexLock lock(m_clientsMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_clientsMutex);
 
   ClientList::iterator it;
   for (it = m_clients.begin(); it != m_clients.end(); it++) {

@@ -18,63 +18,21 @@
 
 #pragma once
 
-#include "arch/IArchMultithread.h"
+#include <mutex>
 
-//! Mutual exclusion
-/*!
-A non-recursive mutual exclusion object.  Only one thread at a time can
-hold a lock on a mutex.  Any thread that attempts to lock a locked mutex
-will block until the mutex is unlocked.  At that time, if any threads are
-blocked, exactly one waiting thread will acquire the lock and continue
-running.  A thread may not lock a mutex it already owns the lock on;  if
-it tries it will deadlock itself.
-*/
 class Mutex
 {
 public:
-  Mutex();
-  //! Equivalent to default c'tor
-  /*!
-  Copy c'tor doesn't copy anything.  It just makes it possible to
-  copy objects that contain a mutex.
-  */
-  Mutex(const Mutex &);
-  ~Mutex();
+  Mutex() = default;
+  Mutex(const Mutex &) {} // creates new mutex (for copyable containers)
+  ~Mutex() = default;
 
-  //! @name manipulators
-  //@{
+  Mutex &operator=(const Mutex &) { return *this; }
 
-  //! Does nothing
-  /*!
-  This does nothing.  It just makes it possible to assign objects
-  that contain a mutex.
-  */
-  Mutex &operator=(const Mutex &);
-
-  //@}
-  //! @name accessors
-  //@{
-
-  //! Lock the mutex
-  /*!
-  Locks the mutex, which must not have been previously locked by the
-  calling thread.  This blocks if the mutex is already locked by another
-  thread.
-
-  (cancellation point)
-  */
-  void lock() const;
-
-  //! Unlock the mutex
-  /*!
-  Unlocks the mutex, which must have been previously locked by the
-  calling thread.
-  */
-  void unlock() const;
-
-  //@}
+  void lock() const { m_mutex.lock(); }
+  void unlock() const { m_mutex.unlock(); }
 
 private:
   friend class CondVarBase;
-  ArchMutex m_mutex;
+  mutable std::recursive_mutex m_mutex;
 };

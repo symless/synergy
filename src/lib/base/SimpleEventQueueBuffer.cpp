@@ -17,8 +17,9 @@
  */
 
 #include "base/SimpleEventQueueBuffer.h"
-#include "arch/Arch.h"
 #include "base/Stopwatch.h"
+
+#include <chrono>
 
 class EventQueueTimer
 {
@@ -28,22 +29,17 @@ class EventQueueTimer
 // SimpleEventQueueBuffer
 //
 
-SimpleEventQueueBuffer::SimpleEventQueueBuffer()
+SimpleEventQueueBuffer::SimpleEventQueueBuffer() : m_queueReady(false)
 {
-  m_queueMutex = ARCH->newMutex();
-  m_queueReadyCond = ARCH->newCondVar();
-  m_queueReady = false;
 }
 
 SimpleEventQueueBuffer::~SimpleEventQueueBuffer()
 {
-  ARCH->closeCondVar(m_queueReadyCond);
-  ARCH->closeMutex(m_queueMutex);
 }
 
 void SimpleEventQueueBuffer::waitForEvent(double timeout)
 {
-  ArchMutexLock lock(m_queueMutex);
+  std::unique_lock<std::recursive_mutex> lock(m_queueMutex);
   Stopwatch timer(true);
   while (!m_queueReady) {
     double timeLeft = timeout;
@@ -53,13 +49,17 @@ void SimpleEventQueueBuffer::waitForEvent(double timeout)
         return;
       }
     }
-    ARCH->waitCondVar(m_queueReadyCond, m_queueMutex, timeLeft);
+    if (timeLeft < 0.0) {
+      m_queueReadyCond.wait(lock);
+    } else {
+      m_queueReadyCond.wait_for(lock, std::chrono::duration<double>(timeLeft));
+    }
   }
 }
 
 IEventQueueBuffer::Type SimpleEventQueueBuffer::getEvent(Event &, UInt32 &dataID)
 {
-  ArchMutexLock lock(m_queueMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
   if (!m_queueReady) {
     return kNone;
   }
@@ -71,18 +71,18 @@ IEventQueueBuffer::Type SimpleEventQueueBuffer::getEvent(Event &, UInt32 &dataID
 
 bool SimpleEventQueueBuffer::addEvent(UInt32 dataID)
 {
-  ArchMutexLock lock(m_queueMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
   m_queue.push_front(dataID);
   if (!m_queueReady) {
     m_queueReady = true;
-    ARCH->broadcastCondVar(m_queueReadyCond);
+    m_queueReadyCond.notify_all();
   }
   return true;
 }
 
 bool SimpleEventQueueBuffer::isEmpty() const
 {
-  ArchMutexLock lock(m_queueMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_queueMutex);
   return !m_queueReady;
 }
 

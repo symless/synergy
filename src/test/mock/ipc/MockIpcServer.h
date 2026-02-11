@@ -17,11 +17,12 @@
 
 #pragma once
 
-#include "arch/Arch.h"
 #include "ipc/IpcMessage.h"
 #include "ipc/IpcServer.h"
 
+#include <condition_variable>
 #include <gmock/gmock.h>
+#include <mutex>
 
 using ::testing::_;
 using ::testing::Invoke;
@@ -31,20 +32,8 @@ class IEventQueue;
 class MockIpcServer : public IpcServer
 {
 public:
-  MockIpcServer() : m_sendCond(ARCH->newCondVar()), m_sendMutex(ARCH->newMutex())
-  {
-  }
-
-  ~MockIpcServer()
-  {
-    if (m_sendCond != NULL) {
-      ARCH->closeCondVar(m_sendCond);
-    }
-
-    if (m_sendMutex != NULL) {
-      ARCH->closeMutex(m_sendMutex);
-    }
-  }
+  MockIpcServer() = default;
+  ~MockIpcServer() = default;
 
   MOCK_METHOD(void, listen, (), (override));
   MOCK_METHOD(void, send, (const IpcMessage &, IpcClientType), (override));
@@ -57,16 +46,17 @@ public:
 
   void waitForSend()
   {
-    ARCH->waitCondVar(m_sendCond, m_sendMutex, 5);
+    std::unique_lock<std::recursive_mutex> lock(m_sendMutex);
+    m_sendCond.wait_for(lock, std::chrono::seconds(5));
   }
 
 private:
   void mockSend(const IpcMessage &, IpcClientType)
   {
-    ArchMutexLock lock(m_sendMutex);
-    ARCH->broadcastCondVar(m_sendCond);
+    std::lock_guard<std::recursive_mutex> lock(m_sendMutex);
+    m_sendCond.notify_all();
   }
 
-  ArchCond m_sendCond;
-  ArchMutex m_sendMutex;
+  std::condition_variable_any m_sendCond;
+  std::recursive_mutex m_sendMutex;
 };

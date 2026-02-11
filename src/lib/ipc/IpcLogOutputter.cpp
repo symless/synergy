@@ -38,12 +38,9 @@ enum EIpcLogOutputter
 
 IpcLogOutputter::IpcLogOutputter(IpcServer &ipcServer, IpcClientType clientType, bool useThread)
     : m_ipcServer(ipcServer),
-      m_bufferMutex(ARCH->newMutex()),
       m_sending(false),
       m_bufferThread(nullptr),
       m_running(false),
-      m_notifyCond(ARCH->newCondVar()),
-      m_notifyMutex(ARCH->newMutex()),
       m_bufferThreadId(0),
       m_bufferWaiting(false),
       m_bufferMaxSize(kBufferMaxSize),
@@ -51,8 +48,7 @@ IpcLogOutputter::IpcLogOutputter(IpcServer &ipcServer, IpcClientType clientType,
       m_bufferRateTimeLimit(kBufferRateTimeLimit),
       m_bufferWriteCount(0),
       m_bufferRateStart(ARCH->time()),
-      m_clientType(clientType),
-      m_runningMutex(ARCH->newMutex())
+      m_clientType(clientType)
 {
   if (useThread) {
     m_bufferThread = new Thread([this]() { bufferThread(nullptr); });
@@ -63,16 +59,11 @@ IpcLogOutputter::~IpcLogOutputter()
 {
   close();
 
-  ARCH->closeMutex(m_bufferMutex);
-
   if (m_bufferThread != nullptr) {
     m_bufferThread->cancel();
     m_bufferThread->wait();
     delete m_bufferThread;
   }
-
-  ARCH->closeCondVar(m_notifyCond);
-  ARCH->closeMutex(m_notifyMutex);
 }
 
 void IpcLogOutputter::open(const char *title)
@@ -82,7 +73,7 @@ void IpcLogOutputter::open(const char *title)
 void IpcLogOutputter::close()
 {
   if (m_bufferThread != nullptr) {
-    ArchMutexLock lock(m_runningMutex);
+    std::lock_guard<std::recursive_mutex> lock(m_runningMutex);
     m_running = false;
     notifyBuffer();
     m_bufferThread->wait(5);
@@ -108,7 +99,7 @@ bool IpcLogOutputter::write(ELevel, const char *text)
 
 void IpcLogOutputter::appendBuffer(const String &text)
 {
-  ArchMutexLock lock(m_bufferMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_bufferMutex);
 
   double elapsed = ARCH->time() - m_bufferRateStart;
   if (elapsed < m_bufferRateTimeLimit) {
@@ -133,7 +124,7 @@ void IpcLogOutputter::appendBuffer(const String &text)
 
 bool IpcLogOutputter::isRunning()
 {
-  ArchMutexLock lock(m_runningMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_runningMutex);
   return m_running;
 }
 
@@ -145,8 +136,8 @@ void IpcLogOutputter::bufferThread(void *)
   try {
     while (isRunning()) {
       if (m_buffer.empty() || !m_ipcServer.hasClients(m_clientType)) {
-        ArchMutexLock lock(m_notifyMutex);
-        ARCH->waitCondVar(m_notifyCond, m_notifyMutex, -1);
+        std::unique_lock<std::recursive_mutex> lock(m_notifyMutex);
+        m_notifyCond.wait(lock);
       }
 
       sendBuffer();
@@ -160,13 +151,13 @@ void IpcLogOutputter::bufferThread(void *)
 
 void IpcLogOutputter::notifyBuffer()
 {
-  ArchMutexLock lock(m_notifyMutex);
-  ARCH->broadcastCondVar(m_notifyCond);
+  std::lock_guard<std::recursive_mutex> lock(m_notifyMutex);
+  m_notifyCond.notify_all();
 }
 
 String IpcLogOutputter::getChunk(size_t count)
 {
-  ArchMutexLock lock(m_bufferMutex);
+  std::lock_guard<std::recursive_mutex> lock(m_bufferMutex);
 
   if (m_buffer.size() < count) {
     count = m_buffer.size();

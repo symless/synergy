@@ -17,8 +17,10 @@
  */
 
 #include "mt/CondVar.h"
-#include "arch/Arch.h"
 #include "base/Stopwatch.h"
+
+#include <cassert>
+#include <chrono>
 
 //
 // CondVarBase
@@ -27,12 +29,6 @@
 CondVarBase::CondVarBase(Mutex *mutex) : m_mutex(mutex)
 {
   assert(m_mutex != NULL);
-  m_cond = ARCH->newCondVar();
-}
-
-CondVarBase::~CondVarBase()
-{
-  ARCH->closeCondVar(m_cond);
 }
 
 void CondVarBase::lock() const
@@ -47,23 +43,19 @@ void CondVarBase::unlock() const
 
 void CondVarBase::signal()
 {
-  ARCH->signalCondVar(m_cond);
+  m_cond.notify_one();
 }
 
 void CondVarBase::broadcast()
 {
-  ARCH->broadcastCondVar(m_cond);
+  m_cond.notify_all();
 }
 
 bool CondVarBase::wait(Stopwatch &timer, double timeout) const
 {
   double remain = timeout - timer.getTime();
-  // Some ARCH wait()s return prematurely, retry until really timed out
-  // In particular, ArchMultithreadPosix::waitCondVar() returns every 100ms
+  // Some wait()s return prematurely, retry until really timed out
   do {
-    // Always call wait at least once, even if remain is 0, to give
-    // other thread a chance to grab the mutex to avoid deadlocks on
-    // busy waiting.
     if (remain < 0.0)
       remain = 0.0;
     if (wait(remain))
@@ -75,7 +67,13 @@ bool CondVarBase::wait(Stopwatch &timer, double timeout) const
 
 bool CondVarBase::wait(double timeout) const
 {
-  return ARCH->waitCondVar(m_cond, m_mutex->m_mutex, timeout);
+  if (timeout < 0.0) {
+    m_cond.wait(m_mutex->m_mutex);
+    return true;
+  } else {
+    auto dur = std::chrono::duration<double>(timeout);
+    return m_cond.wait_for(m_mutex->m_mutex, dur) == std::cv_status::no_timeout;
+  }
 }
 
 Mutex *CondVarBase::getMutex() const

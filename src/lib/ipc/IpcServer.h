@@ -25,6 +25,7 @@
 #include "net/TCPListenSocket.h"
 
 #include <list>
+#include <mutex>
 
 class Event;
 class IpcClientProxy;
@@ -85,7 +86,7 @@ private:
   TCPListenSocket *m_socket;
   NetworkAddress m_address;
   ClientList m_clients;
-  ArchMutex m_clientsMutex;
+  mutable std::recursive_mutex m_clientsMutex;
 
 #ifdef TEST_ENV
 public:

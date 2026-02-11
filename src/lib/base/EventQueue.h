@@ -18,7 +18,6 @@
 
 #pragma once
 
-#include "arch/IArchMultithread.h"
 #include "base/Event.h"
 #include "base/EventTypes.h"
 #include "base/IEventQueue.h"
@@ -28,6 +27,7 @@
 #include "common/stdset.h"
 #include "mt/CondVar.h"
 
+#include <mutex>
 #include <queue>
 
 class Mutex;
@@ -112,7 +112,7 @@ private:
   typedef std::map<void *, TypeHandlerTable> HandlerTable;
 
   int m_systemTarget;
-  ArchMutex m_mutex;
+  mutable std::recursive_mutex m_mutex;
 
   // registered events
   Event::Type m_nextType;

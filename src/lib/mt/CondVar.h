@@ -21,6 +21,8 @@
 #include "common/basic_types.h"
 #include "mt/Mutex.h"
 
+#include <condition_variable>
+
 class Stopwatch;
 
 //! Generic condition variable
@@ -39,34 +41,21 @@ public:
   variable.
   */
   CondVarBase(Mutex *mutex);
-  ~CondVarBase();
+  ~CondVarBase() = default;
 
   //! @name manipulators
   //@{
 
   //! Lock the condition variable's mutex
-  /*!
-  Lock the condition variable's mutex.  The condition variable should
-  be locked before reading or writing it.  It must be locked for a
-  call to wait().  Locks are not recursive;  locking a locked mutex
-  will deadlock the thread.
-  */
   void lock() const;
 
   //! Unlock the condition variable's mutex
   void unlock() const;
 
   //! Signal the condition variable
-  /*!
-  Wake up one waiting thread, if there are any.  Which thread gets
-  woken is undefined.
-  */
   void signal();
 
   //! Signal the condition variable
-  /*!
-  Wake up all waiting threads, if any.
-  */
   void broadcast();
 
   //@}
@@ -77,7 +66,7 @@ public:
   /*!
   Wait on the condition variable.  If \c timeout < 0 then wait until
   signalled, otherwise up to \c timeout seconds or until signalled,
-  whichever comes first.    Returns true if the object was signalled
+  whichever comes first.  Returns true if the object was signalled
   during the wait, false otherwise.
 
   The proper way to wait for a condition is:
@@ -108,21 +97,17 @@ public:
   bool wait(Stopwatch &timer, double timeout) const;
 
   //! Get the mutex
-  /*!
-  Get the mutex passed to the c'tor.
-  */
   Mutex *getMutex() const;
 
   //@}
 
 private:
-  // not implemented
-  CondVarBase(const CondVarBase &);
-  CondVarBase &operator=(const CondVarBase &);
+  CondVarBase(const CondVarBase &) = delete;
+  CondVarBase &operator=(const CondVarBase &) = delete;
 
 private:
   Mutex *m_mutex;
-  ArchCond m_cond;
+  mutable std::condition_variable_any m_cond;
 };
 
 //! Condition variable

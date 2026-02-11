@@ -18,9 +18,11 @@
 
 #pragma once
 
-#include "arch/IArchMultithread.h"
 #include "base/IEventQueueBuffer.h"
 #include "common/stddeque.h"
+
+#include <condition_variable>
+#include <mutex>
 
 //! In-memory event queue buffer
 /*!
@@ -51,8 +53,8 @@ public:
 private:
   typedef std::deque<UInt32> EventDeque;
 
-  ArchMutex m_queueMutex;
-  ArchCond m_queueReadyCond;
+  mutable std::recursive_mutex m_queueMutex;
+  std::condition_variable_any m_queueReadyCond;
   bool m_queueReady;
   EventDeque m_queue;
 };

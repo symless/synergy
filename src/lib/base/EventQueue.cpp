@@ -87,7 +87,6 @@ EventQueue::EventQueue()
       m_readyMutex(new Mutex),
       m_readyCondVar(new CondVar<bool>(m_readyMutex, false))
 {
-  m_mutex = ARCH->newMutex();
   ARCH->setSignalHandler(Arch::kINTERRUPT, &interrupt, this);
   ARCH->setSignalHandler(Arch::kTERMINATE, &interrupt, this);
   m_buffer = new SimpleEventQueueBuffer;
@@ -101,7 +100,6 @@ EventQueue::~EventQueue()
 
   ARCH->setSignalHandler(Arch::kINTERRUPT, NULL, NULL);
   ARCH->setSignalHandler(Arch::kTERMINATE, NULL, NULL);
-  ARCH->closeMutex(m_mutex);
 }
 
 void EventQueue::loop()
@@ -131,7 +129,7 @@ void EventQueue::loop()
 
 Event::Type EventQueue::registerTypeOnce(Event::Type &type, const char *name)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   if (type == Event::kUnknown) {
     m_typeMap.insert(std::make_pair(m_nextType, name));
     m_nameMap.insert(std::make_pair(name, m_nextType));
@@ -168,7 +166,7 @@ const char *EventQueue::getTypeName(Event::Type type)
 
 void EventQueue::adoptBuffer(IEventQueueBuffer *buffer)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   LOG((CLOG_DEBUG "adopting new buffer"));
 
@@ -239,7 +237,7 @@ retry:
     return true;
 
   case IEventQueueBuffer::kUser: {
-    ArchMutexLock lock(m_mutex);
+    std::lock_guard<std::recursive_mutex> lock(m_mutex);
     event = removeEvent(dataID);
     return true;
   }
@@ -289,7 +287,7 @@ void EventQueue::addEvent(const Event &event)
 
 void EventQueue::addEventToBuffer(const Event &event)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
   // store the event's data locally
   UInt32 eventID = saveEvent(event);
@@ -310,7 +308,7 @@ EventQueueTimer *EventQueue::newTimer(double duration, void *target)
   if (target == NULL) {
     target = timer;
   }
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_timers.insert(timer);
   // initial duration is requested duration plus whatever's on
   // the clock currently because the latter will be subtracted
@@ -327,7 +325,7 @@ EventQueueTimer *EventQueue::newOneShotTimer(double duration, void *target)
   if (target == NULL) {
     target = timer;
   }
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_timers.insert(timer);
   // initial duration is requested duration plus whatever's on
   // the clock currently because the latter will be subtracted
@@ -338,7 +336,7 @@ EventQueueTimer *EventQueue::newOneShotTimer(double duration, void *target)
 
 void EventQueue::deleteTimer(EventQueueTimer *timer)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   for (TimerQueue::iterator index = m_timerQueue.begin(); index != m_timerQueue.end(); ++index) {
     if (index->getTimer() == timer) {
       m_timerQueue.erase(index);
@@ -354,13 +352,13 @@ void EventQueue::deleteTimer(EventQueueTimer *timer)
 
 void EventQueue::adoptHandler(Event::Type type, void *target, EventHandler handler)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   m_handlers[target][type] = std::move(handler);
 }
 
 void EventQueue::removeHandler(Event::Type type, void *target)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   HandlerTable::iterator index = m_handlers.find(target);
   if (index != m_handlers.end()) {
     index->second.erase(type);
@@ -369,7 +367,7 @@ void EventQueue::removeHandler(Event::Type type, void *target)
 
 void EventQueue::removeHandlers(void *target)
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   HandlerTable::iterator index = m_handlers.find(target);
   if (index != m_handlers.end()) {
     index->second.clear();
@@ -383,7 +381,7 @@ bool EventQueue::isEmpty() const
 
 const EventHandler *EventQueue::getHandler(Event::Type type, void *target) const
 {
-  ArchMutexLock lock(m_mutex);
+  std::lock_guard<std::recursive_mutex> lock(m_mutex);
   HandlerTable::const_iterator index = m_handlers.find(target);
   if (index != m_handlers.end()) {
     const TypeHandlerTable &typeHandlers = index->second;
