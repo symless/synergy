@@ -661,7 +661,8 @@ bool Client::isCompatible(int major, int minor) const
 {
   const std::map<int, std::set<int>> compatibleTable{
       {6, {7, 8}}, // 1.6 is compatible with 1.7 and 1.8
-      {7, {8}}     // 1.7 is compatible with 1.8
+      {7, {8}},    // 1.7 is compatible with 1.8
+      {8, {9}}     // 1.8 is compatible with 1.9 (touch-to-switch unavailable)
   };
 
   bool isCompatible = false;
