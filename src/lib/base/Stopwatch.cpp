@@ -17,34 +17,21 @@
  */
 
 #include "base/Stopwatch.h"
-#include "arch/Arch.h"
 
-//
-// Stopwatch
-//
-
-Stopwatch::Stopwatch(bool triggered) : m_mark(0.0), m_triggered(triggered), m_stopped(triggered)
+Stopwatch::Stopwatch(bool triggered) : m_mark(Clock::now()), m_elapsed(0.0), m_triggered(triggered), m_stopped(triggered)
 {
-  if (!triggered) {
-    m_mark = ARCH->time();
-  }
-}
-
-Stopwatch::~Stopwatch()
-{
-  // do nothing
 }
 
 double Stopwatch::reset()
 {
   if (m_stopped) {
-    const double dt = m_mark;
-    m_mark = 0.0;
+    const double dt = m_elapsed.count();
+    m_elapsed = Duration(0.0);
     return dt;
   } else {
-    const double t = ARCH->time();
-    const double dt = t - m_mark;
-    m_mark = t;
+    const auto now = Clock::now();
+    const double dt = Duration(now - m_mark).count();
+    m_mark = now;
     return dt;
   }
 }
@@ -55,8 +42,7 @@ void Stopwatch::stop()
     return;
   }
 
-  // save the elapsed time
-  m_mark = ARCH->time() - m_mark;
+  m_elapsed = Duration(Clock::now() - m_mark);
   m_stopped = true;
 }
 
@@ -67,8 +53,9 @@ void Stopwatch::start()
     return;
   }
 
-  // set the mark such that it reports the time elapsed at stop()
-  m_mark = ARCH->time() - m_mark;
+  // resume: set mark so elapsed time is preserved
+  m_mark = Clock::now() - std::chrono::duration_cast<Clock::duration>(m_elapsed);
+  m_elapsed = Duration(0.0);
   m_stopped = false;
 }
 
@@ -81,13 +68,13 @@ void Stopwatch::setTrigger()
 double Stopwatch::getTime()
 {
   if (m_triggered) {
-    const double dt = m_mark;
+    const double dt = m_elapsed.count();
     start();
     return dt;
   } else if (m_stopped) {
-    return m_mark;
+    return m_elapsed.count();
   } else {
-    return ARCH->time() - m_mark;
+    return Duration(Clock::now() - m_mark).count();
   }
 }
 
@@ -104,9 +91,9 @@ bool Stopwatch::isStopped() const
 double Stopwatch::getTime() const
 {
   if (m_stopped) {
-    return m_mark;
+    return m_elapsed.count();
   } else {
-    return ARCH->time() - m_mark;
+    return Duration(Clock::now() - m_mark).count();
   }
 }
 

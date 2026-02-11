@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "common/common.h"
+#include <chrono>
 
 //! A timer class
 /*!
@@ -33,7 +33,7 @@ public:
   If triggered == false then the clock starts ticking.
   */
   Stopwatch(bool triggered = false);
-  ~Stopwatch();
+  ~Stopwatch() = default;
 
   //! @name manipulators
   //@{
@@ -101,10 +101,12 @@ public:
   //@}
 
 private:
-  double getClock() const;
+  using Clock = std::chrono::steady_clock;
+  using TimePoint = Clock::time_point;
+  using Duration = std::chrono::duration<double>;
 
-private:
-  double m_mark;
+  TimePoint m_mark;
+  Duration m_elapsed{0.0};
   bool m_triggered;
   bool m_stopped;
 };
