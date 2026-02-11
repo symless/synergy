@@ -18,7 +18,6 @@
 #include "ipc/IpcClientProxy.h"
 
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "common/ipc.h"
 #include "deskflow/ProtocolUtil.h"
 #include "io/IStream.h"
@@ -33,22 +32,22 @@ IpcClientProxy::IpcClientProxy(deskflow::IStream &stream, IEventQueue *events) :
 {
   m_events->adoptHandler(
       m_events->forIStream().inputReady(), stream.getEventTarget(),
-      new TMethodEventJob<IpcClientProxy>(this, &IpcClientProxy::handleData)
+      [this](const Event& event) { handleData(event, nullptr); }
   );
 
   m_events->adoptHandler(
       m_events->forIStream().outputError(), stream.getEventTarget(),
-      new TMethodEventJob<IpcClientProxy>(this, &IpcClientProxy::handleWriteError)
+      [this](const Event& event) { handleWriteError(event, nullptr); }
   );
 
   m_events->adoptHandler(
       m_events->forIStream().inputShutdown(), stream.getEventTarget(),
-      new TMethodEventJob<IpcClientProxy>(this, &IpcClientProxy::handleDisconnect)
+      [this](const Event& event) { handleDisconnect(event, nullptr); }
   );
 
   m_events->adoptHandler(
       m_events->forIStream().outputShutdown(), stream.getEventTarget(),
-      new TMethodEventJob<IpcClientProxy>(this, &IpcClientProxy::handleWriteError)
+      [this](const Event& event) { handleWriteError(event, nullptr); }
   );
 }
 

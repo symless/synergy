@@ -23,7 +23,6 @@
 #include "arch/XArch.h"
 #include "base/EventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "base/XBase.h"
 #include "base/log_outputters.h"
 #include "common/constants.h"
@@ -40,7 +39,6 @@
 #if SYSAPI_WIN32
 #include "arch/win32/ArchMiscWindows.h"
 #include "base/IEventQueue.h"
-#include "base/TMethodJob.h"
 #endif
 
 #if WINAPI_CARBON
@@ -255,7 +253,7 @@ void App::initIpcClient()
   m_ipcClient->connect();
 
   m_events->adoptHandler(
-      m_events->forIpcClient().messageReceived(), m_ipcClient, new TMethodEventJob<App>(this, &App::handleIpcMessage)
+      m_events->forIpcClient().messageReceived(), m_ipcClient, [this](const Event& event) { handleIpcMessage(event, nullptr); }
   );
 }
 

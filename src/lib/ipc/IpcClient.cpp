@@ -16,7 +16,6 @@
  */
 
 #include "ipc/IpcClient.h"
-#include "base/TMethodEventJob.h"
 #include "common/ipc.h"
 #include "ipc/IpcMessage.h"
 #include "ipc/IpcServerProxy.h"
@@ -56,7 +55,7 @@ void IpcClient::connect()
 {
   m_events->adoptHandler(
       m_events->forIDataSocket().connected(), m_socket.getEventTarget(),
-      new TMethodEventJob<IpcClient>(this, &IpcClient::handleConnected)
+      [this](const Event& event) { handleConnected(event, nullptr); }
   );
 
   m_socket.connect(m_serverAddress);
@@ -64,7 +63,7 @@ void IpcClient::connect()
 
   m_events->adoptHandler(
       m_events->forIpcServerProxy().messageReceived(), m_server,
-      new TMethodEventJob<IpcClient>(this, &IpcClient::handleMessageReceived)
+      [this](const Event& event) { handleMessageReceived(event, nullptr); }
   );
 }
 

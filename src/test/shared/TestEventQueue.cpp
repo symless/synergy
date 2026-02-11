@@ -17,7 +17,6 @@
 
 #include "test/shared/TestEventQueue.h"
 
-#include "base/TMethodEventJob.h"
 #include "common/stdexcept.h"
 
 void TestEventQueue::raiseQuitEvent()
@@ -30,7 +29,7 @@ void TestEventQueue::initQuitTimeout(double timeout)
   assert(m_pQuitTimeoutTimer == nullptr);
   m_pQuitTimeoutTimer = newOneShotTimer(timeout, NULL);
   adoptHandler(
-      Event::kTimer, m_pQuitTimeoutTimer, new TMethodEventJob<TestEventQueue>(this, &TestEventQueue::handleQuitTimeout)
+      Event::kTimer, m_pQuitTimeoutTimer, [this](const Event& event) { handleQuitTimeout(event, nullptr); }
   );
 }
 

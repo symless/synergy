@@ -20,7 +20,6 @@
 
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/ProtocolUtil.h"
 
 #include <cstring>
@@ -88,7 +87,7 @@ void ClientProxy1_3::addHeartbeatTimer()
     m_keepAliveTimer = m_events->newTimer(m_keepAliveRate, NULL);
     m_events->adoptHandler(
         Event::kTimer, m_keepAliveTimer,
-        new TMethodEventJob<ClientProxy1_3>(this, &ClientProxy1_3::handleKeepAlive, NULL)
+        [this](const Event& event) { handleKeepAlive(event, nullptr); }
     );
   }
 

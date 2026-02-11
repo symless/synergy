@@ -19,11 +19,9 @@
 #include "platform/MSWindowsKeyState.h"
 
 #include "arch/win32/ArchMiscWindows.h"
-#include "base/FunctionJob.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/String.h"
-#include "base/TMethodEventJob.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsDesks.h"
 
@@ -775,7 +773,7 @@ bool MSWindowsKeyState::fakeCtrlAltDel()
     SetEvent(hEvtSendSas);
     CloseHandle(hEvtSendSas);
   } else {
-    Thread cad(new FunctionJob(&MSWindowsKeyState::ctrlAltDelThread));
+    Thread cad([]() { MSWindowsKeyState::ctrlAltDelThread(nullptr); });
     cad.wait();
   }
 

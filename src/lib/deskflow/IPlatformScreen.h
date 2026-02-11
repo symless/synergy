@@ -216,8 +216,7 @@ protected:
   \code
   m_events->adoptHandler(Event::kSystem,
                         m_events->getSystemTarget(),
-                        new TMethodEventJob<CXXXPlatformScreen>(this,
-                            &CXXXPlatformScreen::handleSystemEvent));
+                        [this](const Event& event) { handleSystemEvent(event, nullptr); });
   \endcode
   It should remove the handler in its d'tor.  Override the
   \c handleSystemEvent() method to process system events.

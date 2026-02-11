@@ -18,7 +18,6 @@
 
 #include "deskflow/PacketStreamFilter.h"
 #include "base/IEventQueue.h"
-#include "base/TMethodEventJob.h"
 #include "mt/Lock.h"
 
 #include <cstring>

@@ -25,8 +25,6 @@
 #include "base/EventQueue.h"
 #include "base/Log.h"
 #include "base/String.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "common/ipc.h"
 #include "ipc/IpcClient.h"
 #include "ipc/IpcClientProxy.h"
@@ -73,7 +71,7 @@ TEST_F(IpcTests, connectToServer)
 
   m_events.adoptHandler(
       m_events.forIpcServer().messageReceived(), &server,
-      new TMethodEventJob<IpcTests>(this, &IpcTests::connectToServer_handleMessageReceived)
+      [this](const Event& event) { connectToServer_handleMessageReceived(event, nullptr); }
   );
 
   IpcClient client(&m_events, &socketMultiplexer, kTestPort);
@@ -97,7 +95,7 @@ TEST_F(IpcTests, sendMessageToServer)
   // event handler sends "test" command to server.
   m_events.adoptHandler(
       m_events.forIpcServer().messageReceived(), &server,
-      new TMethodEventJob<IpcTests>(this, &IpcTests::sendMessageToServer_serverHandleMessageReceived)
+      [this](const Event& event) { sendMessageToServer_serverHandleMessageReceived(event, nullptr); }
   );
 
   IpcClient client(&m_events, &socketMultiplexer, kTestPort);
@@ -122,7 +120,7 @@ TEST_F(IpcTests, sendMessageToClient)
   // event handler sends "test" log line to client.
   m_events.adoptHandler(
       m_events.forIpcServer().messageReceived(), &server,
-      new TMethodEventJob<IpcTests>(this, &IpcTests::sendMessageToClient_serverHandleClientConnected)
+      [this](const Event& event) { sendMessageToClient_serverHandleClientConnected(event, nullptr); }
   );
 
   IpcClient client(&m_events, &socketMultiplexer, kTestPort);
@@ -130,7 +128,7 @@ TEST_F(IpcTests, sendMessageToClient)
 
   m_events.adoptHandler(
       m_events.forIpcClient().messageReceived(), &client,
-      new TMethodEventJob<IpcTests>(this, &IpcTests::sendMessageToClient_clientHandleMessageReceived)
+      [this](const Event& event) { sendMessageToClient_clientHandleMessageReceived(event, nullptr); }
   );
 
   m_events.initQuitTimeout(5);

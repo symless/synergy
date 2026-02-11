@@ -24,7 +24,6 @@
 
 #include <base/Log.h>
 #include <base/Path.h>
-#include <base/TMethodEventJob.h>
 
 #include <arch/XArch.h>
 #include <mt/Lock.h>
@@ -51,7 +50,7 @@ void SecureClientSocket::connect(const NetworkAddress &addr)
 {
   m_events->adoptHandler(
       m_events->forIDataSocket().connected(), getEventTarget(),
-      new TMethodEventJob<SecureClientSocket>(this, &SecureClientSocket::handleTCPConnected)
+      [this](const Event& event) { handleTCPConnected(event, nullptr); }
   );
 
   InverseClientSocket::connect(addr);

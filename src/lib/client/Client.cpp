@@ -21,8 +21,6 @@
 #include "arch/Arch.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "client/ServerProxy.h"
 #include "common/stdexcept.h"
 #include "deskflow/AppUtil.h"
@@ -82,19 +80,19 @@ Client::Client(
 
   // register suspend/resume event handlers
   m_events->adoptHandler(
-      m_events->forIScreen().suspend(), getEventTarget(), new TMethodEventJob<Client>(this, &Client::handleSuspend)
+      m_events->forIScreen().suspend(), getEventTarget(), [this](const Event& event) { handleSuspend(event, nullptr); }
   );
   m_events->adoptHandler(
-      m_events->forIScreen().resume(), getEventTarget(), new TMethodEventJob<Client>(this, &Client::handleResume)
+      m_events->forIScreen().resume(), getEventTarget(), [this](const Event& event) { handleResume(event, nullptr); }
   );
 
   if (m_args.m_enableDragDrop) {
     m_events->adoptHandler(
-        m_events->forFile().fileChunkSending(), this, new TMethodEventJob<Client>(this, &Client::handleFileChunkSending)
+        m_events->forFile().fileChunkSending(), this, [this](const Event& event) { handleFileChunkSending(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forFile().fileRecieveCompleted(), this,
-        new TMethodEventJob<Client>(this, &Client::handleFileRecieveCompleted)
+        [this](const Event& event) { handleFileRecieveCompleted(event, nullptr); }
     );
   }
 }
@@ -437,18 +435,18 @@ void Client::setupConnecting()
   if (m_args.m_enableCrypto) {
     m_events->adoptHandler(
         m_events->forIDataSocket().secureConnected(), m_stream->getEventTarget(),
-        new TMethodEventJob<Client>(this, &Client::handleConnected)
+        [this](const Event& event) { handleConnected(event, nullptr); }
     );
   } else {
     m_events->adoptHandler(
         m_events->forIDataSocket().connected(), m_stream->getEventTarget(),
-        new TMethodEventJob<Client>(this, &Client::handleConnected)
+        [this](const Event& event) { handleConnected(event, nullptr); }
     );
   }
 
   m_events->adoptHandler(
       m_events->forIDataSocket().connectionFailed(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleConnectionFailed)
+      [this](const Event& event) { handleConnectionFailed(event, nullptr); }
   );
 }
 
@@ -458,28 +456,28 @@ void Client::setupConnection()
 
   m_events->adoptHandler(
       m_events->forISocket().disconnected(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleDisconnected)
+      [this](const Event& event) { handleDisconnected(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().inputReady(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleHello)
+      [this](const Event& event) { handleHello(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().outputError(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleOutputError)
+      [this](const Event& event) { handleOutputError(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().inputShutdown(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleDisconnected)
+      [this](const Event& event) { handleDisconnected(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().outputShutdown(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleDisconnected)
+      [this](const Event& event) { handleDisconnected(event, nullptr); }
   );
 
   m_events->adoptHandler(
       m_events->forISocket().stopRetry(), m_stream->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleStopRetry)
+      [this](const Event& event) { handleStopRetry(event, nullptr); }
   );
 }
 
@@ -491,11 +489,11 @@ void Client::setupScreen()
   m_server = new ServerProxy(this, m_stream, m_events);
   m_events->adoptHandler(
       m_events->forIScreen().shapeChanged(), getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleShapeChanged)
+      [this](const Event& event) { handleShapeChanged(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forClipboard().clipboardGrabbed(), getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleClipboardGrabbed)
+      [this](const Event& event) { handleClipboardGrabbed(event, nullptr); }
   );
 }
 
@@ -505,7 +503,7 @@ void Client::setupTimer()
 
   if (!m_args.m_hostMode) {
     m_timer = m_events->newOneShotTimer(2.0, NULL);
-    m_events->adoptHandler(Event::kTimer, m_timer, new TMethodEventJob<Client>(this, &Client::handleConnectTimeout));
+    m_events->adoptHandler(Event::kTimer, m_timer, [this](const Event& event) { handleConnectTimeout(event, nullptr); });
   }
 }
 
@@ -750,7 +748,7 @@ void Client::handleFileRecieveCompleted(const Event &event, void *)
 void Client::onFileRecieveCompleted()
 {
   if (isReceivedFileSizeValid()) {
-    auto method = new TMethodJob<Client>(this, &Client::writeToDropDirThread);
+    auto method = [this]() { writeToDropDirThread(nullptr); };
     m_writeToDropDirThread.reset(new Thread(method));
   }
 }
@@ -813,7 +811,7 @@ void Client::sendFileToServer(const char *filename)
   }
 
   auto data = static_cast<void *>(const_cast<char *>(filename));
-  auto method = new TMethodJob<Client>(this, &Client::sendFileThread, data);
+  auto method = [this, data]() { sendFileThread(data); };
   m_sendFileThread.reset(new Thread(method));
 }
 

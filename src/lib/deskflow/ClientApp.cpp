@@ -24,7 +24,6 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/String.h"
-#include "base/TMethodEventJob.h"
 #include "client/Client.h"
 #include "deskflow/ArgParser.h"
 #include "deskflow/ClientArgs.h"
@@ -64,7 +63,6 @@
 #endif
 
 #if defined(MAC_OS_X_VERSION_10_7)
-#include "base/TMethodJob.h"
 #include "mt/Thread.h"
 #endif
 
@@ -274,7 +272,7 @@ deskflow::Screen *ClientApp::openClientScreen()
   screen->setEnableDragDrop(argsBase().m_enableDragDrop);
   m_events->adoptHandler(
       m_events->forIScreen().error(), screen->getEventTarget(),
-      new TMethodEventJob<ClientApp>(this, &ClientApp::handleScreenError)
+      [this](const Event& event) { handleScreenError(event, nullptr); }
   );
   return screen;
 }
@@ -304,7 +302,7 @@ void ClientApp::scheduleClientRestart(double retryTime)
   LOG((CLOG_DEBUG "retry in %.0f seconds", retryTime));
   EventQueueTimer *timer = m_events->newOneShotTimer(retryTime, NULL);
   m_events->adoptHandler(
-      Event::kTimer, timer, new TMethodEventJob<ClientApp>(this, &ClientApp::handleClientRestart, timer)
+      Event::kTimer, timer, [this, timer](const Event& event) { handleClientRestart(event, timer); }
   );
 }
 
@@ -365,22 +363,22 @@ Client *ClientApp::openClient(const String &name, const NetworkAddress &address,
   try {
     m_events->adoptHandler(
         m_events->forClient().connected(), client->getEventTarget(),
-        new TMethodEventJob<ClientApp>(this, &ClientApp::handleClientConnected)
+        [this](const Event& event) { handleClientConnected(event, nullptr); }
     );
 
     m_events->adoptHandler(
         m_events->forClient().connectionFailed(), client->getEventTarget(),
-        new TMethodEventJob<ClientApp>(this, &ClientApp::handleClientFailed)
+        [this](const Event& event) { handleClientFailed(event, nullptr); }
     );
 
     m_events->adoptHandler(
         m_events->forClient().connectionRefused(), client->getEventTarget(),
-        new TMethodEventJob<ClientApp>(this, &ClientApp::handleClientRefused)
+        [this](const Event& event) { handleClientRefused(event, nullptr); }
     );
 
     m_events->adoptHandler(
         m_events->forClient().disconnected(), client->getEventTarget(),
-        new TMethodEventJob<ClientApp>(this, &ClientApp::handleClientDisconnected)
+        [this](const Event& event) { handleClientDisconnected(event, nullptr); }
     );
 
   } catch (std::bad_alloc &ba) {
@@ -483,7 +481,7 @@ int ClientApp::mainLoop()
 
 #if defined(MAC_OS_X_VERSION_10_7)
 
-  Thread thread(new TMethodJob<ClientApp>(this, &ClientApp::runEventsLoop, NULL));
+  Thread thread([this]() { runEventsLoop(nullptr); });
 
   // wait until carbon loop is ready
   OSXScreen *screen = dynamic_cast<OSXScreen *>(m_clientScreen->getPlatformScreen());

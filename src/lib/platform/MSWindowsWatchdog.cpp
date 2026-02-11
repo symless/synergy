@@ -10,7 +10,6 @@
 #include "arch/win32/XArchWindows.h"
 #include "base/ELevel.h"
 #include "base/Log.h"
-#include "base/TMethodJob.h"
 #include "base/log_outputters.h"
 #include "common/constants.h"
 #include "deskflow/App.h"
@@ -92,9 +91,9 @@ MSWindowsWatchdog::MSWindowsWatchdog(bool foreground, FileLogOutputter &fileLogO
 
 void MSWindowsWatchdog::startAsync()
 {
-  m_mainThread = std::make_unique<Thread>(new TMethodJob(this, &MSWindowsWatchdog::mainLoop, nullptr));
-  m_outputThread = std::make_unique<Thread>(new TMethodJob(this, &MSWindowsWatchdog::outputLoop, nullptr));
-  m_sasThread = std::make_unique<Thread>(new TMethodJob(this, &MSWindowsWatchdog::sasLoop, nullptr));
+  m_mainThread = std::make_unique<Thread>([this]() { mainLoop(nullptr); });
+  m_outputThread = std::make_unique<Thread>([this]() { outputLoop(nullptr); });
+  m_sasThread = std::make_unique<Thread>([this]() { sasLoop(nullptr); });
 }
 
 void MSWindowsWatchdog::stop()

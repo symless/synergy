@@ -24,7 +24,6 @@
 #include "base/Log.h"
 #include "base/Stopwatch.h"
 #include "base/String.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/App.h"
 #include "deskflow/ArgsBase.h"
 #include "deskflow/ClientApp.h"
@@ -198,7 +197,7 @@ XWindowsScreen::XWindowsScreen(
   // install event handlers
   m_events->adoptHandler(
       Event::kSystem, m_events->getSystemTarget(),
-      new TMethodEventJob<XWindowsScreen>(this, &XWindowsScreen::handleSystemEvent)
+      [this](const Event& event) { handleSystemEvent(event, nullptr); }
   );
 
   // install the platform event queue

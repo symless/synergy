@@ -34,12 +34,12 @@ public:
   MOCK_METHOD(void, removeHandlers, (void *), (override));
   MOCK_METHOD(Event::Type, registerType, (const char *));
   MOCK_METHOD(bool, isEmpty, (), (const, override));
-  MOCK_METHOD(void, adoptHandler, (Event::Type, void *, IEventJob *), (override));
+  MOCK_METHOD(void, adoptHandler, (Event::Type, void *, EventHandler), (override));
   MOCK_METHOD(const char *, getTypeName, (Event::Type), (override));
   MOCK_METHOD(void, addEvent, (const Event &), (override));
   MOCK_METHOD(void, removeHandler, (Event::Type, void *), (override));
   MOCK_METHOD(bool, dispatchEvent, (const Event &), (override));
-  MOCK_METHOD(IEventJob *, getHandler, (Event::Type, void *), (const, override));
+  MOCK_METHOD(const EventHandler *, getHandler, (Event::Type, void *), (const, override));
   MOCK_METHOD(void, deleteTimer, (EventQueueTimer *), (override));
   MOCK_METHOD(Event::Type, getRegisteredType, (const String &), (const, override));
   MOCK_METHOD(void *, getSystemTarget, (), (override));

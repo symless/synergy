@@ -18,7 +18,6 @@
 
 #include "io/StreamFilter.h"
 #include "base/IEventQueue.h"
-#include "base/TMethodEventJob.h"
 
 //
 // StreamFilter
@@ -33,7 +32,7 @@ StreamFilter::StreamFilter(IEventQueue *events, deskflow::IStream *stream, bool 
   m_events->removeHandlers(m_stream->getEventTarget());
   m_events->adoptHandler(
       Event::kUnknown, m_stream->getEventTarget(),
-      new TMethodEventJob<StreamFilter>(this, &StreamFilter::handleUpstreamEvent)
+      [this](const Event& event) { handleUpstreamEvent(event, nullptr); }
   );
 }
 

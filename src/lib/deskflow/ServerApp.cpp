@@ -22,7 +22,6 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/Path.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/App.h"
 #include "deskflow/ArgParser.h"
 #include "deskflow/Screen.h"
@@ -65,7 +64,6 @@
 #endif
 
 #if defined(MAC_OS_X_VERSION_10_7)
-#include "base/TMethodJob.h"
 #include "mt/Thread.h"
 #endif
 
@@ -287,11 +285,11 @@ void ServerApp::closeServer(Server *server)
   double timeout = 3.0;
   EventQueueTimer *timer = m_events->newOneShotTimer(timeout, NULL);
   m_events->adoptHandler(
-      Event::kTimer, timer, new TMethodEventJob<ServerApp>(this, &ServerApp::handleClientsDisconnected)
+      Event::kTimer, timer, [this](const Event& event) { handleClientsDisconnected(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forServer().disconnected(), server,
-      new TMethodEventJob<ServerApp>(this, &ServerApp::handleClientsDisconnected)
+      [this](const Event& event) { handleClientsDisconnected(event, nullptr); }
   );
 
   m_events->loop();
@@ -469,7 +467,7 @@ bool ServerApp::initServer()
     assert(m_timer == NULL);
     LOG((CLOG_DEBUG "retry in %.0f seconds", retryTime));
     m_timer = m_events->newOneShotTimer(retryTime, NULL);
-    m_events->adoptHandler(Event::kTimer, m_timer, new TMethodEventJob<ServerApp>(this, &ServerApp::retryHandler));
+    m_events->adoptHandler(Event::kTimer, m_timer, [this](const Event& event) { retryHandler(event, nullptr); });
     m_serverState = kInitializing;
     return true;
   } else {
@@ -484,15 +482,15 @@ deskflow::Screen *ServerApp::openServerScreen()
   screen->setEnableDragDrop(argsBase().m_enableDragDrop);
   m_events->adoptHandler(
       m_events->forIScreen().error(), screen->getEventTarget(),
-      new TMethodEventJob<ServerApp>(this, &ServerApp::handleScreenError)
+      [this](const Event& event) { handleScreenError(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIScreen().suspend(), screen->getEventTarget(),
-      new TMethodEventJob<ServerApp>(this, &ServerApp::handleSuspend)
+      [this](const Event& event) { handleSuspend(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIScreen().resume(), screen->getEventTarget(),
-      new TMethodEventJob<ServerApp>(this, &ServerApp::handleResume)
+      [this](const Event& event) { handleResume(event, nullptr); }
   );
   return screen;
 }
@@ -549,7 +547,7 @@ bool ServerApp::startServer()
     const auto retryTime = 10.0;
     LOG((CLOG_DEBUG "retry in %.0f seconds", retryTime));
     m_timer = m_events->newOneShotTimer(retryTime, NULL);
-    m_events->adoptHandler(Event::kTimer, m_timer, new TMethodEventJob<ServerApp>(this, &ServerApp::retryHandler));
+    m_events->adoptHandler(Event::kTimer, m_timer, [this](const Event& event) { retryHandler(event, nullptr); });
     m_serverState = kStarting;
     return true;
   } else {
@@ -623,7 +621,7 @@ ClientListener *ServerApp::openClientListener(const NetworkAddress &address)
 
   m_events->adoptHandler(
       m_events->forClientListener().connected(), listen,
-      new TMethodEventJob<ServerApp>(this, &ServerApp::handleClientConnected, listen)
+      [this, listen](const Event& event) { handleClientConnected(event, listen); }
   );
 
   return listen;
@@ -634,12 +632,12 @@ Server *ServerApp::openServer(ServerConfig &config, PrimaryClient *primaryClient
   Server *server = new Server(config, primaryClient, m_serverScreen, m_events, args());
   try {
     m_events->adoptHandler(
-        m_events->forServer().disconnected(), server, new TMethodEventJob<ServerApp>(this, &ServerApp::handleNoClients)
+        m_events->forServer().disconnected(), server, [this](const Event& event) { handleNoClients(event, nullptr); }
     );
 
     m_events->adoptHandler(
         m_events->forServer().screenSwitched(), server,
-        new TMethodEventJob<ServerApp>(this, &ServerApp::handleScreenSwitched)
+        [this](const Event& event) { handleScreenSwitched(event, nullptr); }
     );
 
   } catch (std::bad_alloc &ba) {
@@ -726,21 +724,21 @@ int ServerApp::mainLoop()
   ARCH->setSignalHandler(Arch::kHANGUP, &reloadSignalHandler, NULL);
   m_events->adoptHandler(
       m_events->forServerApp().reloadConfig(), m_events->getSystemTarget(),
-      new TMethodEventJob<ServerApp>(this, &ServerApp::reloadConfig)
+      [this](const Event& event) { reloadConfig(event, nullptr); }
   );
 
   // handle force reconnect event by disconnecting clients.  they'll
   // reconnect automatically.
   m_events->adoptHandler(
       m_events->forServerApp().forceReconnect(), m_events->getSystemTarget(),
-      new TMethodEventJob<ServerApp>(this, &ServerApp::forceReconnect)
+      [this](const Event& event) { forceReconnect(event, nullptr); }
   );
 
   // to work around the sticky meta keys problem, we'll give users
   // the option to reset the state of the server.
   m_events->adoptHandler(
       m_events->forServerApp().resetServer(), m_events->getSystemTarget(),
-      new TMethodEventJob<ServerApp>(this, &ServerApp::resetServer)
+      [this](const Event& event) { resetServer(event, nullptr); }
   );
 
   // run event loop.  if startServer() failed we're supposed to retry
@@ -750,7 +748,7 @@ int ServerApp::mainLoop()
 
 #if defined(MAC_OS_X_VERSION_10_7)
 
-  Thread thread(new TMethodJob<ServerApp>(this, &ServerApp::runEventsLoop, NULL));
+  Thread thread([this]() { runEventsLoop(nullptr); });
 
   // wait until carbon loop is ready
   OSXScreen *screen = dynamic_cast<OSXScreen *>(m_serverScreen->getPlatformScreen());

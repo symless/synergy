@@ -21,8 +21,6 @@
 #include "arch/Arch.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "common/stdexcept.h"
 #include "deskflow/AppUtil.h"
 #include "deskflow/DropHelper.h"
@@ -113,78 +111,78 @@ Server::Server(
   }
 
   // install event handlers
-  m_events->adoptHandler(Event::kTimer, this, new TMethodEventJob<Server>(this, &Server::handleSwitchWaitTimeout));
+  m_events->adoptHandler(Event::kTimer, this, [this](const Event& event) { handleSwitchWaitTimeout(event, nullptr); });
   m_events->adoptHandler(
-      m_events->forIKeyState().keyDown(), m_inputFilter, new TMethodEventJob<Server>(this, &Server::handleKeyDownEvent)
+      m_events->forIKeyState().keyDown(), m_inputFilter, [this](const Event& event) { handleKeyDownEvent(event, nullptr); }
   );
   m_events->adoptHandler(
-      m_events->forIKeyState().keyUp(), m_inputFilter, new TMethodEventJob<Server>(this, &Server::handleKeyUpEvent)
+      m_events->forIKeyState().keyUp(), m_inputFilter, [this](const Event& event) { handleKeyUpEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIKeyState().keyRepeat(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleKeyRepeatEvent)
+      [this](const Event& event) { handleKeyRepeatEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().buttonDown(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleButtonDownEvent)
+      [this](const Event& event) { handleButtonDownEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().buttonUp(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleButtonUpEvent)
+      [this](const Event& event) { handleButtonUpEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().motionOnPrimary(), m_primaryClient->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleMotionPrimaryEvent)
+      [this](const Event& event) { handleMotionPrimaryEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().motionOnSecondary(), m_primaryClient->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleMotionSecondaryEvent)
+      [this](const Event& event) { handleMotionSecondaryEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().wheel(), m_primaryClient->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleWheelEvent)
+      [this](const Event& event) { handleWheelEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().screensaverActivated(), m_primaryClient->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleScreensaverActivatedEvent)
+      [this](const Event& event) { handleScreensaverActivatedEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().screensaverDeactivated(), m_primaryClient->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleScreensaverDeactivatedEvent)
+      [this](const Event& event) { handleScreensaverDeactivatedEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forServer().switchToScreen(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleSwitchToScreenEvent)
+      [this](const Event& event) { handleSwitchToScreenEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forServer().switchInDirection(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleSwitchInDirectionEvent)
+      [this](const Event& event) { handleSwitchInDirectionEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forServer().keyboardBroadcast(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleKeyboardBroadcastEvent)
+      [this](const Event& event) { handleKeyboardBroadcastEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forServer().lockCursorToScreen(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleLockCursorToScreenEvent)
+      [this](const Event& event) { handleLockCursorToScreenEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().fakeInputBegin(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleFakeInputBeginEvent)
+      [this](const Event& event) { handleFakeInputBeginEvent(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIPrimaryScreen().fakeInputEnd(), m_inputFilter,
-      new TMethodEventJob<Server>(this, &Server::handleFakeInputEndEvent)
+      [this](const Event& event) { handleFakeInputEndEvent(event, nullptr); }
   );
 
   if (m_args.m_enableDragDrop) {
     m_events->adoptHandler(
         m_events->forFile().fileChunkSending(), this,
-        new TMethodEventJob<Server>(this, &Server::handleFileChunkSendingEvent)
+        [this](const Event& event) { handleFileChunkSendingEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forFile().fileRecieveCompleted(), this,
-        new TMethodEventJob<Server>(this, &Server::handleFileRecieveCompletedEvent)
+        [this](const Event& event) { handleFileRecieveCompletedEvent(event, nullptr); }
     );
   }
 
@@ -298,7 +296,7 @@ void Server::adoptClient(BaseClientProxy *client)
   // watch for client disconnection
   m_events->adoptHandler(
       m_events->forClientProxy().disconnected(), client,
-      new TMethodEventJob<Server>(this, &Server::handleClientDisconnected, client)
+      [this, client](const Event& event) { handleClientDisconnected(event, client); }
   );
 
   // name must be in our configuration
@@ -1697,7 +1695,7 @@ bool Server::onMouseMovePrimary(SInt32 x, SInt32 y)
     if (isSwitchOkay(newScreen, dir, x, y, xc, yc)) {
       if (m_args.m_enableDragDrop && m_screen->isDraggingStarted() && m_active != newScreen && m_waitDragInfoThread) {
         if (!m_sendDragInfoThread) {
-          m_sendDragInfoThread.reset(new Thread(new TMethodJob<Server>(this, &Server::sendDragInfoThread, newScreen)));
+          m_sendDragInfoThread.reset(new Thread([this, newScreen]() { sendDragInfoThread(newScreen); }));
         }
 
         return false;
@@ -1953,7 +1951,7 @@ void Server::onFileChunkSending(const void *data)
 void Server::onFileRecieveCompleted()
 {
   if (isReceivedFileSizeValid()) {
-    auto method = new TMethodJob<Server>(this, &Server::writeToDropDirThread);
+    auto method = [this]() { writeToDropDirThread(nullptr); };
     m_writeToDropDirThread.reset(new Thread(method));
   }
 }
@@ -1979,15 +1977,15 @@ bool Server::addClient(BaseClientProxy *client)
   // add event handlers
   m_events->adoptHandler(
       m_events->forIScreen().shapeChanged(), client->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleShapeChanged, client)
+      [this, client](const Event& event) { handleShapeChanged(event, client); }
   );
   m_events->adoptHandler(
       m_events->forClipboard().clipboardGrabbed(), client->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleClipboardGrabbed, client)
+      [this, client](const Event& event) { handleClipboardGrabbed(event, client); }
   );
   m_events->adoptHandler(
       m_events->forClipboard().clipboardChanged(), client->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleClipboardChanged, client)
+      [this, client](const Event& event) { handleClipboardChanged(event, client); }
   );
 
   // add to list
@@ -2048,7 +2046,7 @@ void Server::closeClient(BaseClientProxy *client, const char *msg)
   double timeout = 5.0;
   EventQueueTimer *timer = m_events->newOneShotTimer(timeout, NULL);
   m_events->adoptHandler(
-      Event::kTimer, timer, new TMethodEventJob<Server>(this, &Server::handleClientCloseTimeout, client)
+      Event::kTimer, timer, [this, client](const Event& event) { handleClientCloseTimeout(event, client); }
   );
 
   // move client to closing list
@@ -2227,7 +2225,7 @@ void Server::sendFileToClient(const char *filename)
   }
 
   auto data = static_cast<void *>(const_cast<char *>(filename));
-  auto method = new TMethodJob<Server>(this, &Server::sendFileThread, data);
+  auto method = [this, data]() { sendFileThread(data); };
   m_sendFileThread.reset(new Thread(method));
 }
 

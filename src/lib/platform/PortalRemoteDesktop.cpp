@@ -18,7 +18,6 @@
 
 #include "platform/PortalRemoteDesktop.h"
 #include "base/Log.h"
-#include "base/TMethodJob.h"
 
 #include <sys/socket.h> // for EIS fd hack, remove
 #include <sys/un.h>     // for EIS fd hack, remove
@@ -31,7 +30,7 @@ PortalRemoteDesktop::PortalRemoteDesktop(EiScreen *screen, IEventQueue *events)
       portal_(xdp_portal_new())
 {
   glib_main_loop_ = g_main_loop_new(nullptr, true);
-  glib_thread_ = new Thread(new TMethodJob<PortalRemoteDesktop>(this, &PortalRemoteDesktop::glib_thread));
+  glib_thread_ = new Thread([this]() { glib_thread(nullptr); });
 
   reconnect(0);
 }

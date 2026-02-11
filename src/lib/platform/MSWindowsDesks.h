@@ -33,7 +33,7 @@
 class Event;
 class EventQueueTimer;
 class Thread;
-class IJob;
+#include <functional>
 class IScreenSaver;
 class IEventQueue;
 
@@ -66,7 +66,7 @@ public:
   \p hookLibrary must be a handle to the hook library.
   */
   MSWindowsDesks(
-      bool isPrimary, bool noHooks, const IScreenSaver *screensaver, IEventQueue *events, IJob *updateKeys,
+      bool isPrimary, bool noHooks, const IScreenSaver *screensaver, IEventQueue *events, std::function<void()> updateKeys,
       bool stopOnDeskSwitch
   );
   ~MSWindowsDesks();
@@ -282,7 +282,7 @@ private:
   Desks m_desks;
 
   // keyboard stuff
-  IJob *m_updateKeys;
+  std::function<void()> m_updateKeys;
   HKL m_keyLayout;
 
   // options

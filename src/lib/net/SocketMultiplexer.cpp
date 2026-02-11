@@ -21,7 +21,6 @@
 #include "arch/Arch.h"
 #include "arch/XArch.h"
 #include "base/Log.h"
-#include "base/TMethodJob.h"
 #include "common/stdvector.h"
 #include "mt/CondVar.h"
 #include "mt/Lock.h"
@@ -50,7 +49,7 @@ SocketMultiplexer::SocketMultiplexer()
   m_cursorMark = reinterpret_cast<ISocketMultiplexerJob *>(this);
 
   // start thread
-  m_thread = new Thread(new TMethodJob<SocketMultiplexer>(this, &SocketMultiplexer::serviceThread));
+  m_thread = new Thread([this]() { serviceThread(nullptr); });
 }
 
 SocketMultiplexer::~SocketMultiplexer()

@@ -21,7 +21,6 @@
 #include "base/Event.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "common/ipc.h"
 #include "io/IStream.h"
 #include "ipc/IpcClientProxy.h"
@@ -60,7 +59,7 @@ void IpcServer::init()
 
   m_events->adoptHandler(
       m_events->forIListenSocket().connecting(), m_socket,
-      new TMethodEventJob<IpcServer>(this, &IpcServer::handleClientConnecting)
+      [this](const Event& event) { handleClientConnecting(event, nullptr); }
   );
 }
 
@@ -107,12 +106,12 @@ void IpcServer::handleClientConnecting(const Event &, void *)
 
   m_events->adoptHandler(
       m_events->forIpcClientProxy().disconnected(), proxy,
-      new TMethodEventJob<IpcServer>(this, &IpcServer::handleClientDisconnected)
+      [this](const Event& event) { handleClientDisconnected(event, nullptr); }
   );
 
   m_events->adoptHandler(
       m_events->forIpcClientProxy().messageReceived(), proxy,
-      new TMethodEventJob<IpcServer>(this, &IpcServer::handleMessageReceived)
+      [this](const Event& event) { handleMessageReceived(event, nullptr); }
   );
 
   m_events->addEvent(Event(m_events->forIpcServer().clientConnected(), this, proxy, Event::kDontFreeData));

@@ -21,10 +21,8 @@
 #define TEST_ENV
 
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "client/Client.h"
-#include "common/stdexcept.h"
+#include <stdexcept>
 #include "deskflow/FileChunk.h"
 #include "deskflow/StreamChunker.h"
 #include "mt/Thread.h"
@@ -120,9 +118,7 @@ TEST_F(NetworkTests, sendToClient_mockData) {
 
   m_events.adoptHandler(
       m_events.forClientListener().connected(), &listener,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToClient_mockData_handleClientConnected,
-          &listener));
+      [this, &listener](const Event& event) { sendToClient_mockData_handleClientConnected(event, &listener); });
 
   ON_CALL(serverConfig, isScreen(_)).WillByDefault(Return(true));
   ON_CALL(serverConfig, getInputFilter())
@@ -154,8 +150,7 @@ TEST_F(NetworkTests, sendToClient_mockData) {
 
   m_events.adoptHandler(
       m_events.forFile().fileRecieveCompleted(), &client,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToClient_mockData_fileRecieveCompleted));
+      [this](const Event& event) { sendToClient_mockData_fileRecieveCompleted(event, nullptr); });
 
   client.connect();
 
@@ -184,9 +179,7 @@ TEST_F(NetworkTests, sendToClient_mockFile) {
 
   m_events.adoptHandler(
       m_events.forClientListener().connected(), &listener,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToClient_mockFile_handleClientConnected,
-          &listener));
+      [this, &listener](const Event& event) { sendToClient_mockFile_handleClientConnected(event, &listener); });
 
   ON_CALL(serverConfig, isScreen(_)).WillByDefault(Return(true));
   ON_CALL(serverConfig, getInputFilter())
@@ -218,8 +211,7 @@ TEST_F(NetworkTests, sendToClient_mockFile) {
 
   m_events.adoptHandler(
       m_events.forFile().fileRecieveCompleted(), &client,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToClient_mockFile_fileRecieveCompleted));
+      [this](const Event& event) { sendToClient_mockFile_fileRecieveCompleted(event, nullptr); });
 
   client.connect();
 
@@ -275,14 +267,11 @@ TEST_F(NetworkTests, sendToServer_mockData) {
 
   m_events.adoptHandler(
       m_events.forClientListener().connected(), &listener,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToServer_mockData_handleClientConnected,
-          &client));
+      [this, &client](const Event& event) { sendToServer_mockData_handleClientConnected(event, &client); });
 
   m_events.adoptHandler(
       m_events.forFile().fileRecieveCompleted(), &server,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToServer_mockData_fileRecieveCompleted));
+      [this](const Event& event) { sendToServer_mockData_fileRecieveCompleted(event, nullptr); });
 
   client.connect();
 
@@ -339,14 +328,11 @@ TEST_F(NetworkTests, sendToServer_mockFile) {
 
   m_events.adoptHandler(
       m_events.forClientListener().connected(), &listener,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToServer_mockFile_handleClientConnected,
-          &client));
+      [this, &client](const Event& event) { sendToServer_mockFile_handleClientConnected(event, &client); });
 
   m_events.adoptHandler(
       m_events.forFile().fileRecieveCompleted(), &server,
-      new TMethodEventJob<NetworkTests>(
-          this, &NetworkTests::sendToServer_mockFile_fileRecieveCompleted));
+      [this](const Event& event) { sendToServer_mockFile_fileRecieveCompleted(event, nullptr); });
 
   client.connect();
 

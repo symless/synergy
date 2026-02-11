@@ -20,7 +20,7 @@
 
 #include "arch/IArchMultithread.h"
 
-class IJob;
+#include <functional>
 
 //! Thread handle
 /*!
@@ -48,7 +48,7 @@ public:
   Create and start a new thread executing the \c adoptedJob.  The
   new thread takes ownership of \c adoptedJob and will delete it.
   */
-  Thread(IJob *adoptedJob);
+  Thread(std::function<void()> job);
 
   //! Duplicate a thread handle
   /*!

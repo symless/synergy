@@ -22,7 +22,6 @@
 
 #include "base/Event.h"
 #include "base/Log.h"
-#include "base/TMethodJob.h"
 #include "platform/PortalInputCapture.h"
 
 #include <sys/socket.h> // for EIS fd hack, remove
@@ -47,7 +46,7 @@ PortalInputCapture::PortalInputCapture(EiScreen *screen, IEventQueue *events)
       signals_(_N_SIGNALS)
 {
   glib_main_loop_ = g_main_loop_new(nullptr, true);
-  glib_thread_ = new Thread(new TMethodJob<PortalInputCapture>(this, &PortalInputCapture::glib_thread));
+  glib_thread_ = new Thread([this]() { glib_thread(nullptr); });
 
   auto init_capture_cb = [](gpointer data) -> gboolean {
     return reinterpret_cast<PortalInputCapture *>(data)->init_input_capture_session();

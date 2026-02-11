@@ -22,8 +22,6 @@
 #include "arch/XArch.h"
 #include "base/Event.h"
 #include "base/EventQueue.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "common/ipc.h"
 #include "ipc/IpcClientProxy.h"
 #include "ipc/IpcMessage.h"
@@ -57,7 +55,7 @@ IpcLogOutputter::IpcLogOutputter(IpcServer &ipcServer, IpcClientType clientType,
       m_runningMutex(ARCH->newMutex())
 {
   if (useThread) {
-    m_bufferThread = new Thread(new TMethodJob<IpcLogOutputter>(this, &IpcLogOutputter::bufferThread));
+    m_bufferThread = new Thread([this]() { bufferThread(nullptr); });
   }
 }
 

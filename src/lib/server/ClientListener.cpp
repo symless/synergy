@@ -21,7 +21,6 @@
 
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/PacketStreamFilter.h"
 #include "net/IDataSocket.h"
 #include "net/IListenSocket.h"
@@ -89,7 +88,7 @@ void ClientListener::start()
   // setup event handler
   m_events->adoptHandler(
       m_events->forIListenSocket().connecting(), m_listen,
-      new TMethodEventJob<ClientListener>(this, &ClientListener::handleClientConnecting)
+      [this](const Event& event) { handleClientConnecting(event, nullptr); }
   );
 
   // bind listen address
@@ -153,7 +152,7 @@ void ClientListener::handleClientConnecting(const Event &, void *)
 
   m_events->adoptHandler(
       m_events->forClientListener().accepted(), socket->getEventTarget(),
-      new TMethodEventJob<ClientListener>(this, &ClientListener::handleClientAccepted, socket)
+      [this, socket](const Event& event) { handleClientAccepted(event, socket); }
   );
 
   // When using non SSL, server accepts clients immediately, while SSL
@@ -181,11 +180,11 @@ void ClientListener::handleClientAccepted(const Event &, void *vsocket)
   // watch for events from unknown client
   m_events->adoptHandler(
       m_events->forClientProxyUnknown().success(), client,
-      new TMethodEventJob<ClientListener>(this, &ClientListener::handleUnknownClient, client)
+      [this, client](const Event& event) { handleUnknownClient(event, client); }
   );
   m_events->adoptHandler(
       m_events->forClientProxyUnknown().failure(), client,
-      new TMethodEventJob<ClientListener>(this, &ClientListener::handleUnknownClientFailure, client)
+      [this, client](const Event& event) { handleUnknownClientFailure(event, client); }
   );
 }
 
@@ -206,7 +205,7 @@ void ClientListener::handleUnknownClient(const Event &, void *vclient)
     // watch for client to disconnect while it's in our queue
     m_events->adoptHandler(
         m_events->forClientProxy().disconnected(), client,
-        new TMethodEventJob<ClientListener>(this, &ClientListener::handleClientDisconnected, client)
+        [this, client](const Event& event) { handleClientDisconnected(event, client); }
     );
   }
 

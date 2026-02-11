@@ -21,7 +21,6 @@
 #include "base/Event.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/IPlatformScreen.h"
 #include "platform/XWindowsUtil.h"
 
@@ -118,7 +117,7 @@ XWindowsScreenSaver::XWindowsScreenSaver(Display *display, Window window, void *
 
   // install disable timer event handler
   m_events->adoptHandler(
-      Event::kTimer, this, new TMethodEventJob<XWindowsScreenSaver>(this, &XWindowsScreenSaver::handleDisableTimer)
+      Event::kTimer, this, [this](const Event& event) { handleDisableTimer(event, nullptr); }
   );
 }
 

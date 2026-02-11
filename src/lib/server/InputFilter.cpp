@@ -19,7 +19,6 @@
 #include "server/InputFilter.h"
 #include "base/EventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/KeyMap.h"
 #include "server/PrimaryClient.h"
 #include "server/Server.h"
@@ -861,35 +860,35 @@ void InputFilter::setPrimaryClient(PrimaryClient *client)
   if (m_primaryClient != NULL) {
     m_events->adoptHandler(
         m_events->forIKeyState().keyDown(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forIKeyState().keyUp(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forIKeyState().keyRepeat(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forIPrimaryScreen().buttonDown(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forIPrimaryScreen().buttonUp(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forIPrimaryScreen().hotKeyDown(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forIPrimaryScreen().hotKeyUp(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
     m_events->adoptHandler(
         m_events->forServer().connected(), m_primaryClient->getEventTarget(),
-        new TMethodEventJob<InputFilter>(this, &InputFilter::handleEvent)
+        [this](const Event& event) { handleEvent(event, nullptr); }
     );
 
     for (RuleList::iterator rule = m_ruleList.begin(); rule != m_ruleList.end(); ++rule) {

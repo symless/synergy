@@ -22,7 +22,10 @@
 #include "base/String.h"
 #include "common/IInterface.h"
 
-class IEventJob;
+#include <functional>
+
+using EventHandler = std::function<void(const Event &)>;
+
 class IEventQueueBuffer;
 
 // Opaque type for timer info.  This is defined by subclasses of
@@ -152,7 +155,7 @@ public:
   of type \p type.  If no such handler exists it will use the handler
   for \p target and type \p kUnknown if it exists.
   */
-  virtual void adoptHandler(Event::Type type, void *target, IEventJob *handler) = 0;
+  virtual void adoptHandler(Event::Type type, void *target, EventHandler handler) = 0;
 
   //! Unregister an event handler for an event type
   /*!
@@ -198,7 +201,7 @@ public:
   Finds and returns the event handler for the \p type, \p target pair
   if it exists, otherwise it returns NULL.
   */
-  virtual IEventJob *getHandler(Event::Type type, void *target) const = 0;
+  virtual const EventHandler *getHandler(Event::Type type, void *target) const = 0;
 
   //! Get name for event
   /*!

@@ -20,7 +20,6 @@
 #include "arch/XArch.h"
 #include "base/Log.h"
 #include "base/Path.h"
-#include "base/TMethodEventJob.h"
 #include "mt/Lock.h"
 #include "net/TCPSocket.h"
 #include "net/TSocketMultiplexerMethodJob.h"
@@ -90,7 +89,7 @@ void SecureSocket::connect(const NetworkAddress &addr)
 {
   m_events->adoptHandler(
       m_events->forIDataSocket().connected(), getEventTarget(),
-      new TMethodEventJob<SecureSocket>(this, &SecureSocket::handleTCPConnected)
+      [this](const Event& event) { handleTCPConnected(event, nullptr); }
   );
 
   TCPSocket::connect(addr);

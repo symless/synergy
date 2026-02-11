@@ -18,7 +18,6 @@
 #include "server/ClientProxy1_5.h"
 
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/FileChunk.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/StreamChunker.h"
@@ -38,7 +37,7 @@ ClientProxy1_5::ClientProxy1_5(const String &name, deskflow::IStream *stream, Se
 
   m_events->adoptHandler(
       m_events->forFile().keepAlive(), this,
-      new TMethodEventJob<ClientProxy1_3>(this, &ClientProxy1_3::handleKeepAlive, NULL)
+      [this](const Event& event) { handleKeepAlive(event, nullptr); }
   );
 }
 

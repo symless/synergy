@@ -20,7 +20,6 @@
 
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "base/XBase.h"
 #include "client/Client.h"
 #include "deskflow/AppUtil.h"
@@ -67,12 +66,12 @@ ServerProxy::ServerProxy(Client *client, deskflow::IStream *stream, IEventQueue 
   // handle data on stream
   m_events->adoptHandler(
       m_events->forIStream().inputReady(), m_stream->getEventTarget(),
-      new TMethodEventJob<ServerProxy>(this, &ServerProxy::handleData)
+      [this](const Event& event) { handleData(event, nullptr); }
   );
 
   m_events->adoptHandler(
       m_events->forClipboard().clipboardSending(), this,
-      new TMethodEventJob<ServerProxy>(this, &ServerProxy::handleClipboardSendingEvent)
+      [this](const Event& event) { handleClipboardSendingEvent(event, nullptr); }
   );
 
   // send heartbeat
@@ -95,7 +94,7 @@ void ServerProxy::resetKeepAliveAlarm()
   if (m_keepAliveAlarm > 0.0) {
     m_keepAliveAlarmTimer = m_events->newOneShotTimer(m_keepAliveAlarm, NULL);
     m_events->adoptHandler(
-        Event::kTimer, m_keepAliveAlarmTimer, new TMethodEventJob<ServerProxy>(this, &ServerProxy::handleKeepAliveAlarm)
+        Event::kTimer, m_keepAliveAlarmTimer, [this](const Event& event) { handleKeepAliveAlarm(event, nullptr); }
     );
   }
 }

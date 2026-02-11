@@ -19,7 +19,6 @@
 #include "ipc/IpcServerProxy.h"
 
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "common/ipc.h"
 #include "deskflow/ProtocolUtil.h"
 #include "io/IStream.h"
@@ -33,7 +32,7 @@ IpcServerProxy::IpcServerProxy(deskflow::IStream &stream, IEventQueue *events) :
 {
   m_events->adoptHandler(
       m_events->forIStream().inputReady(), stream.getEventTarget(),
-      new TMethodEventJob<IpcServerProxy>(this, &IpcServerProxy::handleData)
+      [this](const Event& event) { handleData(event, nullptr); }
   );
 }
 

@@ -21,7 +21,6 @@
 #include "arch/Arch.h"
 #include "arch/win32/ArchMiscWindows.h"
 #include "base/Log.h"
-#include "base/TMethodJob.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsScreen.h"
 
@@ -193,7 +192,7 @@ void MSWindowsScreenSaver::watchDesktop()
   // watch desktop in another thread
   LOG((CLOG_DEBUG "watching screen saver desktop"));
   m_active = true;
-  m_watch = new Thread(new TMethodJob<MSWindowsScreenSaver>(this, &MSWindowsScreenSaver::watchDesktopThread));
+  m_watch = new Thread([this]() { watchDesktopThread(nullptr); });
 }
 
 void MSWindowsScreenSaver::watchProcess(HANDLE process)
@@ -206,7 +205,7 @@ void MSWindowsScreenSaver::watchProcess(HANDLE process)
     LOG((CLOG_DEBUG "watching screen saver process"));
     m_process = process;
     m_active = true;
-    m_watch = new Thread(new TMethodJob<MSWindowsScreenSaver>(this, &MSWindowsScreenSaver::watchProcessThread));
+    m_watch = new Thread([this]() { watchProcessThread(nullptr); });
   }
 }
 

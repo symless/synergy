@@ -19,10 +19,7 @@
 #include "platform/MSWindowsDesks.h"
 
 #include "base/IEventQueue.h"
-#include "base/IJob.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "deskflow/IScreenSaver.h"
 #include "deskflow/XScreen.h"
 #include "deskflow/win32/AppUtilWindows.h"
@@ -117,7 +114,7 @@ static void send_mouse_input(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData)
 //
 
 MSWindowsDesks::MSWindowsDesks(
-    bool isPrimary, bool noHooks, const IScreenSaver *screensaver, IEventQueue *events, IJob *updateKeys,
+    bool isPrimary, bool noHooks, const IScreenSaver *screensaver, IEventQueue *events, std::function<void()> updateKeys,
     bool stopOnDeskSwitch
 )
     : m_isPrimary(isPrimary),
@@ -137,7 +134,7 @@ MSWindowsDesks::MSWindowsDesks(
       m_activeDeskName(),
       m_mutex(),
       m_deskReady(&m_mutex, false),
-      m_updateKeys(updateKeys),
+      m_updateKeys(std::move(updateKeys)),
       m_events(events),
       m_stopOnDeskSwitch(stopOnDeskSwitch)
 {
@@ -153,7 +150,6 @@ MSWindowsDesks::~MSWindowsDesks()
   disable();
   destroyClass(m_deskClass);
   destroyCursor(m_cursor);
-  delete m_updateKeys;
 }
 
 void MSWindowsDesks::enable()
@@ -169,7 +165,7 @@ void MSWindowsDesks::enable()
   // change but as far as i can tell it doesn't.
   m_timer = m_events->newTimer(0.2, NULL);
   m_events->adoptHandler(
-      Event::kTimer, m_timer, new TMethodEventJob<MSWindowsDesks>(this, &MSWindowsDesks::handleCheckDesk)
+      Event::kTimer, m_timer, [this](const Event& event) { handleCheckDesk(event, nullptr); }
   );
 
   updateKeys();
@@ -736,7 +732,7 @@ void MSWindowsDesks::deskThread(void *vdesk)
     }
 
     case DESKFLOW_MSG_SYNC_KEYS:
-      m_updateKeys->run();
+      m_updateKeys();
       break;
 
     case DESKFLOW_MSG_SCREENSAVER:
@@ -778,7 +774,7 @@ MSWindowsDesks::Desk *MSWindowsDesks::addDesk(const String &name, HDESK hdesk)
   desk->m_name = name;
   desk->m_desk = hdesk;
   desk->m_targetID = GetCurrentThreadId();
-  desk->m_thread = new Thread(new TMethodJob<MSWindowsDesks>(this, &MSWindowsDesks::deskThread, desk));
+  desk->m_thread = new Thread([this, desk]() { deskThread(desk); });
   waitForDesk();
   m_desks.insert(std::make_pair(name, desk));
   return desk;

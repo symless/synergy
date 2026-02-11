@@ -20,7 +20,6 @@
 
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/XDeskflow.h"
 #include "io/IStream.h"
@@ -40,22 +39,22 @@ ClientProxy1_0::ClientProxy1_0(const String &name, deskflow::IStream *stream, IE
   // install event handlers
   m_events->adoptHandler(
       m_events->forIStream().inputReady(), stream->getEventTarget(),
-      new TMethodEventJob<ClientProxy1_0>(this, &ClientProxy1_0::handleData, NULL)
+      [this](const Event& event) { handleData(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().outputError(), stream->getEventTarget(),
-      new TMethodEventJob<ClientProxy1_0>(this, &ClientProxy1_0::handleWriteError, NULL)
+      [this](const Event& event) { handleWriteError(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().inputShutdown(), stream->getEventTarget(),
-      new TMethodEventJob<ClientProxy1_0>(this, &ClientProxy1_0::handleDisconnect, NULL)
+      [this](const Event& event) { handleDisconnect(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().outputShutdown(), stream->getEventTarget(),
-      new TMethodEventJob<ClientProxy1_0>(this, &ClientProxy1_0::handleWriteError, NULL)
+      [this](const Event& event) { handleWriteError(event, nullptr); }
   );
   m_events->adoptHandler(
-      Event::kTimer, this, new TMethodEventJob<ClientProxy1_0>(this, &ClientProxy1_0::handleFlatline, NULL)
+      Event::kTimer, this, [this](const Event& event) { handleFlatline(event, nullptr); }
   );
 
   setHeartbeatRate(kHeartRate, kHeartRate * kHeartBeatsUntilDeath);

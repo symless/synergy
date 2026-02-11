@@ -23,7 +23,6 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/Stopwatch.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/App.h"
 #include "deskflow/Clipboard.h"
 #include "deskflow/KeyMap.h"
@@ -64,13 +63,13 @@ EiScreen::EiScreen(
   key_state_ = new EiKeyState(this, events);
   // install event handlers
   events_->adoptHandler(
-      Event::kSystem, events_->getSystemTarget(), new TMethodEventJob<EiScreen>(this, &EiScreen::handleSystemEvent)
+      Event::kSystem, events_->getSystemTarget(), [this](const Event& event) { handleSystemEvent(event, nullptr); }
   );
 
   if (use_portal) {
     events_->adoptHandler(
         events_->forEi().connected(), getEventTarget(),
-        new TMethodEventJob<EiScreen>(this, &EiScreen::handle_connected_to_eis_event)
+        [this](const Event& event) { handle_connected_to_eis_event(event, nullptr); }
     );
     if (is_primary) {
 #if HAVE_LIBPORTAL_INPUTCAPTURE
@@ -82,7 +81,7 @@ EiScreen::EiScreen(
 #if WINAPI_LIBPORTAL
       events_->adoptHandler(
           events_->forEi().sessionClosed(), getEventTarget(),
-          new TMethodEventJob<EiScreen>(this, &EiScreen::handle_portal_session_closed)
+          [this](const Event& event) { handle_portal_session_closed(event, nullptr); }
       );
       portal_remote_desktop_ = new PortalRemoteDesktop(this, events_);
 #else

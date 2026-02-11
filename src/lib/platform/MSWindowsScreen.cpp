@@ -23,8 +23,6 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/String.h"
-#include "base/TMethodEventJob.h"
-#include "base/TMethodJob.h"
 #include "client/Client.h"
 #include "deskflow/App.h"
 #include "deskflow/ArgsBase.h"
@@ -140,7 +138,7 @@ MSWindowsScreen::MSWindowsScreen(
     m_screensaver = new MSWindowsScreenSaver();
     m_desks = new MSWindowsDesks(
         m_isPrimary, m_noHooks, m_screensaver, m_events,
-        new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::updateKeysCB), stopOnDeskSwitch
+        [this]() { updateKeysCB(nullptr); }, stopOnDeskSwitch
     );
     m_keyState = new MSWindowsKeyState(
         m_desks, getEventTarget(), m_events, AppUtil::instance().getKeyboardLayoutList(), enableLangSync
@@ -183,7 +181,7 @@ MSWindowsScreen::MSWindowsScreen(
   // install event handlers
   m_events->adoptHandler(
       Event::kSystem, m_events->getSystemTarget(),
-      new TMethodEventJob<MSWindowsScreen>(this, &MSWindowsScreen::handleSystemEvent)
+      [this](const Event& event) { handleSystemEvent(event, nullptr); }
   );
 
   // install the platform event queue
@@ -235,7 +233,7 @@ void MSWindowsScreen::enable()
   // we need to poll some things to fix them
   m_fixTimer = m_events->newTimer(1.0, NULL);
   m_events->adoptHandler(
-      Event::kTimer, m_fixTimer, new TMethodEventJob<MSWindowsScreen>(this, &MSWindowsScreen::handleFixes)
+      Event::kTimer, m_fixTimer, [this](const Event& event) { handleFixes(event, nullptr); }
   );
 
   // install our clipboard snooper
@@ -371,7 +369,7 @@ void MSWindowsScreen::leave()
   m_isOnScreen = false;
 
   if (isDraggingStarted() && !m_isPrimary) {
-    m_sendDragThread = new Thread(new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::sendDragThread));
+    m_sendDragThread = new Thread([this]() { sendDragThread(nullptr); });
   }
 }
 

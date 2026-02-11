@@ -21,7 +21,6 @@
 
 #define TEST_ENV
 
-#include "base/TMethodJob.h"
 #include "platform/MSWindowsDesks.h"
 #include "platform/MSWindowsKeyState.h"
 #include "platform/MSWindowsScreen.h"
@@ -50,8 +49,7 @@ protected:
   MSWindowsDesks *newDesks(IEventQueue *eventQueue) {
     return new MSWindowsDesks(
         true, false, m_screensaver, eventQueue,
-        new TMethodJob<MSWindowsKeyStateTests>(
-            this, &MSWindowsKeyStateTests::updateKeysCB),
+        [this]() { updateKeysCB(nullptr); },
         false);
   }
 

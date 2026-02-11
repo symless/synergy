@@ -20,7 +20,6 @@
 
 #include "base/IEventQueue.h"
 #include "base/Log.h"
-#include "base/TMethodEventJob.h"
 #include "deskflow/AppUtil.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/XDeskflow.h"
@@ -55,7 +54,7 @@ ClientProxyUnknown::ClientProxyUnknown(deskflow::IStream *stream, double timeout
   assert(m_server != NULL);
 
   m_events->adoptHandler(
-      Event::kTimer, this, new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleTimeout, NULL)
+      Event::kTimer, this, [this](const Event& event) { handleTimeout(event, nullptr); }
   );
   m_timer = m_events->newOneShotTimer(timeout, this);
   addStreamHandlers();
@@ -107,19 +106,19 @@ void ClientProxyUnknown::addStreamHandlers()
 
   m_events->adoptHandler(
       m_events->forIStream().inputReady(), m_stream->getEventTarget(),
-      new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleData)
+      [this](const Event& event) { handleData(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().outputError(), m_stream->getEventTarget(),
-      new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleWriteError)
+      [this](const Event& event) { handleWriteError(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().inputShutdown(), m_stream->getEventTarget(),
-      new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleDisconnect)
+      [this](const Event& event) { handleDisconnect(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forIStream().outputShutdown(), m_stream->getEventTarget(),
-      new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleWriteError)
+      [this](const Event& event) { handleWriteError(event, nullptr); }
   );
 }
 
@@ -129,11 +128,11 @@ void ClientProxyUnknown::addProxyHandlers()
 
   m_events->adoptHandler(
       m_events->forClientProxy().ready(), m_proxy,
-      new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleReady)
+      [this](const Event& event) { handleReady(event, nullptr); }
   );
   m_events->adoptHandler(
       m_events->forClientProxy().disconnected(), m_proxy,
-      new TMethodEventJob<ClientProxyUnknown>(this, &ClientProxyUnknown::handleDisconnect)
+      [this](const Event& event) { handleDisconnect(event, nullptr); }
   );
 }
 

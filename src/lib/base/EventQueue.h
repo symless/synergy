@@ -56,12 +56,12 @@ public:
   virtual EventQueueTimer *newTimer(double duration, void *target);
   virtual EventQueueTimer *newOneShotTimer(double duration, void *target);
   virtual void deleteTimer(EventQueueTimer *);
-  virtual void adoptHandler(Event::Type type, void *target, IEventJob *handler);
+  virtual void adoptHandler(Event::Type type, void *target, EventHandler handler);
   virtual void removeHandler(Event::Type type, void *target);
   virtual void removeHandlers(void *target);
   virtual Event::Type registerTypeOnce(Event::Type &type, const char *name);
   virtual bool isEmpty() const;
-  virtual IEventJob *getHandler(Event::Type type, void *target) const;
+  virtual const EventHandler *getHandler(Event::Type type, void *target) const;
   virtual const char *getTypeName(Event::Type type);
   virtual Event::Type getRegisteredType(const String &name) const;
   void *getSystemTarget();
@@ -108,7 +108,7 @@ private:
   typedef std::vector<UInt32> EventIDList;
   typedef std::map<Event::Type, const char *> TypeMap;
   typedef std::map<String, Event::Type> NameMap;
-  typedef std::map<Event::Type, IEventJob *> TypeHandlerTable;
+  typedef std::map<Event::Type, EventHandler> TypeHandlerTable;
   typedef std::map<void *, TypeHandlerTable> HandlerTable;
 
   int m_systemTarget;

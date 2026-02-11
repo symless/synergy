@@ -19,7 +19,6 @@
 #include "mt/Thread.h"
 
 #include "arch/Arch.h"
-#include "base/IJob.h"
 #include "base/Log.h"
 #include "mt/XMT.h"
 #include "mt/XThread.h"
@@ -29,12 +28,12 @@
 // Thread
 //
 
-Thread::Thread(IJob *job)
+Thread::Thread(std::function<void()> job)
 {
-  m_thread = ARCH->newThread(&Thread::threadFunc, job);
+  auto *jobPtr = new std::function<void()>(std::move(job));
+  m_thread = ARCH->newThread(&Thread::threadFunc, jobPtr);
   if (m_thread == NULL) {
-    // couldn't create thread
-    delete job;
+    delete jobPtr;
     throw XMTThreadUnavailable();
   }
 }
@@ -134,23 +133,18 @@ void *Thread::threadFunc(void *vjob)
     ARCH->closeThread(thread);
   }
 
-  // get job
-  IJob *job = static_cast<IJob *>(vjob);
+  auto *job = static_cast<std::function<void()> *>(vjob);
 
-  // run job
   void *result = NULL;
   try {
-    // go
     LOG((CLOG_DEBUG1 "thread 0x%08x entry", id));
-    job->run();
+    (*job)();
     LOG((CLOG_DEBUG1 "thread 0x%08x exit", id));
   } catch (XThreadCancel &) {
-    // client called cancel()
     LOG((CLOG_DEBUG1 "caught cancel on thread 0x%08x", id));
     delete job;
     throw;
   } catch (XThreadExit &e) {
-    // client called exit()
     result = e.m_result;
     LOG((CLOG_DEBUG1 "caught exit on thread 0x%08x, result %p", id, result));
   } catch (XBase &e) {
@@ -167,9 +161,6 @@ void *Thread::threadFunc(void *vjob)
     throw;
   }
 
-  // done with job
   delete job;
-
-  // return exit result
   return result;
 }
