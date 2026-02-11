@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "common/stdvector.h"
+#include <vector>
 #include "deskflow/IClipboard.h"
 #include "platform/MSWindowsClipboardFacade.h"
 

@@ -23,7 +23,7 @@
 #include "base/Log.h"
 #include "base/Stopwatch.h"
 #include "base/String.h"
-#include "common/stdexcept.h"
+#include <stdexcept>
 #include "deskflow/ClipboardChunk.h"
 #include "deskflow/FileChunk.h"
 #include "deskflow/protocol_types.h"

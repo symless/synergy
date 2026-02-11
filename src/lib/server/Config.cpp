@@ -19,8 +19,8 @@
 #include "server/Config.h"
 
 #include "base/IEventQueue.h"
-#include "common/stdistream.h"
-#include "common/stdostream.h"
+#include <istream>
+#include <ostream>
 #include "deskflow/KeyMap.h"
 #include "deskflow/key_types.h"
 #include "net/XSocket.h"
@@ -2094,7 +2094,7 @@ XConfigRead::XConfigRead(const ConfigReadContext &context, const char *errorFmt,
   // do nothing
 }
 
-XConfigRead::~XConfigRead() _NOEXCEPT
+XConfigRead::~XConfigRead() noexcept
 {
   // do nothing
 }

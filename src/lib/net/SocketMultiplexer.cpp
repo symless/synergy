@@ -22,7 +22,7 @@
 #include "arch/XArch.h"
 #include "base/Log.h"
 #include "base/TMethodJob.h"
-#include "common/stdvector.h"
+#include <vector>
 #include "mt/CondVar.h"
 #include "mt/Lock.h"
 #include "mt/Mutex.h"

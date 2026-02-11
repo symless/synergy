@@ -19,7 +19,7 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/stdmap.h"
+#include <map>
 #include "deskflow/key_types.h"
 #include "deskflow/mouse_types.h"
 #include "deskflow/option_types.h"

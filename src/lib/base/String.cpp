@@ -17,7 +17,7 @@
 
 #include "base/String.h"
 #include "arch/Arch.h"
-#include "common/stdvector.h"
+#include <vector>
 
 #include <algorithm>
 #include <cctype>

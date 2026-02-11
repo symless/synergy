@@ -21,7 +21,7 @@
 #include "arch/Arch.h"
 #include "arch/IArchMultithread.h"
 #include "common/common.h"
-#include "common/stdlist.h"
+#include <list>
 
 #include <stdarg.h>
 

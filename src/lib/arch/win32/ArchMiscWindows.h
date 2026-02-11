@@ -19,8 +19,8 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/stdset.h"
-#include "common/stdstring.h"
+#include <set>
+#include <string>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

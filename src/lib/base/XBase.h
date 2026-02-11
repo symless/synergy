@@ -19,7 +19,7 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/stdexcept.h"
+#include <stdexcept>
 
 //! Exception base class
 /*!
@@ -32,10 +32,10 @@ public:
   XBase();
   //! Use \c msg as the result of what()
   XBase(const String &msg);
-  virtual ~XBase() _NOEXCEPT;
+  virtual ~XBase() noexcept;
 
   //! Reason for exception
-  virtual const char *what() const _NOEXCEPT;
+  virtual const char *what() const noexcept;
 
 protected:
   //! Get a human readable string describing the exception
@@ -72,7 +72,7 @@ declared.
     name_(const String &msg) : super_(msg)                                                                             \
     {                                                                                                                  \
     }                                                                                                                  \
-    virtual ~name_() _NOEXCEPT                                                                                         \
+    virtual ~name_() noexcept                                                                                         \
     {                                                                                                                  \
     }                                                                                                                  \
   }
@@ -93,7 +93,7 @@ implemented.
     name_(const String &msg) : super_(msg)                                                                             \
     {                                                                                                                  \
     }                                                                                                                  \
-    virtual ~name_() _NOEXCEPT                                                                                         \
+    virtual ~name_() noexcept                                                                                         \
     {                                                                                                                  \
     }                                                                                                                  \
                                                                                                                        \
@@ -127,11 +127,11 @@ c'tor.
     name_(const String &msg) : super_(msg), m_state(kFirst)                                                            \
     {                                                                                                                  \
     }                                                                                                                  \
-    virtual ~name_() _NOEXCEPT                                                                                         \
+    virtual ~name_() noexcept                                                                                         \
     {                                                                                                                  \
     }                                                                                                                  \
                                                                                                                        \
-    virtual const char *what() const _NOEXCEPT                                                                         \
+    virtual const char *what() const noexcept                                                                         \
     {                                                                                                                  \
       if (m_state == kFirst) {                                                                                         \
         m_state = kFormat;                                                                                             \

@@ -19,7 +19,7 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/stdvector.h"
+#include <vector>
 #include "deskflow/KeyState.h"
 
 #define WIN32_LEAN_AND_MEAN

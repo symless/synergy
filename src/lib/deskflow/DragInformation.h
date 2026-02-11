@@ -19,7 +19,7 @@
 
 #include "base/EventTypes.h"
 #include "base/String.h"
-#include "common/stdvector.h"
+#include <vector>
 
 class DragInformation;
 typedef std::vector<DragInformation> DragFileList;

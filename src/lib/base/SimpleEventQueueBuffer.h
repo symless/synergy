@@ -20,7 +20,7 @@
 
 #include "arch/IArchMultithread.h"
 #include "base/IEventQueueBuffer.h"
-#include "common/stddeque.h"
+#include <deque>
 
 //! In-memory event queue buffer
 /*!

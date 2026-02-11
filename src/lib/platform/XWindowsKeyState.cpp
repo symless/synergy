@@ -24,7 +24,7 @@
 
 #include "base/Log.h"
 #include "base/String.h"
-#include "common/stdmap.h"
+#include <map>
 #include "deskflow/AppUtil.h"
 #include "deskflow/ClientApp.h"
 #include "deskflow/ClientArgs.h"

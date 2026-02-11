@@ -20,7 +20,7 @@
 #include "arch/Arch.h"
 #include "arch/win32/ArchMiscWindows.h"
 #include "arch/win32/XArchWindows.h"
-#include "common/stdvector.h"
+#include <vector>
 
 #include <sstream>
 

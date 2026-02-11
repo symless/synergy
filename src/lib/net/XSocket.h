@@ -43,8 +43,8 @@ public:
     kBadPort      //!< The port is invalid
   };
 
-  XSocketAddress(EError, const String &hostname, int port) _NOEXCEPT;
-  virtual ~XSocketAddress() _NOEXCEPT
+  XSocketAddress(EError, const String &hostname, int port) noexcept;
+  virtual ~XSocketAddress() noexcept
   {
   }
 

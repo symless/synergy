@@ -19,8 +19,8 @@
 #pragma once
 
 #include "base/EventTypes.h"
-#include "common/stdmap.h"
-#include "common/stdvector.h"
+#include <map>
+#include <vector>
 #include "deskflow/DragInformation.h"
 #include "deskflow/PlatformScreen.h"
 #include "platform/OSXClipboard.h"

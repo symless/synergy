@@ -20,8 +20,8 @@
 
 #include "base/String.h"
 #include "base/XBase.h"
-#include "common/stdmap.h"
-#include "common/stdset.h"
+#include <map>
+#include <set>
 #include "deskflow/IPlatformScreen.h"
 #include "deskflow/option_types.h"
 #include "deskflow/protocol_types.h"
@@ -570,7 +570,7 @@ class XConfigRead : public XBase
 public:
   XConfigRead(const ConfigReadContext &context, const String &);
   XConfigRead(const ConfigReadContext &context, const char *errorFmt, const String &arg);
-  virtual ~XConfigRead() _NOEXCEPT;
+  virtual ~XConfigRead() noexcept;
 
 protected:
   // XBase overrides

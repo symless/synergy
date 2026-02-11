@@ -22,7 +22,7 @@
 #include "base/Event.h"
 #include "base/EventTypes.h"
 #include "base/String.h"
-#include "common/stdvector.h"
+#include <vector>
 #include "deskflow/ServerApp.h"
 #include "server/Server.h"
 

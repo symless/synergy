@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "common/stdexcept.h"
+#include <stdexcept>
 #include "deskflow/ClientArgs.h"
 #include "deskflow/DragInformation.h"
 #include "deskflow/IPlatformScreen.h"

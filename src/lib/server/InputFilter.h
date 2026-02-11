@@ -19,8 +19,8 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/stdmap.h"
-#include "common/stdset.h"
+#include <map>
+#include <set>
 #include "deskflow/IPlatformScreen.h"
 #include "deskflow/key_types.h"
 #include "deskflow/mouse_types.h"

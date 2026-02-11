@@ -19,7 +19,7 @@
 #pragma once
 
 #include "base/IEventQueueBuffer.h"
-#include "common/stdvector.h"
+#include <vector>
 #include "mt/Mutex.h"
 
 #if X_DISPLAY_MISSING

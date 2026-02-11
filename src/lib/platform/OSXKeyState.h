@@ -19,9 +19,9 @@
 #pragma once
 
 #include "OSXAutoTypes.h"
-#include "common/stdmap.h"
-#include "common/stdset.h"
-#include "common/stdvector.h"
+#include <map>
+#include <set>
+#include <vector>
 #include "deskflow/KeyState.h"
 
 #include <Carbon/Carbon.h>

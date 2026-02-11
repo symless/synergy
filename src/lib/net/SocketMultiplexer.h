@@ -19,8 +19,8 @@
 #pragma once
 
 #include "arch/IArchNetwork.h"
-#include "common/stdlist.h"
-#include "common/stdmap.h"
+#include <list>
+#include <map>
 
 template <class T> class CondVar;
 class Mutex;

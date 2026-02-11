@@ -19,7 +19,7 @@
 #pragma once
 
 #include "arch/IArchMultithread.h"
-#include "common/stdlist.h"
+#include <list>
 
 #include <pthread.h>
 

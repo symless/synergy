@@ -20,7 +20,7 @@
 
 #include "base/String.h"
 #include "common/IInterface.h"
-#include "common/stdstring.h"
+#include <string>
 
 //! Interface for architecture dependent file system operations
 /*!

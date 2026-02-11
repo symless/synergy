@@ -18,7 +18,7 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/stdvector.h"
+#include <vector>
 
 namespace deskflow {
 class ArgsBase;

@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "common/stdset.h"
+#include <set>
 #include "net/TCPListenSocket.h"
 
 class IEventQueue;

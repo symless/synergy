@@ -21,9 +21,9 @@
 #include "base/Event.h"
 #include "base/EventTypes.h"
 #include "base/Stopwatch.h"
-#include "common/stdmap.h"
-#include "common/stdset.h"
-#include "common/stdvector.h"
+#include <map>
+#include <set>
+#include <vector>
 #include "deskflow/Clipboard.h"
 #include "deskflow/DragInformation.h"
 #include "deskflow/INode.h"

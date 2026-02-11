@@ -24,8 +24,8 @@
 #include "base/IEventQueue.h"
 #include "base/PriorityQueue.h"
 #include "base/Stopwatch.h"
-#include "common/stdmap.h"
-#include "common/stdset.h"
+#include <map>
+#include <set>
 #include "mt/CondVar.h"
 
 #include <queue>

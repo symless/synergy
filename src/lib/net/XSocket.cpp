@@ -23,7 +23,7 @@
 // XSocketAddress
 //
 
-XSocketAddress::XSocketAddress(EError error, const String &hostname, int port) _NOEXCEPT : m_error(error),
+XSocketAddress::XSocketAddress(EError error, const String &hostname, int port) noexcept : m_error(error),
                                                                                            m_hostname(hostname),
                                                                                            m_port(port)
 {

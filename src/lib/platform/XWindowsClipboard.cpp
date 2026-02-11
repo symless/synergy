@@ -22,7 +22,7 @@
 #include "base/Log.h"
 #include "base/Stopwatch.h"
 #include "common/basic_types.h"
-#include "common/stdvector.h"
+#include <vector>
 #include "platform/XWindowsClipboardBMPConverter.h"
 #include "platform/XWindowsClipboardHTMLConverter.h"
 #include "platform/XWindowsClipboardTextConverter.h"

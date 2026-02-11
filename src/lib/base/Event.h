@@ -19,7 +19,7 @@
 #pragma once
 
 #include "common/basic_types.h"
-#include "common/stdmap.h"
+#include <map>
 
 class EventData
 {

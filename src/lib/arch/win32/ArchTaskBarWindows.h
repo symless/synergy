@@ -20,8 +20,8 @@
 
 #include "arch/IArchMultithread.h"
 #include "arch/IArchTaskBar.h"
-#include "common/stdmap.h"
-#include "common/stdvector.h"
+#include <map>
+#include <vector>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>

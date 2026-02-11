@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "common/stdlist.h"
-#include "common/stdmap.h"
-#include "common/stdvector.h"
+#include <list>
+#include <map>
+#include <vector>
 #include "deskflow/IClipboard.h"
 #include "deskflow/clipboard_types.h"
 

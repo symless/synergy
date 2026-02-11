@@ -18,7 +18,7 @@
 
 #include "deskflow/ProtocolUtil.h"
 #include "base/Log.h"
-#include "common/stdvector.h"
+#include <vector>
 #include "io/IStream.h"
 #include <array>
 #include <iterator>

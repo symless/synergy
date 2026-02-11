@@ -17,7 +17,7 @@
  */
 
 #include "deskflow/IClipboard.h"
-#include "common/stdvector.h"
+#include <vector>
 
 //
 // IClipboard

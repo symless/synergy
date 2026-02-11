@@ -19,8 +19,8 @@
 #pragma once
 
 #include "arch/Arch.h"
-#include "common/stdset.h"
-#include "common/stdvector.h"
+#include <set>
+#include <vector>
 #include "deskflow/ClientArgs.h"
 #include "deskflow/KeyMap.h"
 #include "deskflow/PlatformScreen.h"

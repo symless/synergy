@@ -21,7 +21,7 @@
 #include "base/ILogOutputter.h"
 #include "base/String.h"
 #include "common/basic_types.h"
-#include "common/stddeque.h"
+#include <deque>
 #include "mt/Thread.h"
 
 #include <fstream>

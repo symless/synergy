@@ -71,7 +71,7 @@ class XDuplicateClient : public XDeskflow
 {
 public:
   XDuplicateClient(const String &name);
-  virtual ~XDuplicateClient() _NOEXCEPT
+  virtual ~XDuplicateClient() noexcept
   {
   }
 
@@ -99,7 +99,7 @@ class XUnknownClient : public XDeskflow
 {
 public:
   XUnknownClient(const String &name);
-  virtual ~XUnknownClient() _NOEXCEPT
+  virtual ~XUnknownClient() noexcept
   {
   }
 
@@ -128,7 +128,7 @@ class XExitApp : public XDeskflow
 {
 public:
   XExitApp(int code);
-  virtual ~XExitApp() _NOEXCEPT
+  virtual ~XExitApp() noexcept
   {
   }
 

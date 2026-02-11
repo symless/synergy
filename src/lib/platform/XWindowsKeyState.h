@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include "common/stdmap.h"
-#include "common/stdvector.h"
+#include <map>
+#include <vector>
 #include "deskflow/KeyState.h"
 
 #if X_DISPLAY_MISSING

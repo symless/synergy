@@ -20,8 +20,8 @@
 
 #include "base/Event.h"
 #include "base/EventTypes.h"
-#include "common/stddeque.h"
-#include "common/stdset.h"
+#include <deque>
+#include <set>
 #include "server/Config.h"
 
 class ClientProxy;
