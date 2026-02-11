@@ -294,6 +294,11 @@ extern const char *const kMsgDSecureInputNotification;
 // $1 = List of server languages
 extern const char *const kMsgDLanguageSynchronisation;
 
+// grab screen request:  secondary -> primary
+// Client requests to become the active screen (e.g., due to touch input).
+// $1 = x position, $2 = y position where activation occurred
+extern const char *const kMsgCGrabScreen;
+
 //
 // query codes
 //

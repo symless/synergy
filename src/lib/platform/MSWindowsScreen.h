@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "base/Stopwatch.h"
 #include "base/String.h"
 #include "deskflow/ClientArgs.h"
 #include "deskflow/DragInformation.h"
@@ -190,6 +191,8 @@ private: // HACK
   bool onScreensaver(bool activated);
   bool onDisplayChange();
   bool onClipboardChange();
+  bool onPointerInput(WPARAM wParam, LPARAM lParam);
+  bool isPointerTypeTouch(UINT32 pointerId) const;
 
   // warp cursor without discarding queued events
   void warpCursorNoFlush(SInt32 x, SInt32 y);
@@ -357,4 +360,11 @@ private:
 
   PrimaryKeyDownList m_primaryKeyDownList;
   MSWindowsPowerManager m_powerManager;
+
+  // When true, touching this screen activates it (switches focus here)
+  bool m_touchActivateScreen;
+
+  // Debounce rapid touch events to prevent multiple switch requests
+  Stopwatch m_touchDebounceTimer;
+  static constexpr double kTouchDebounceTime = 0.15;  // 150ms debounce
 };

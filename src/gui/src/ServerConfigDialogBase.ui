@@ -798,6 +798,16 @@
               </property>
              </widget>
             </item>
+            <item row="7" column="0">
+             <widget class="QCheckBox" name="m_pCheckBoxTouchActivateScreen">
+              <property name="text">
+               <string>Switch screens on touch</string>
+              </property>
+              <property name="toolTip">
+               <string>Touch any screen to switch to that computer</string>
+              </property>
+             </widget>
+            </item>
             <item row="3" column="0">
              <widget class="QCheckBox" name="m_pCheckBoxWin32KeepForeground">
               <property name="enabled">
@@ -1168,6 +1178,7 @@ Enabling this setting will disable the server config GUI.</string>
   <tabstop>m_pCheckBoxWin32KeepForeground</tabstop>
   <tabstop>m_pCheckBoxIgnoreAutoConfigClient</tabstop>
   <tabstop>m_pCheckBoxDisableLockToScreen</tabstop>
+  <tabstop>m_pCheckBoxTouchActivateScreen</tabstop>
   <tabstop>m_pCheckBoxCornerTopLeft</tabstop>
   <tabstop>m_pCheckBoxCornerBottomLeft</tabstop>
   <tabstop>m_pCheckBoxCornerTopRight</tabstop>

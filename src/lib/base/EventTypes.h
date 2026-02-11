@@ -388,7 +388,7 @@ private:
 class ClientProxyEvents : public EventTypes
 {
 public:
-  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown)
+  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown), m_grabScreen(Event::kUnknown)
   {
   }
 
@@ -410,11 +410,20 @@ public:
   */
   Event::Type disconnected();
 
+  //! Get grab screen event type
+  /*!
+  Returns the grab screen event type.  This is sent when a client
+  requests to become the active screen (e.g., due to touch input).
+  Event data is MotionInfo* with the position where activation occurred.
+  */
+  Event::Type grabScreen();
+
   //@}
 
 private:
   Event::Type m_ready;
   Event::Type m_disconnected;
+  Event::Type m_grabScreen;
 };
 
 class ClientProxyUnknownEvents : public EventTypes
@@ -603,7 +612,8 @@ public:
         m_hotKeyDown(Event::kUnknown),
         m_hotKeyUp(Event::kUnknown),
         m_fakeInputBegin(Event::kUnknown),
-        m_fakeInputEnd(Event::kUnknown)
+        m_fakeInputEnd(Event::kUnknown),
+        m_touchActivatedPrimary(Event::kUnknown)
   {
   }
 
@@ -650,6 +660,13 @@ public:
   //!  end of fake input event type
   Event::Type fakeInputEnd();
 
+  //!  touch activated primary screen event type
+  /*!
+  Event data is MotionInfo* with the position where touch occurred.
+  This is sent when touch input on the primary screen should activate it.
+  */
+  Event::Type touchActivatedPrimary();
+
   //@}
 
 private:
@@ -664,6 +681,7 @@ private:
   Event::Type m_hotKeyUp;
   Event::Type m_fakeInputBegin;
   Event::Type m_fakeInputEnd;
+  Event::Type m_touchActivatedPrimary;
 };
 
 class IScreenEvents : public EventTypes
@@ -673,7 +691,8 @@ public:
       : m_error(Event::kUnknown),
         m_shapeChanged(Event::kUnknown),
         m_suspend(Event::kUnknown),
-        m_resume(Event::kUnknown)
+        m_resume(Event::kUnknown),
+        m_grabScreen(Event::kUnknown)
   {
   }
 
@@ -708,6 +727,14 @@ public:
   */
   Event::Type resume();
 
+  //! Get grab screen event type
+  /*!
+  Returns the grab screen event type. This is sent when a secondary screen
+  requests to become the active screen (e.g., due to touch input).
+  Event data is MotionInfo* with the position where activation occurred.
+  */
+  Event::Type grabScreen();
+
   //@}
 
 private:
@@ -715,6 +742,7 @@ private:
   Event::Type m_shapeChanged;
   Event::Type m_suspend;
   Event::Type m_resume;
+  Event::Type m_grabScreen;
 };
 
 class ClipboardEvents : public EventTypes

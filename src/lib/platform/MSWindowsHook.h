@@ -49,4 +49,8 @@ public:
   static int installScreenSaver();
 
   static int uninstallScreenSaver();
+
+  void setTouchActivateScreen(bool enabled);
+
+  void setIsPrimary(bool primary);
 };

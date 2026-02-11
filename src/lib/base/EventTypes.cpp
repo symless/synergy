@@ -115,6 +115,7 @@ REGISTER_EVENT(ClientListener, connected)
 
 REGISTER_EVENT(ClientProxy, ready)
 REGISTER_EVENT(ClientProxy, disconnected)
+REGISTER_EVENT(ClientProxy, grabScreen)
 
 //
 // ClientProxyUnknown
@@ -167,6 +168,7 @@ REGISTER_EVENT(IPrimaryScreen, hotKeyDown)
 REGISTER_EVENT(IPrimaryScreen, hotKeyUp)
 REGISTER_EVENT(IPrimaryScreen, fakeInputBegin)
 REGISTER_EVENT(IPrimaryScreen, fakeInputEnd)
+REGISTER_EVENT(IPrimaryScreen, touchActivatedPrimary)
 
 //
 // IScreen
@@ -176,6 +178,7 @@ REGISTER_EVENT(IScreen, error)
 REGISTER_EVENT(IScreen, shapeChanged)
 REGISTER_EVENT(IScreen, suspend)
 REGISTER_EVENT(IScreen, resume)
+REGISTER_EVENT(IScreen, grabScreen)
 
 //
 // IpcServer

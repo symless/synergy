@@ -21,6 +21,7 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "base/TMethodEventJob.h"
+#include "deskflow/IPrimaryScreen.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/XDeskflow.h"
 #include "io/IStream.h"
@@ -188,8 +189,29 @@ bool ClientProxy1_0::parseMessage(const UInt8 *code)
     return recvGrabClipboard();
   } else if (memcmp(code, kMsgDClipboard, 4) == 0) {
     return recvClipboard();
+  } else if (memcmp(code, kMsgCGrabScreen, 4) == 0) {
+    return recvGrabScreen();
   }
   return false;
+}
+
+bool ClientProxy1_0::recvGrabScreen()
+{
+  // parse message
+  SInt16 x, y;
+  if (!ProtocolUtil::readf(getStream(), kMsgCGrabScreen + 4, &x, &y)) {
+    return false;
+  }
+  LOG((CLOG_DEBUG "received client \"%s\" grab screen request at %d,%d", getName().c_str(), x, y));
+
+  // notify server to switch to this client
+  m_events->addEvent(Event(
+      m_events->forClientProxy().grabScreen(),
+      getEventTarget(),
+      IPrimaryScreen::MotionInfo::alloc(x, y)
+  ));
+
+  return true;
 }
 
 void ClientProxy1_0::handleDisconnect(const Event &, void *)

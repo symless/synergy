@@ -372,6 +372,12 @@ bool ServerProxy::onGrabClipboard(ClipboardID id)
   return true;
 }
 
+void ServerProxy::grabScreen(SInt32 x, SInt32 y)
+{
+  LOG((CLOG_DEBUG1 "requesting screen grab at %d,%d", x, y));
+  ProtocolUtil::writef(m_stream, kMsgCGrabScreen, x, y);
+}
+
 void ServerProxy::onClipboardChanged(ClipboardID id, const IClipboard *clipboard)
 {
   String data = IClipboard::marshall(clipboard);

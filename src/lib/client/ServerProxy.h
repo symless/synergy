@@ -61,6 +61,13 @@ public:
   bool onGrabClipboard(ClipboardID);
   void onClipboardChanged(ClipboardID, const IClipboard *);
 
+  //! Request to grab screen
+  /*!
+  Sends a request to the server to make this client the active screen.
+  This is typically called when touch input is detected on the client.
+  */
+  void grabScreen(SInt32 x, SInt32 y);
+
   //@}
 
   // sending file chunk to server

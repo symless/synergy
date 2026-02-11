@@ -44,6 +44,13 @@ static BYTE g_keyState[256] = {0};
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+static bool g_touchActivateScreen = false;
+
+// Microsoft touch signature in dwExtraInfo (MI_WP_SIGNATURE).
+// The upper 24 bits (masked by 0xFFFFFF00) identify touch-generated
+// mouse events; the lower 8 bits contain pen/touch flags.
+#define TOUCH_SIGNATURE_MASK 0xFFFFFF00
+#define TOUCH_SIGNATURE 0xFF515700
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -146,6 +153,16 @@ void MSWindowsHook::setMode(EHookMode mode)
     return;
   }
   g_mode = mode;
+}
+
+void MSWindowsHook::setTouchActivateScreen(bool enabled)
+{
+  g_touchActivateScreen = enabled;
+}
+
+void MSWindowsHook::setIsPrimary(bool primary)
+{
+  g_isPrimary = primary ? TRUE : FALSE;
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -579,6 +596,25 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
   if (code >= 0) {
     // decode the message
     MSLLHOOKSTRUCT *info = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
+
+    // detect touch-originated mouse events via dwExtraInfo signature.
+    // this must run before the injected check, because Windows marks
+    // touch-synthesized mouse events as injected (LLMHF_INJECTED).
+    if (g_touchActivateScreen) {
+      bool isTouchEvent = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
+      if (isTouchEvent && (wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE)) {
+        SInt32 x = static_cast<SInt32>(info->pt.x);
+        SInt32 y = static_cast<SInt32>(info->pt.y);
+        PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
+        // On primary: eat the event to prevent edge detection and
+        // button-state locking (isLockedToScreen) from racing.
+        // On secondary (client): let it through so the click reaches
+        // the target window (e.g. Start menu) — no jump zones on clients.
+        if (g_isPrimary) {
+          return 1;
+        }
+      }
+    }
 
     bool const injected = info->flags & LLMHF_INJECTED;
     if (!g_isPrimary && injected) {

@@ -32,6 +32,7 @@
 #include "deskflow/Clipboard.h"
 #include "deskflow/KeyMap.h"
 #include "deskflow/XScreen.h"
+#include "deskflow/option_types.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsClipboard.h"
 #include "platform/MSWindowsDesks.h"
@@ -83,6 +84,28 @@
 #define PBT_APMRESUMEAUTOMATIC 0x0012
 #endif
 
+// WM_POINTER stuff (Windows 8+)
+#if !defined(WM_POINTERDOWN)
+#define WM_POINTERDOWN 0x0246
+#define WM_POINTERUP 0x0247
+#define WM_POINTERUPDATE 0x0245
+#define WM_POINTERENTER 0x0249
+#define WM_POINTERLEAVE 0x024A
+#define GET_POINTERID_WPARAM(wParam) (LOWORD(wParam))
+#endif
+
+#if !defined(PT_POINTER)
+#define PT_POINTER 1
+#define PT_TOUCH 2
+#define PT_PEN 3
+#define PT_MOUSE 4
+#endif
+
+// Function pointer type for GetPointerType (loaded dynamically for Win7 compat)
+typedef BOOL(WINAPI *GetPointerTypeFunc)(UINT32 pointerId, DWORD *pointerType);
+static GetPointerTypeFunc s_getPointerType = NULL;
+static bool s_pointerApiChecked = false;
+
 //
 // MSWindowsScreen
 //
@@ -124,7 +147,9 @@ MSWindowsScreen::MSWindowsScreen(
       m_hasMouse(GetSystemMetrics(SM_MOUSEPRESENT) != 0),
       m_events(events),
       m_dropWindow(NULL),
-      m_dropWindowSize(20)
+      m_dropWindowSize(20),
+      m_touchActivateScreen(false),
+      m_touchDebounceTimer()
 {
   LOG_DEBUG("settting up %s screen", m_isPrimary ? "primary" : "secondary");
 
@@ -133,8 +158,9 @@ MSWindowsScreen::MSWindowsScreen(
 
   s_screen = this;
   try {
-    if (m_isPrimary && !m_noHooks) {
+    if (!m_noHooks) {
       m_hook.loadLibrary();
+      m_hook.setIsPrimary(m_isPrimary);
     }
 
     m_screensaver = new MSWindowsScreenSaver();
@@ -150,6 +176,7 @@ MSWindowsScreen::MSWindowsScreen(
     m_class = createWindowClass();
     m_window = createWindow(m_class, DESKFLOW_APP_NAME);
     setupMouseKeys();
+
     LOG((CLOG_DEBUG "screen shape: %d,%d %dx%d %s", m_x, m_y, m_w, m_h, m_multimon ? "(multi-monitor)" : ""));
     LOG((CLOG_DEBUG "window is 0x%08x", m_window));
 
@@ -476,6 +503,15 @@ void MSWindowsScreen::resetOptions()
 void MSWindowsScreen::setOptions(const OptionsList &options)
 {
   m_desks->setOptions(options);
+
+  // check for touch input local option
+  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+    if (options[i] == kOptionTouchActivateScreen) {
+      m_touchActivateScreen = (options[i + 1] != 0);
+      m_hook.setTouchActivateScreen(m_touchActivateScreen);
+      LOG((CLOG_DEBUG "touch activate screen set to %s", m_touchActivateScreen ? "true" : "false"));
+    }
+  }
 }
 
 void MSWindowsScreen::setSequenceNumber(UInt32 seqNum)
@@ -957,6 +993,30 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
   case DESKFLOW_MSG_DEBUG:
     LOG((CLOG_DEBUG1 "hook: 0x%08x 0x%08x", wParam, lParam));
     return true;
+
+  case DESKFLOW_MSG_TOUCH:
+    // Thread messages (PostThreadMessage) bypass DispatchMessage, so
+    // this must be handled here in onPreDispatch, not in onEvent.
+    if (!m_touchActivateScreen || m_isOnScreen)
+      return true;
+    {
+      if (m_touchDebounceTimer.getTime() < kTouchDebounceTime)
+        return true;
+      m_touchDebounceTimer.reset();
+
+      SInt32 x = static_cast<SInt32>(wParam);
+      SInt32 y = static_cast<SInt32>(lParam);
+      if (m_isPrimary) {
+        LOG((CLOG_INFO "hook: touch activating primary screen at %d,%d", x, y));
+        sendEvent(m_events->forIPrimaryScreen().touchActivatedPrimary(),
+                  MotionInfo::alloc(x, y));
+      } else {
+        LOG((CLOG_INFO "hook: touch requesting screen grab at %d,%d", x, y));
+        sendEvent(m_events->forIScreen().grabScreen(),
+                  MotionInfo::alloc(x, y));
+      }
+    }
+    return true;
   }
 
   if (m_isPrimary) {
@@ -1042,6 +1102,17 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
 
   case WM_DISPLAYCHANGE:
     return onDisplayChange();
+
+  case WM_POINTERDOWN:
+  case WM_POINTERUP:
+  case WM_POINTERUPDATE:
+    if (onPointerInput(wParam, lParam)) {
+      // Touch input was consumed (kept local or triggered screen switch)
+      *result = 0;
+      return true;
+    }
+    // Fall through to let DefWindowProc convert to mouse messages
+    return false;
 
   /* On windows 10 we don't receive WM_POWERBROADCAST after sleep.
    We receive only WM_TIMECHANGE hence this message is used to resume.*/
@@ -1403,6 +1474,60 @@ bool MSWindowsScreen::onScreensaver(bool activated)
       m_screensaverActive = false;
       sendEvent(m_events->forIPrimaryScreen().screensaverDeactivated());
     }
+  }
+
+  return true;
+}
+
+bool MSWindowsScreen::isPointerTypeTouch(UINT32 pointerId) const
+{
+  // Dynamically load GetPointerType for Windows 7 compatibility
+  if (!s_pointerApiChecked) {
+    s_pointerApiChecked = true;
+    HMODULE user32 = GetModuleHandle("user32.dll");
+    if (user32 != NULL) {
+      s_getPointerType = (GetPointerTypeFunc)GetProcAddress(user32, "GetPointerType");
+    }
+  }
+
+  if (s_getPointerType == NULL) {
+    // API not available (Windows 7 or earlier)
+    return false;
+  }
+
+  DWORD pointerType = PT_POINTER;
+  if (s_getPointerType(pointerId, &pointerType)) {
+    return (pointerType == PT_TOUCH || pointerType == PT_PEN);
+  }
+  return false;
+}
+
+bool MSWindowsScreen::onPointerInput(WPARAM wParam, LPARAM lParam)
+{
+  UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+
+  if (!isPointerTypeTouch(pointerId))
+    return false;
+
+  if (!m_touchActivateScreen || m_isOnScreen)
+    return false;
+
+  if (m_touchDebounceTimer.getTime() < kTouchDebounceTime)
+    return true;
+  m_touchDebounceTimer.reset();
+
+  POINT pt;
+  if (!GetCursorPos(&pt))
+    return false;
+
+  if (m_isPrimary) {
+    LOG((CLOG_INFO "touch activating primary screen at %d,%d", pt.x, pt.y));
+    sendEvent(m_events->forIPrimaryScreen().touchActivatedPrimary(),
+              MotionInfo::alloc(pt.x, pt.y));
+  } else {
+    LOG((CLOG_INFO "touch requesting screen grab at %d,%d", pt.x, pt.y));
+    sendEvent(m_events->forIScreen().grabScreen(),
+              MotionInfo::alloc(pt.x, pt.y));
   }
 
   return true;
