@@ -136,7 +136,7 @@ public:
   /*!
   Sets the sequence number to use in subsequent clipboard events.
   */
-  virtual void setSequenceNumber(UInt32) = 0;
+  virtual void setSequenceNumber(uint32_t) = 0;
 
   //! Change dragging status
   virtual void setDraggingStarted(bool started) = 0;
@@ -163,32 +163,32 @@ public:
   // IScreen overrides
   virtual void *getEventTarget() const = 0;
   virtual bool getClipboard(ClipboardID id, IClipboard *) const = 0;
-  virtual void getShape(SInt32 &x, SInt32 &y, SInt32 &width, SInt32 &height) const = 0;
-  virtual void getCursorPos(SInt32 &x, SInt32 &y) const = 0;
+  virtual void getShape(int32_t &x, int32_t &y, int32_t &width, int32_t &height) const = 0;
+  virtual void getCursorPos(int32_t &x, int32_t &y) const = 0;
 
   // IPrimaryScreen overrides
-  virtual void reconfigure(UInt32 activeSides) = 0;
-  virtual void warpCursor(SInt32 x, SInt32 y) = 0;
-  virtual UInt32 registerHotKey(KeyID key, KeyModifierMask mask) = 0;
-  virtual void unregisterHotKey(UInt32 id) = 0;
+  virtual void reconfigure(uint32_t activeSides) = 0;
+  virtual void warpCursor(int32_t x, int32_t y) = 0;
+  virtual uint32_t registerHotKey(KeyID key, KeyModifierMask mask) = 0;
+  virtual void unregisterHotKey(uint32_t id) = 0;
   virtual void fakeInputBegin() = 0;
   virtual void fakeInputEnd() = 0;
-  virtual SInt32 getJumpZoneSize() const = 0;
-  virtual bool isAnyMouseButtonDown(UInt32 &buttonID) const = 0;
-  virtual void getCursorCenter(SInt32 &x, SInt32 &y) const = 0;
+  virtual int32_t getJumpZoneSize() const = 0;
+  virtual bool isAnyMouseButtonDown(uint32_t &buttonID) const = 0;
+  virtual void getCursorCenter(int32_t &x, int32_t &y) const = 0;
 
   // ISecondaryScreen overrides
   virtual void fakeMouseButton(ButtonID id, bool press) = 0;
-  virtual void fakeMouseMove(SInt32 x, SInt32 y) = 0;
-  virtual void fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const = 0;
-  virtual void fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const = 0;
+  virtual void fakeMouseMove(int32_t x, int32_t y) = 0;
+  virtual void fakeMouseRelativeMove(int32_t dx, int32_t dy) const = 0;
+  virtual void fakeMouseWheel(int32_t xDelta, int32_t yDelta) const = 0;
 
   // IKeyState overrides
   virtual void updateKeyMap() = 0;
   virtual void updateKeyState() = 0;
   virtual void setHalfDuplexMask(KeyModifierMask) = 0;
   virtual void fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const String &lang) = 0;
-  virtual bool fakeKeyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang) = 0;
+  virtual bool fakeKeyRepeat(KeyID id, KeyModifierMask mask, int32_t count, KeyButton button, const String &lang) = 0;
   virtual bool fakeKeyUp(KeyButton button) = 0;
   virtual void fakeAllKeysUp() = 0;
   virtual bool fakeCtrlAltDel() = 0;
@@ -196,7 +196,7 @@ public:
   virtual bool isKeyDown(KeyButton) const = 0;
   virtual KeyModifierMask getActiveModifiers() const = 0;
   virtual KeyModifierMask pollActiveModifiers() const = 0;
-  virtual SInt32 pollActiveGroup() const = 0;
+  virtual int32_t pollActiveGroup() const = 0;
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const = 0;
   virtual void clearStaleModifiers() = 0;
 

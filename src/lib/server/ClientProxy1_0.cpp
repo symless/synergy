@@ -124,8 +124,8 @@ void ClientProxy1_0::setHeartbeatRate(double, double alarm)
 void ClientProxy1_0::handleData(const Event &, void *)
 {
   // handle messages until there are no more.  first read message code.
-  UInt8 code[4];
-  UInt32 n = getStream()->read(code, 4);
+  uint8_t code[4];
+  uint32_t n = getStream()->read(code, 4);
   while (n != 0) {
     // verify we got an entire code
     if (n != 4) {
@@ -154,7 +154,7 @@ void ClientProxy1_0::handleData(const Event &, void *)
   resetHeartbeatTimer();
 }
 
-bool ClientProxy1_0::parseHandshakeMessage(const UInt8 *code)
+bool ClientProxy1_0::parseHandshakeMessage(const uint8_t *code)
 {
   if (memcmp(code, kMsgCNoop, 4) == 0) {
     // discard no-ops
@@ -172,7 +172,7 @@ bool ClientProxy1_0::parseHandshakeMessage(const UInt8 *code)
   return false;
 }
 
-bool ClientProxy1_0::parseMessage(const UInt8 *code)
+bool ClientProxy1_0::parseMessage(const uint8_t *code)
 {
   if (memcmp(code, kMsgDInfo, 4) == 0) {
     if (recvInfo()) {
@@ -217,7 +217,7 @@ bool ClientProxy1_0::getClipboard(ClipboardID id, IClipboard *clipboard) const
   return true;
 }
 
-void ClientProxy1_0::getShape(SInt32 &x, SInt32 &y, SInt32 &w, SInt32 &h) const
+void ClientProxy1_0::getShape(int32_t &x, int32_t &y, int32_t &w, int32_t &h) const
 {
   x = m_info.m_x;
   y = m_info.m_y;
@@ -225,14 +225,14 @@ void ClientProxy1_0::getShape(SInt32 &x, SInt32 &y, SInt32 &w, SInt32 &h) const
   h = m_info.m_h;
 }
 
-void ClientProxy1_0::getCursorPos(SInt32 &x, SInt32 &y) const
+void ClientProxy1_0::getCursorPos(int32_t &x, int32_t &y) const
 {
   // note -- this returns the cursor pos from when we last got client info
   x = m_info.m_mx;
   y = m_info.m_my;
 }
 
-void ClientProxy1_0::enter(SInt32 xAbs, SInt32 yAbs, UInt32 seqNum, KeyModifierMask mask, bool)
+void ClientProxy1_0::enter(int32_t xAbs, int32_t yAbs, uint32_t seqNum, KeyModifierMask mask, bool)
 {
   LOG((CLOG_DEBUG1 "send enter to \"%s\", %d,%d %d %04x", getName().c_str(), xAbs, yAbs, seqNum, mask));
   ProtocolUtil::writef(getStream(), kMsgCEnter, xAbs, yAbs, seqNum, mask);
@@ -272,7 +272,7 @@ void ClientProxy1_0::keyDown(KeyID key, KeyModifierMask mask, KeyButton, const S
   ProtocolUtil::writef(getStream(), kMsgDKeyDown1_0, key, mask);
 }
 
-void ClientProxy1_0::keyRepeat(KeyID key, KeyModifierMask mask, SInt32 count, KeyButton, const String &)
+void ClientProxy1_0::keyRepeat(KeyID key, KeyModifierMask mask, int32_t count, KeyButton, const String &)
 {
   LOG((CLOG_DEBUG1 "send key repeat to \"%s\" id=%d, mask=0x%04x, count=%d", getName().c_str(), key, mask, count));
   ProtocolUtil::writef(getStream(), kMsgDKeyRepeat1_0, key, mask, count);
@@ -296,31 +296,31 @@ void ClientProxy1_0::mouseUp(ButtonID button)
   ProtocolUtil::writef(getStream(), kMsgDMouseUp, button);
 }
 
-void ClientProxy1_0::mouseMove(SInt32 xAbs, SInt32 yAbs)
+void ClientProxy1_0::mouseMove(int32_t xAbs, int32_t yAbs)
 {
   LOG((CLOG_DEBUG2 "send mouse move to \"%s\" %d,%d", getName().c_str(), xAbs, yAbs));
   ProtocolUtil::writef(getStream(), kMsgDMouseMove, xAbs, yAbs);
 }
 
-void ClientProxy1_0::mouseRelativeMove(SInt32, SInt32)
+void ClientProxy1_0::mouseRelativeMove(int32_t, int32_t)
 {
   // ignore -- not supported in protocol 1.0
 }
 
-void ClientProxy1_0::mouseWheel(SInt32, SInt32 yDelta)
+void ClientProxy1_0::mouseWheel(int32_t, int32_t yDelta)
 {
   // clients prior to 1.3 only support the y axis
   LOG((CLOG_DEBUG2 "send mouse wheel to \"%s\" %+d", getName().c_str(), yDelta));
   ProtocolUtil::writef(getStream(), kMsgDMouseWheel1_0, yDelta);
 }
 
-void ClientProxy1_0::sendDragInfo(UInt32 fileCount, const char *info, size_t size)
+void ClientProxy1_0::sendDragInfo(uint32_t fileCount, const char *info, size_t size)
 {
   // ignore -- not supported in protocol 1.0
   LOG((CLOG_DEBUG "draggingInfoSending not supported"));
 }
 
-void ClientProxy1_0::fileChunkSending(UInt8 mark, char *data, size_t dataSize)
+void ClientProxy1_0::fileChunkSending(uint8_t mark, char *data, size_t dataSize)
 {
   // ignore -- not supported in protocol 1.0
   LOG((CLOG_DEBUG "fileChunkSending not supported"));
@@ -362,7 +362,7 @@ void ClientProxy1_0::setOptions(const OptionsList &options)
   ProtocolUtil::writef(getStream(), kMsgDSetOptions, &options);
 
   // check options
-  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+  for (uint32_t i = 0, n = (uint32_t)options.size(); i < n; i += 2) {
     if (options[i] == kOptionHeartbeat) {
       double rate = 1.0e-3 * static_cast<double>(options[i + 1]);
       if (rate <= 0.0) {
@@ -378,7 +378,7 @@ void ClientProxy1_0::setOptions(const OptionsList &options)
 bool ClientProxy1_0::recvInfo()
 {
   // parse the message
-  SInt16 x, y, w, h, dummy1, mx, my;
+  int16_t x, y, w, h, dummy1, mx, my;
   if (!ProtocolUtil::readf(getStream(), kMsgDInfo + 4, &x, &y, &w, &h, &dummy1, &mx, &my)) {
     return false;
   }
@@ -417,7 +417,7 @@ bool ClientProxy1_0::recvGrabClipboard()
 {
   // parse message
   ClipboardID id;
-  UInt32 seqNum;
+  uint32_t seqNum;
   if (!ProtocolUtil::readf(getStream(), kMsgCClipboard + 4, &id, &seqNum)) {
     return false;
   }

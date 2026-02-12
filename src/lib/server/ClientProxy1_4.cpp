@@ -47,7 +47,7 @@ void ClientProxy1_4::keyDown(KeyID key, KeyModifierMask mask, KeyButton button, 
   ClientProxy1_3::keyDown(key, mask, button, lang);
 }
 
-void ClientProxy1_4::keyRepeat(KeyID key, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang)
+void ClientProxy1_4::keyRepeat(KeyID key, KeyModifierMask mask, int32_t count, KeyButton button, const String &lang)
 {
   ClientProxy1_3::keyRepeat(key, mask, count, button, lang);
 }

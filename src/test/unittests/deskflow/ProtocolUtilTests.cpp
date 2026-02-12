@@ -38,26 +38,26 @@ ACTION_P2(SetValueToVoidPointerArg0, value, size)
 
 MATCHER_P(EqVoidPointeeInt8, expected, "")
 {
-  const UInt8 Actual8 = (*static_cast<const UInt8 *>(arg));
+  const uint8_t Actual8 = (*static_cast<const uint8_t *>(arg));
   return (expected == Actual8);
 }
 
 MATCHER_P(EqVoidPointeeInt16, expected, "")
 {
-  const UInt16 Actual16 = (*static_cast<const UInt16 *>(arg));
+  const uint16_t Actual16 = (*static_cast<const uint16_t *>(arg));
   return (expected == (Actual16 >> 8));
 }
 
 MATCHER_P(EqVoidPointeeInt32, expected, "")
 {
-  const UInt32 Actual32 = (*static_cast<const UInt32 *>(arg));
+  const uint32_t Actual32 = (*static_cast<const uint32_t *>(arg));
   return (expected == (Actual32 >> 24));
 }
 
 MATCHER_P(EqVoidVectorInt1byte, expected, "")
 {
   bool Result = true;
-  const UInt8 *Actual = (static_cast<const UInt8 *>(arg)) + 4;
+  const uint8_t *Actual = (static_cast<const uint8_t *>(arg)) + 4;
   const size_t Size = *(Actual - 1);
 
   if (Size == expected.size()) {
@@ -77,7 +77,7 @@ MATCHER_P(EqVoidVectorInt1byte, expected, "")
 MATCHER_P(EqVoidVectorInt2bytes, expected, "")
 {
   bool Result = true;
-  const UInt16 *Actual = (static_cast<const UInt16 *>(arg)) + 2;
+  const uint16_t *Actual = (static_cast<const uint16_t *>(arg)) + 2;
   const size_t Size = *(Actual - 1) >> 8;
 
   if (Size == expected.size()) {
@@ -97,7 +97,7 @@ MATCHER_P(EqVoidVectorInt2bytes, expected, "")
 MATCHER_P(EqVoidVectorInt4bytes, expected, "")
 {
   bool Result = true;
-  const UInt32 *Actual = (static_cast<const UInt32 *>(arg)) + 1;
+  const uint32_t *Actual = (static_cast<const uint32_t *>(arg)) + 1;
   const size_t Size = *(Actual - 1) >> 24;
 
   if (Size == expected.size()) {
@@ -117,7 +117,7 @@ MATCHER_P(EqVoidVectorInt4bytes, expected, "")
 MATCHER_P(EqVectorSymbols, expected, "")
 {
   bool Result = true;
-  const UInt8 *Actual = (static_cast<const UInt8 *>(arg));
+  const uint8_t *Actual = (static_cast<const uint8_t *>(arg));
 
   for (size_t i = 0; i < expected.size(); ++i) {
     if (expected[i] != (Actual[i])) {
@@ -138,9 +138,9 @@ class ProtocolUtilTests : public ::testing::Test
 {
 public:
   MockStream stream;
-  UInt8 ActualInt8 = 0;
-  UInt16 ActualInt16 = 0;
-  UInt32 ActualInt32 = 0;
+  uint8_t ActualInt8 = 0;
+  uint16_t ActualInt16 = 0;
+  uint32_t ActualInt32 = 0;
   std::string ActualString;
 };
 
@@ -187,9 +187,9 @@ TEST_F(ProtocolUtilTests, readf_params_validation) {
 }
 
 TEST_F(ProtocolUtilTests, readf_string) {
-  const UInt8 Length = 200;
+  const uint8_t Length = 200;
   const std::string Expected(Length, 'x');
-  std::array<UInt8, 4> StringSize{{0, 0, 0, Length}};
+  std::array<uint8_t, 4> StringSize{{0, 0, 0, Length}};
 
   EXPECT_CALL(stream, read(_, _))
       .WillOnce(
@@ -207,12 +207,12 @@ class ReadfIntTestFixture
     : public ::testing::TestWithParam<std::tuple<const char *, int>> {
 public:
   MockStream stream;
-  UInt8 StreamData1Byte = 10;
-  std::array<UInt8, 2> StreamData2Bytes{{0, 10}};
-  std::array<UInt8, 4> StreamData4Bytes{{0, 0, 0, 10}};
+  uint8_t StreamData1Byte = 10;
+  std::array<uint8_t, 2> StreamData2Bytes{{0, 10}};
+  std::array<uint8_t, 4> StreamData4Bytes{{0, 0, 0, 10}};
 
-  UInt8 *getStreamData(int size) {
-    UInt8 *StreamData = nullptr;
+  uint8_t *getStreamData(int size) {
+    uint8_t *StreamData = nullptr;
     switch (size) {
     case 2:
       StreamData = StreamData2Bytes.data();
@@ -233,7 +233,7 @@ TEST_P(ReadfIntTestFixture, readf_int) {
   const int Expected = 10;
   const char *Format = std::get<0>(GetParam());
   int StreamDataSize = std::get<1>(GetParam());
-  UInt8 *StreamData = getStreamData(StreamDataSize);
+  uint8_t *StreamData = getStreamData(StreamDataSize);
 
   ON_CALL(stream, read(_, _))
       .WillByDefault(
@@ -252,18 +252,18 @@ INSTANTIATE_TEST_SUITE_P(ReadfIntTests, ReadfIntTestFixture,
 class ReadfIntVectorTestFixture : public ReadfIntTestFixture {};
 
 TEST_P(ReadfIntVectorTestFixture, readf_int_vector) {
-  std::vector<UInt8> Actual1Byte = {};
-  std::vector<UInt16> Actual2Bytes = {};
-  std::vector<UInt32> Actual4Bytes = {};
+  std::vector<uint8_t> Actual1Byte = {};
+  std::vector<uint16_t> Actual2Bytes = {};
+  std::vector<uint32_t> Actual4Bytes = {};
 
-  const std::vector<UInt8> Expected1Byte = {10, 10};
-  const std::vector<UInt16> Expected2Bytes = {10, 10};
-  const std::vector<UInt32> Expected4Bytes = {10, 10};
-  std::array<UInt8, 4> StreamVectorSize{{0, 0, 0, 2}};
+  const std::vector<uint8_t> Expected1Byte = {10, 10};
+  const std::vector<uint16_t> Expected2Bytes = {10, 10};
+  const std::vector<uint32_t> Expected4Bytes = {10, 10};
+  std::array<uint8_t, 4> StreamVectorSize{{0, 0, 0, 2}};
 
   const char *Format = std::get<0>(GetParam());
   int StreamDataSize = std::get<1>(GetParam());
-  UInt8 *StreamData = getStreamData(StreamDataSize);
+  uint8_t *StreamData = getStreamData(StreamDataSize);
 
   MockStream stream;
   EXPECT_CALL(stream, read(_, _))
@@ -297,21 +297,21 @@ INSTANTIATE_TEST_SUITE_P(ReadfIntVectorTests, ReadfIntVectorTestFixture,
 
 class ReadfIntAndStringTest : public ReadfIntTestFixture {
 public:
-  UInt8 ActualInt8 = 0;
-  UInt16 ActualInt16 = 0;
-  UInt32 ActualInt32 = 32;
+  uint8_t ActualInt8 = 0;
+  uint16_t ActualInt16 = 0;
+  uint32_t ActualInt32 = 32;
   std::string ActualString;
 };
 
 TEST_P(ReadfIntAndStringTest, readf_int_and_string) {
   const int ExpectedInt = 10;
-  const UInt8 StringLength = 200;
+  const uint8_t StringLength = 200;
   const std::string ExpectedString(StringLength, 'x');
-  std::array<UInt8, 4> StringSize{{0, 0, 0, StringLength}};
+  std::array<uint8_t, 4> StringSize{{0, 0, 0, StringLength}};
 
   const char *Format = std::get<0>(GetParam());
   int StreamDataSize = std::get<1>(GetParam());
-  UInt8 *StreamData = getStreamData(StreamDataSize);
+  uint8_t *StreamData = getStreamData(StreamDataSize);
 
   EXPECT_CALL(stream, read(_, _))
       .WillOnce(DoAll(SetValueToVoidPointerArg0(StreamData, StreamDataSize),
@@ -349,11 +349,11 @@ INSTANTIATE_TEST_SUITE_P(IntAndStringTest, ReadfIntAndStringTest,
                                            std::make_tuple("%4i%s", 4)));
 
 TEST_F(ProtocolUtilTests, readf_string_and_int4bytes) {
-  const UInt8 ExpectedInt = 10;
-  std::array<UInt8, 4> StreamIntData{{0, 0, 0, ExpectedInt}};
+  const uint8_t ExpectedInt = 10;
+  std::array<uint8_t, 4> StreamIntData{{0, 0, 0, ExpectedInt}};
 
   const std::string ExpectedStr(32768, 'x');
-  std::array<UInt8, 4> Size{{0, 0, 128, 0}};
+  std::array<uint8_t, 4> Size{{0, 0, 128, 0}};
 
   EXPECT_CALL(stream, read(_, _))
       .WillOnce(DoAll(SetValueToVoidPointerArg0(Size.data(), Size.size()),
@@ -372,13 +372,13 @@ TEST_F(ProtocolUtilTests, readf_string_and_int4bytes) {
 }
 
 TEST_F(ProtocolUtilTests, readf_string_and_vector_int4bytes) {
-  std::vector<UInt32> Actual = {};
-  const std::vector<UInt32> Expected4Bytes = {10, 10};
-  std::array<UInt8, 4> StreamVectorSize{{0, 0, 0, 2}};
-  std::array<UInt8, 4> StreamData4Bytes{{0, 0, 0, 10}};
+  std::vector<uint32_t> Actual = {};
+  const std::vector<uint32_t> Expected4Bytes = {10, 10};
+  std::array<uint8_t, 4> StreamVectorSize{{0, 0, 0, 2}};
+  std::array<uint8_t, 4> StreamData4Bytes{{0, 0, 0, 10}};
 
   const std::string ExpString(32768, 'x');
-  std::array<UInt8, 4> SizeString{{0, 0, 128, 0}};
+  std::array<uint8_t, 4> SizeString{{0, 0, 128, 0}};
 
   EXPECT_CALL(stream, read(_, _))
       .WillOnce(
@@ -400,13 +400,13 @@ TEST_F(ProtocolUtilTests, readf_string_and_vector_int4bytes) {
 }
 
 TEST_F(ProtocolUtilTests, readf_vector_int4bytes_and_string) {
-  std::vector<UInt32> Actual4Bytes = {};
-  const std::vector<UInt32> Expected4Bytes = {10, 10};
-  std::array<UInt8, 4> StreamVectorSize{{0, 0, 0, 2}};
-  std::array<UInt8, 4> StreamData4Bytes{{0, 0, 0, 10}};
+  std::vector<uint32_t> Actual4Bytes = {};
+  const std::vector<uint32_t> Expected4Bytes = {10, 10};
+  std::array<uint8_t, 4> StreamVectorSize{{0, 0, 0, 2}};
+  std::array<uint8_t, 4> StreamData4Bytes{{0, 0, 0, 10}};
 
   const std::string ExpectedString(32768, 'x');
-  std::array<UInt8, 4> StringSize{{0, 0, 128, 0}};
+  std::array<uint8_t, 4> StringSize{{0, 0, 128, 0}};
 
   EXPECT_CALL(stream, read(_, _))
       .WillOnce(DoAll(SetValueToVoidPointerArg0(StreamVectorSize.data(),
@@ -435,9 +435,9 @@ class WriteIntTest
     : public ::testing::TestWithParam<std::tuple<const char *, int>> {
 public:
   MockStream stream;
-  UInt8 Expected1Byte = 5;
-  UInt16 Expected2Bytes = 10;
-  UInt32 Expected4Bytes = 15;
+  uint8_t Expected1Byte = 5;
+  uint16_t Expected2Bytes = 10;
+  uint32_t Expected4Bytes = 15;
 };
 
 TEST_P(WriteIntTest, write_int) {
@@ -470,9 +470,9 @@ class WriteIntVectorTest
     : public ::testing::TestWithParam<std::tuple<const char *, int>> {
 public:
   MockStream stream;
-  const std::vector<UInt8> Expected1Byte = {10, 20, 30};
-  const std::vector<UInt16> Expected2Byte = {40, 50, 60};
-  const std::vector<UInt32> Expected4Byte = {70, 80, 90};
+  const std::vector<uint8_t> Expected1Byte = {10, 20, 30};
+  const std::vector<uint16_t> Expected2Byte = {40, 50, 60};
+  const std::vector<uint32_t> Expected4Byte = {70, 80, 90};
 };
 
 TEST_P(WriteIntVectorTest, write_vector_int) {
@@ -483,18 +483,18 @@ TEST_P(WriteIntVectorTest, write_vector_int) {
   case 2:
     EXPECT_CALL(stream,
                 write(EqVoidVectorInt2bytes(Expected2Byte),
-                      Eq(Type * Expected2Byte.size() + sizeof(UInt32))));
+                      Eq(Type * Expected2Byte.size() + sizeof(uint32_t))));
     ProtocolUtil::writef(&stream, Format, &Expected2Byte);
     break;
   case 4:
     EXPECT_CALL(stream,
                 write(EqVoidVectorInt4bytes(Expected4Byte),
-                      Eq(Type * Expected4Byte.size() + sizeof(UInt32))));
+                      Eq(Type * Expected4Byte.size() + sizeof(uint32_t))));
     ProtocolUtil::writef(&stream, Format, &Expected4Byte);
     break;
   default:
     EXPECT_CALL(stream, write(EqVoidVectorInt1byte(Expected1Byte),
-                              Eq(Expected1Byte.size() + sizeof(UInt32))));
+                              Eq(Expected1Byte.size() + sizeof(uint32_t))));
     ProtocolUtil::writef(&stream, Format, &Expected1Byte);
     break;
   }
@@ -507,23 +507,23 @@ INSTANTIATE_TEST_SUITE_P(WriteIntVectorTest, WriteIntVectorTest,
 
 TEST_F(ProtocolUtilTests, write_string_test) {
   const String Expected = "Expected";
-  const std::vector<UInt8> ExpectedVector = {'E', 'x', 'p', 'e',
+  const std::vector<uint8_t> ExpectedVector = {'E', 'x', 'p', 'e',
                                              'c', 't', 'e', 'd'};
   EXPECT_CALL(stream, write(EqVoidVectorInt1byte(ExpectedVector),
-                            Expected.size() + sizeof(UInt32)));
+                            Expected.size() + sizeof(uint32_t)));
   ProtocolUtil::writef(&stream, "%s", &Expected);
 }
 
 TEST_F(ProtocolUtilTests, write_raw_bytes_test) {
-  const UInt32 Size = 5;
-  const std::array<UInt8, Size> Expected{{10, 20, 30, 40, 50}};
+  const uint32_t Size = 5;
+  const std::array<uint8_t, Size> Expected{{10, 20, 30, 40, 50}};
   EXPECT_CALL(stream, write(EqVoidVectorInt1byte(Expected),
-                            Expected.size() + sizeof(UInt32)));
+                            Expected.size() + sizeof(uint32_t)));
   ProtocolUtil::writef(&stream, "%S", Size, &Expected);
 }
 
 TEST_F(ProtocolUtilTests, write_symbols_from_format_test) {
-  const std::vector<UInt8> Expected = {'%', '1', '2', '3', '4', '5'};
+  const std::vector<uint8_t> Expected = {'%', '1', '2', '3', '4', '5'};
   EXPECT_CALL(stream, write(EqVectorSymbols(Expected), Expected.size()));
   ProtocolUtil::writef(&stream, "%%12345");
 }

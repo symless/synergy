@@ -17,9 +17,9 @@
 
 #pragma once
 
-#include "common/basic_types.h"
+#include <cstdint>
 
-enum class IpcMessageType : UInt8
+enum class IpcMessageType : uint8_t
 {
   Hello,
   HelloBack,

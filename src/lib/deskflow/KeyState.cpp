@@ -714,7 +714,7 @@ void KeyState::onKey(KeyButton button, bool down, KeyModifierMask newState)
 }
 
 void KeyState::sendKeyEvent(
-    void *target, bool press, bool isAutoRepeat, KeyID key, KeyModifierMask mask, SInt32 count, KeyButton button
+    void *target, bool press, bool isAutoRepeat, KeyID key, KeyModifierMask mask, int32_t count, KeyButton button
 )
 {
   if (m_keyMap.isHalfDuplex(key, button)) {
@@ -780,7 +780,7 @@ void KeyState::updateKeyState()
   LOG((CLOG_DEBUG1 "modifiers on update: 0x%04x", m_mask));
 }
 
-void KeyState::addActiveModifierCB(KeyID, SInt32 group, deskflow::KeyMap::KeyItem &keyItem, void *vcontext)
+void KeyState::addActiveModifierCB(KeyID, int32_t group, deskflow::KeyMap::KeyItem &keyItem, void *vcontext)
 {
   AddActiveModifierContext *context = static_cast<AddActiveModifierContext *>(vcontext);
   if (group == context->m_activeGroup && (keyItem.m_generates & context->m_mask) != 0) {
@@ -849,7 +849,7 @@ void KeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton serverID, c
   fakeKeys(keys, 1);
 }
 
-bool KeyState::fakeKeyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton serverID, const String &lang)
+bool KeyState::fakeKeyRepeat(KeyID id, KeyModifierMask mask, int32_t count, KeyButton serverID, const String &lang)
 {
   LOG((CLOG_DEBUG2 "fakeKeyRepeat"));
   serverID &= kButtonMask;
@@ -985,7 +985,7 @@ KeyModifierMask &KeyState::getActiveModifiersRValue()
   return m_mask;
 }
 
-SInt32 KeyState::getEffectiveGroup(SInt32 group, SInt32 offset) const
+int32_t KeyState::getEffectiveGroup(int32_t group, int32_t offset) const
 {
   return m_keyMap.getEffectiveGroup(group, offset);
 }
@@ -1003,7 +1003,7 @@ bool KeyState::isIgnoredKey(KeyID key, KeyModifierMask) const
   }
 }
 
-KeyButton KeyState::getButton(KeyID id, SInt32 group) const
+KeyButton KeyState::getButton(KeyID id, int32_t group) const
 {
   const deskflow::KeyMap::KeyItemList *items = m_keyMap.findCompatibleKey(id, group, 0, 0);
   if (items == NULL) {
@@ -1015,7 +1015,7 @@ KeyButton KeyState::getButton(KeyID id, SInt32 group) const
 
 void KeyState::addAliasEntries()
 {
-  for (SInt32 g = 0, n = m_keyMap.getNumGroups(); g < n; ++g) {
+  for (int32_t g = 0, n = m_keyMap.getNumGroups(); g < n; ++g) {
     // if we can't shift any kKeyTab key in a particular group but we can
     // shift kKeyLeftTab then add a shifted kKeyTab entry that matches a
     // shifted kKeyLeftTab entry.
@@ -1036,7 +1036,7 @@ void KeyState::addKeypadEntries()
 {
   // map every numpad key to its equivalent non-numpad key if it's not
   // on the keyboard.
-  for (SInt32 g = 0, n = m_keyMap.getNumGroups(); g < n; ++g) {
+  for (int32_t g = 0, n = m_keyMap.getNumGroups(); g < n; ++g) {
     for (size_t i = 0; i < sizeof(s_numpadTable) / sizeof(s_numpadTable[0]); i += 2) {
       m_keyMap.addKeyCombinationEntry(s_numpadTable[i], g, s_numpadTable + i + 1, 1);
     }
@@ -1045,12 +1045,12 @@ void KeyState::addKeypadEntries()
 
 void KeyState::addCombinationEntries()
 {
-  for (SInt32 g = 0, n = m_keyMap.getNumGroups(); g < n; ++g) {
+  for (int32_t g = 0, n = m_keyMap.getNumGroups(); g < n; ++g) {
     // add dead and compose key composition sequences
     const KeyID *i = s_decomposeTable;
     while (*i != 0) {
       // count the decomposed keys for this key
-      UInt32 numKeys = 0;
+      uint32_t numKeys = 0;
       const KeyID *j = i;
       while (*++j != 0) {
         ++numKeys;
@@ -1066,7 +1066,7 @@ void KeyState::addCombinationEntries()
   }
 }
 
-void KeyState::fakeKeys(const Keystrokes &keys, UInt32 count)
+void KeyState::fakeKeys(const Keystrokes &keys, uint32_t count)
 {
   // do nothing if no keys or no repeats
   if (count == 0 || keys.empty()) {
@@ -1147,7 +1147,7 @@ void KeyState::updateModifierKeyState(
 //
 
 KeyState::AddActiveModifierContext::AddActiveModifierContext(
-    SInt32 group, KeyModifierMask mask, ModifierToKeys &activeModifiers
+    int32_t group, KeyModifierMask mask, ModifierToKeys &activeModifiers
 )
     : m_activeGroup(group),
       m_mask(mask),

@@ -79,7 +79,7 @@
 struct codepair
 {
   KeySym keysym;
-  UInt32 ucs4;
+  uint32_t ucs4;
 } s_keymap[] = {
     {XK_Aogonek, 0x0104},      /* LATIN CAPITAL LETTER A WITH OGONEK */
     {XK_breve, 0x02d8},        /* BREVE */
@@ -1515,7 +1515,7 @@ static const KeySym s_map1008FF[] = {
 XWindowsUtil::KeySymMap XWindowsUtil::s_keySymToUCS4;
 
 bool XWindowsUtil::getWindowProperty(
-    Display *display, Window window, Atom property, String *data, Atom *type, SInt32 *format, bool deleteProperty
+    Display *display, Window window, Atom property, String *data, Atom *type, int32_t *format, bool deleteProperty
 )
 {
   assert(display != NULL);
@@ -1587,7 +1587,7 @@ bool XWindowsUtil::getWindowProperty(
     *type = actualType;
   }
   if (format != NULL) {
-    *format = static_cast<SInt32>(actualDatumSize);
+    *format = static_cast<int32_t>(actualDatumSize);
   }
 
   if (okay) {
@@ -1601,12 +1601,12 @@ bool XWindowsUtil::getWindowProperty(
 }
 
 bool XWindowsUtil::setWindowProperty(
-    Display *display, Window window, Atom property, const void *vdata, UInt32 size, Atom type, SInt32 format
+    Display *display, Window window, Atom property, const void *vdata, uint32_t size, Atom type, int32_t format
 )
 {
-  const UInt32 length = 4 * XMaxRequestSize(display);
+  const uint32_t length = 4 * XMaxRequestSize(display);
   const unsigned char *data = static_cast<const unsigned char *>(vdata);
-  UInt32 datumSize = static_cast<UInt32>(format / 8);
+  uint32_t datumSize = static_cast<uint32_t>(format / 8);
   // format 32 on 64bit systems is 8 bytes not 4.
   if (format == 32) {
     datumSize = sizeof(Atom);
@@ -1617,7 +1617,7 @@ bool XWindowsUtil::setWindowProperty(
   XWindowsUtil::ErrorLock lock(display, &error);
 
   // how much data to send in first chunk?
-  UInt32 chunkSize = size;
+  uint32_t chunkSize = size;
   if (chunkSize > length) {
     chunkSize = length;
   }
@@ -1768,7 +1768,7 @@ KeyID XWindowsUtil::mapKeySymToKeyID(KeySym k)
   }
 }
 
-UInt32 XWindowsUtil::getModifierBitForKeySym(KeySym keysym)
+uint32_t XWindowsUtil::getModifierBitForKeySym(KeySym keysym)
 {
   switch (keysym) {
   case XK_Shift_L:
@@ -1834,7 +1834,7 @@ String XWindowsUtil::atomToString(Display *display, Atom atom)
   }
 }
 
-String XWindowsUtil::atomsToString(Display *display, const Atom *atom, UInt32 num)
+String XWindowsUtil::atomsToString(Display *display, const Atom *atom, uint32_t num)
 {
   char **names = new char *[num];
   bool error = false;
@@ -1842,11 +1842,11 @@ String XWindowsUtil::atomsToString(Display *display, const Atom *atom, UInt32 nu
   XGetAtomNames(display, const_cast<Atom *>(atom), (int)num, names);
   String msg;
   if (error) {
-    for (UInt32 i = 0; i < num; ++i) {
+    for (uint32_t i = 0; i < num; ++i) {
       msg += deskflow::string::sprintf("<UNKNOWN> (%d), ", (int)atom[i]);
     }
   } else {
-    for (UInt32 i = 0; i < num; ++i) {
+    for (uint32_t i = 0; i < num; ++i) {
       msg += deskflow::string::sprintf("%s (%d), ", names[i], (int)atom[i]);
       XFree(names[i]);
     }
@@ -1867,7 +1867,7 @@ void XWindowsUtil::convertAtomProperty(String &data)
   // should all be 0.  since we're going to reference the Atoms as
   // 64-bit numbers we have to ensure the last number is a full 64 bits.
   if (sizeof(Atom) != 4 && ((data.size() / 4) & 1) != 0) {
-    UInt32 zero = 0;
+    uint32_t zero = 0;
     data.append(reinterpret_cast<char *>(&zero), sizeof(zero));
   }
 }
@@ -1877,7 +1877,7 @@ void XWindowsUtil::appendAtomData(String &data, Atom atom)
   data.append(reinterpret_cast<char *>(&atom), sizeof(Atom));
 }
 
-void XWindowsUtil::replaceAtomData(String &data, UInt32 index, Atom atom)
+void XWindowsUtil::replaceAtomData(String &data, uint32_t index, Atom atom)
 {
   data.replace(index * sizeof(Atom), sizeof(Atom), reinterpret_cast<const char *>(&atom), sizeof(Atom));
 }

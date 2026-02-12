@@ -36,9 +36,9 @@ public:
   ClientProxy1_5 &operator=(ClientProxy1_5 const &) = delete;
   ClientProxy1_5 &operator=(ClientProxy1_5 &&) = delete;
 
-  virtual void sendDragInfo(UInt32 fileCount, const char *info, size_t size);
-  virtual void fileChunkSending(UInt8 mark, char *data, size_t dataSize);
-  virtual bool parseMessage(const UInt8 *code);
+  virtual void sendDragInfo(uint32_t fileCount, const char *info, size_t size);
+  virtual void fileChunkSending(uint8_t mark, char *data, size_t dataSize);
+  virtual bool parseMessage(const uint8_t *code);
   void fileChunkReceived();
   void dragInfoReceived();
 

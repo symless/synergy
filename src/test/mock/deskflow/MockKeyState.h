@@ -39,7 +39,7 @@ public:
   {
   }
 
-  MOCK_METHOD(SInt32, pollActiveGroup, (), (const, override));
+  MOCK_METHOD(int32_t, pollActiveGroup, (), (const, override));
   MOCK_METHOD(KeyModifierMask, pollActiveModifiers, (), (const, override));
   MOCK_METHOD(bool, fakeCtrlAltDel, (), (override));
   MOCK_METHOD(void, getKeyMap, (deskflow::KeyMap &), (override));
@@ -50,6 +50,6 @@ public:
 
 typedef ::testing::NiceMock<MockKeyState> KeyStateImpl;
 
-typedef UInt32 KeyID;
+typedef uint32_t KeyID;
 
-typedef void (*ForeachKeyCallback)(KeyID, SInt32 group, deskflow::KeyMap::KeyItem &, void *userData);
+typedef void (*ForeachKeyCallback)(KeyID, int32_t group, deskflow::KeyMap::KeyItem &, void *userData);

@@ -40,34 +40,34 @@ public:
 
   // IScreen
   bool getClipboard(ClipboardID id, IClipboard *) const override;
-  void getShape(SInt32 &x, SInt32 &y, SInt32 &width, SInt32 &height) const override;
-  void getCursorPos(SInt32 &x, SInt32 &y) const override;
+  void getShape(int32_t &x, int32_t &y, int32_t &width, int32_t &height) const override;
+  void getCursorPos(int32_t &x, int32_t &y) const override;
 
   // IClient overrides
-  void enter(SInt32 xAbs, SInt32 yAbs, UInt32 seqNum, KeyModifierMask mask, bool forScreensaver) override;
+  void enter(int32_t xAbs, int32_t yAbs, uint32_t seqNum, KeyModifierMask mask, bool forScreensaver) override;
   bool leave() override;
   void setClipboard(ClipboardID, const IClipboard *) override;
   void grabClipboard(ClipboardID) override;
   void setClipboardDirty(ClipboardID, bool) override;
   void keyDown(KeyID, KeyModifierMask, KeyButton, const String &) override;
-  void keyRepeat(KeyID, KeyModifierMask, SInt32 count, KeyButton, const String &) override;
+  void keyRepeat(KeyID, KeyModifierMask, int32_t count, KeyButton, const String &) override;
   void keyUp(KeyID, KeyModifierMask, KeyButton) override;
   void mouseDown(ButtonID) override;
   void mouseUp(ButtonID) override;
-  void mouseMove(SInt32 xAbs, SInt32 yAbs) override;
-  void mouseRelativeMove(SInt32 xRel, SInt32 yRel) override;
-  void mouseWheel(SInt32 xDelta, SInt32 yDelta) override;
+  void mouseMove(int32_t xAbs, int32_t yAbs) override;
+  void mouseRelativeMove(int32_t xRel, int32_t yRel) override;
+  void mouseWheel(int32_t xDelta, int32_t yDelta) override;
   void screensaver(bool activate) override;
   void resetOptions() override;
   void setOptions(const OptionsList &options) override;
-  void sendDragInfo(UInt32 fileCount, const char *info, size_t size) override;
-  void fileChunkSending(UInt8 mark, char *data, size_t dataSize) override;
+  void sendDragInfo(uint32_t fileCount, const char *info, size_t size) override;
+  void fileChunkSending(uint8_t mark, char *data, size_t dataSize) override;
   String getSecureInputApp() const override;
   void secureInputNotification(const String &app) const override;
 
 protected:
-  virtual bool parseHandshakeMessage(const UInt8 *code);
-  virtual bool parseMessage(const UInt8 *code);
+  virtual bool parseHandshakeMessage(const uint8_t *code);
+  virtual bool parseMessage(const uint8_t *code);
 
   virtual void resetHeartbeatRate();
   virtual void setHeartbeatRate(double rate, double alarm);
@@ -96,14 +96,14 @@ protected:
 
   public:
     Clipboard m_clipboard;
-    UInt32 m_sequenceNumber;
+    uint32_t m_sequenceNumber;
     bool m_dirty;
   };
 
   ClientClipboard m_clipboard[kClipboardEnd];
 
 private:
-  typedef bool (ClientProxy1_0::*MessageParser)(const UInt8 *);
+  typedef bool (ClientProxy1_0::*MessageParser)(const uint8_t *);
 
   ClientInfo m_info;
   double m_heartbeatAlarm;

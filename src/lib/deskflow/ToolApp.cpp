@@ -36,7 +36,7 @@ enum
   kErrorUnknown
 };
 
-UInt32 ToolApp::run(int argc, char **argv)
+uint32_t ToolApp::run(int argc, char **argv)
 {
   if (argc <= 1) {
     std::cerr << "no args" << std::endl;

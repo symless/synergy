@@ -18,7 +18,7 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/basic_types.h"
+#include <cstdint>
 #include "deskflow/Chunk.h"
 #include "deskflow/clipboard_types.h"
 
@@ -33,11 +33,11 @@ class ClipboardChunk : public Chunk
 public:
   ClipboardChunk(size_t size);
 
-  static ClipboardChunk *start(ClipboardID id, UInt32 sequence, const String &size);
-  static ClipboardChunk *data(ClipboardID id, UInt32 sequence, const String &data);
-  static ClipboardChunk *end(ClipboardID id, UInt32 sequence);
+  static ClipboardChunk *start(ClipboardID id, uint32_t sequence, const String &size);
+  static ClipboardChunk *data(ClipboardID id, uint32_t sequence, const String &data);
+  static ClipboardChunk *end(ClipboardID id, uint32_t sequence);
 
-  static int assemble(deskflow::IStream *stream, String &dataCached, ClipboardID &id, UInt32 &sequence);
+  static int assemble(deskflow::IStream *stream, String &dataCached, ClipboardID &id, uint32_t &sequence);
 
   static void send(deskflow::IStream *stream, void *data);
 

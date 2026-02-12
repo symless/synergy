@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "common/basic_types.h"
+#include <cstdint>
 #include "common/stdmap.h"
 
 class EventData
@@ -39,7 +39,7 @@ A \c Event holds an event type and a pointer to event data.
 class Event
 {
 public:
-  typedef UInt32 Type;
+  typedef uint32_t Type;
   enum
   {
     kUnknown, //!< The event type is unknown
@@ -49,7 +49,7 @@ public:
     kLast     //!< Must be last
   };
 
-  typedef UInt32 Flags;
+  typedef uint32_t Flags;
   enum
   {
     kNone = 0x00,               //!< No flags

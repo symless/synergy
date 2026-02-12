@@ -20,7 +20,7 @@
 
 #include "arch/IArchString.h"
 #include "base/String.h"
-#include "common/basic_types.h"
+#include <cstdint>
 
 //! Unicode utility functions
 /*!
@@ -124,26 +124,26 @@ private:
   // to the platform).  caller must delete[] the returned string.  the
   // string is *not* nul terminated;  the length (in characters) is
   // returned in size.
-  static wchar_t *UTF8ToWideChar(const String &, UInt32 &size, bool *errors);
+  static wchar_t *UTF8ToWideChar(const String &, uint32_t &size, bool *errors);
 
   // convert nul terminated wchar_t string (in platform's native
   // encoding) to UTF8.
   static String wideCharToUTF8(
-      const wchar_t *, UInt32 size, bool *errors,
+      const wchar_t *, uint32_t size, bool *errors,
       IArchString::EWideCharEncoding encoding = IArchString::kPlatformDetermined
   );
 
   // internal conversion to UTF8
-  static String doUCS2ToUTF8(const UInt8 *src, UInt32 n, bool *errors);
-  static String doUCS4ToUTF8(const UInt8 *src, UInt32 n, bool *errors);
-  static String doUTF16ToUTF8(const UInt8 *src, UInt32 n, bool *errors);
-  static String doUTF32ToUTF8(const UInt8 *src, UInt32 n, bool *errors);
+  static String doUCS2ToUTF8(const uint8_t *src, uint32_t n, bool *errors);
+  static String doUCS4ToUTF8(const uint8_t *src, uint32_t n, bool *errors);
+  static String doUTF16ToUTF8(const uint8_t *src, uint32_t n, bool *errors);
+  static String doUTF32ToUTF8(const uint8_t *src, uint32_t n, bool *errors);
 
   // convert characters to/from UTF8
-  static UInt32 fromUTF8(const UInt8 *&src, UInt32 &size);
-  static void toUTF8(String &dst, UInt32 c, bool *errors);
+  static uint32_t fromUTF8(const uint8_t *&src, uint32_t &size);
+  static void toUTF8(String &dst, uint32_t c, bool *errors);
 
 private:
-  static UInt32 s_invalid;
-  static UInt32 s_replacement;
+  static uint32_t s_invalid;
+  static uint32_t s_replacement;
 };

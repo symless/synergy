@@ -20,7 +20,7 @@
 
 #include "base/String.h"
 #include "base/XBase.h"
-#include "common/basic_types.h"
+#include <cstdint>
 #include "io/XIO.h"
 
 //! Generic socket exception

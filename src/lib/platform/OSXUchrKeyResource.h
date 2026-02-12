@@ -27,21 +27,21 @@ typedef TISInputSourceRef KeyLayout;
 class OSXUchrKeyResource : public IOSXKeyResource
 {
 public:
-  OSXUchrKeyResource(const void *, UInt32 keyboardType);
+  OSXUchrKeyResource(const void *, uint32_t keyboardType);
 
   // KeyResource overrides
   virtual bool isValid() const;
-  virtual UInt32 getNumModifierCombinations() const;
-  virtual UInt32 getNumTables() const;
-  virtual UInt32 getNumButtons() const;
-  virtual UInt32 getTableForModifier(UInt32 mask) const;
-  virtual KeyID getKey(UInt32 table, UInt32 button) const;
+  virtual uint32_t getNumModifierCombinations() const;
+  virtual uint32_t getNumTables() const;
+  virtual uint32_t getNumButtons() const;
+  virtual uint32_t getTableForModifier(uint32_t mask) const;
+  virtual KeyID getKey(uint32_t table, uint32_t button) const;
 
 private:
   typedef std::vector<KeyID> KeySequence;
 
-  bool getDeadKey(KeySequence &keys, UInt16 index) const;
-  bool getKeyRecord(KeySequence &keys, UInt16 index, UInt16 &state) const;
+  bool getDeadKey(KeySequence &keys, uint16_t index) const;
+  bool getKeyRecord(KeySequence &keys, uint16_t index, uint16_t &state) const;
   bool addSequence(KeySequence &keys, UCKeyCharSeq c) const;
 
 private:
@@ -51,5 +51,5 @@ private:
   const UCKeySequenceDataIndex *m_sdi;
   const UCKeyStateRecordsIndex *m_sri;
   const UCKeyStateTerminators *m_st;
-  UInt16 m_spaceOutput;
+  uint16_t m_spaceOutput;
 };

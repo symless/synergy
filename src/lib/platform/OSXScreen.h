@@ -69,25 +69,25 @@ public:
   // IScreen overrides
   void *getEventTarget() const override;
   bool getClipboard(ClipboardID id, IClipboard *) const override;
-  void getShape(SInt32 &x, SInt32 &y, SInt32 &width, SInt32 &height) const override;
-  void getCursorPos(SInt32 &x, SInt32 &y) const override;
+  void getShape(int32_t &x, int32_t &y, int32_t &width, int32_t &height) const override;
+  void getCursorPos(int32_t &x, int32_t &y) const override;
 
   // IPrimaryScreen overrides
-  void reconfigure(UInt32 activeSides) override;
-  void warpCursor(SInt32 x, SInt32 y) override;
-  UInt32 registerHotKey(KeyID key, KeyModifierMask mask) override;
-  void unregisterHotKey(UInt32 id) override;
+  void reconfigure(uint32_t activeSides) override;
+  void warpCursor(int32_t x, int32_t y) override;
+  uint32_t registerHotKey(KeyID key, KeyModifierMask mask) override;
+  void unregisterHotKey(uint32_t id) override;
   void fakeInputBegin() override;
   void fakeInputEnd() override;
-  SInt32 getJumpZoneSize() const override;
-  bool isAnyMouseButtonDown(UInt32 &buttonID) const override;
-  void getCursorCenter(SInt32 &x, SInt32 &y) const override;
+  int32_t getJumpZoneSize() const override;
+  bool isAnyMouseButtonDown(uint32_t &buttonID) const override;
+  void getCursorCenter(int32_t &x, int32_t &y) const override;
 
   // ISecondaryScreen overrides
   void fakeMouseButton(ButtonID id, bool press) override;
-  void fakeMouseMove(SInt32 x, SInt32 y) override;
-  void fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const override;
-  void fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const override;
+  void fakeMouseMove(int32_t x, int32_t y) override;
+  void fakeMouseRelativeMove(int32_t dx, int32_t dy) const override;
+  void fakeMouseWheel(int32_t xDelta, int32_t yDelta) const override;
 
   // IPlatformScreen overrides
   void enable() override;
@@ -102,7 +102,7 @@ public:
   void screensaver(bool activate) override;
   void resetOptions() override;
   void setOptions(const OptionsList &options) override;
-  void setSequenceNumber(UInt32) override;
+  void setSequenceNumber(uint32_t) override;
   bool isPrimary() const override;
   void fakeDraggingFiles(DragFileList fileList) override;
   String &getDraggingFilename() override;
@@ -134,8 +134,8 @@ private:
   // mouse button handler.  pressed is true if this is a mousedown
   // event, false if it is a mouseup event.  macButton is the index
   // of the button pressed using the mac button mapping.
-  bool onMouseButton(bool pressed, UInt16 macButton);
-  bool onMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
+  bool onMouseButton(bool pressed, uint16_t macButton);
+  bool onMouseWheel(int32_t xDelta, int32_t yDelta) const;
 
   void constructMouseButtonEventMap();
 
@@ -150,16 +150,16 @@ private:
   void hideCursor();
 
   // map deskflow mouse button to mac buttons
-  ButtonID mapDeskflowButtonToMac(UInt16) const;
+  ButtonID mapDeskflowButtonToMac(uint16_t) const;
 
   // map mac mouse button to deskflow buttons
-  ButtonID mapMacButtonToDeskflow(UInt16) const;
+  ButtonID mapMacButtonToDeskflow(uint16_t) const;
 
   // map mac scroll wheel value to a deskflow scroll wheel value
-  SInt32 mapScrollWheelToDeskflow(SInt32) const;
+  int32_t mapScrollWheelToDeskflow(int32_t) const;
 
   // map deskflow scroll wheel value to a mac scroll wheel value
-  SInt32 mapScrollWheelFromDeskflow(SInt32) const;
+  int32_t mapScrollWheelFromDeskflow(int32_t) const;
 
   // get the current scroll wheel speed
   double getScrollSpeed() const;
@@ -206,8 +206,8 @@ private:
   struct HotKeyItem
   {
   public:
-    HotKeyItem(UInt32, UInt32);
-    HotKeyItem(EventHotKeyRef, UInt32, UInt32);
+    HotKeyItem(uint32_t, uint32_t);
+    HotKeyItem(EventHotKeyRef, uint32_t, uint32_t);
 
     EventHotKeyRef getRef() const;
 
@@ -215,8 +215,8 @@ private:
 
   private:
     EventHotKeyRef m_ref;
-    UInt32 m_keycode;
-    UInt32 m_mask;
+    uint32_t m_keycode;
+    uint32_t m_mask;
   };
 
   enum EMouseButtonState
@@ -230,22 +230,22 @@ private:
   class MouseButtonState
   {
   public:
-    void set(UInt32 button, EMouseButtonState state);
+    void set(uint32_t button, EMouseButtonState state);
     bool any();
     void reset();
-    void overwrite(UInt32 buttons);
+    void overwrite(uint32_t buttons);
 
-    bool test(UInt32 button) const;
-    SInt8 getFirstButtonDown() const;
+    bool test(uint32_t button) const;
+    int8_t getFirstButtonDown() const;
 
   private:
     std::bitset<NumButtonIDs> m_buttons;
   };
 
-  typedef std::map<UInt32, HotKeyItem> HotKeyMap;
-  typedef std::vector<UInt32> HotKeyIDList;
-  typedef std::map<KeyModifierMask, UInt32> ModifierHotKeyMap;
-  typedef std::map<HotKeyItem, UInt32> HotKeyToIDMap;
+  typedef std::map<uint32_t, HotKeyItem> HotKeyMap;
+  typedef std::vector<uint32_t> HotKeyIDList;
+  typedef std::map<KeyModifierMask, uint32_t> ModifierHotKeyMap;
+  typedef std::map<HotKeyItem, uint32_t> HotKeyToIDMap;
 
   // true if screen is being used as a primary screen, false otherwise
   bool m_isPrimary;
@@ -257,12 +257,12 @@ private:
   CGDirectDisplayID m_displayID;
 
   // screen shape stuff
-  SInt32 m_x, m_y;
-  SInt32 m_w, m_h;
-  SInt32 m_xCenter, m_yCenter;
+  int32_t m_x, m_y;
+  int32_t m_w, m_h;
+  int32_t m_xCenter, m_yCenter;
 
   // mouse state
-  mutable SInt32 m_xCursor, m_yCursor;
+  mutable int32_t m_xCursor, m_yCursor;
   mutable bool m_cursorPosValid;
 
   /* FIXME: this data structure is explicitly marked mutable due
@@ -272,11 +272,11 @@ private:
      Evil, and this should be moved to a place where it need not
      be mutable as soon as possible. */
   mutable MouseButtonState m_buttonState;
-  typedef std::map<UInt16, CGEventType> MouseButtonEventMapType;
+  typedef std::map<uint16_t, CGEventType> MouseButtonEventMapType;
   std::vector<MouseButtonEventMapType> MouseButtonEventMap;
 
   bool m_cursorHidden;
-  SInt32 m_dragNumButtonsDown;
+  int32_t m_dragNumButtonsDown;
   Point m_dragLastPoint;
   EventQueueTimer *m_dragTimer;
 
@@ -285,7 +285,7 @@ private:
 
   // clipboards
   OSXClipboard m_pasteboard;
-  UInt32 m_sequenceNumber;
+  uint32_t m_sequenceNumber;
 
   // screen saver stuff
   OSXScreenSaver *m_screensaver;
@@ -316,7 +316,7 @@ private:
   HotKeyMap m_hotKeys;
   HotKeyIDList m_oldHotKeyIDs;
   ModifierHotKeyMap m_modifierHotKeys;
-  UInt32 m_activeModifierHotKey;
+  uint32_t m_activeModifierHotKey;
   KeyModifierMask m_activeModifierHotKeyMask;
   HotKeyToIDMap m_hotKeyToIDMap;
 
@@ -331,8 +331,8 @@ private:
   // for double click coalescing.
   double m_lastClickTime;
   int m_clickState;
-  SInt32 m_lastSingleClickXCursor;
-  SInt32 m_lastSingleClickYCursor;
+  int32_t m_lastSingleClickXCursor;
+  int32_t m_lastSingleClickYCursor;
 
   IEventQueue *m_events;
 

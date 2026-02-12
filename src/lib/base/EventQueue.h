@@ -68,8 +68,8 @@ public:
   virtual void waitForReady() const;
 
 private:
-  UInt32 saveEvent(const Event &event);
-  Event removeEvent(UInt32 eventID);
+  uint32_t saveEvent(const Event &event);
+  Event removeEvent(uint32_t eventID);
   bool hasTimerExpired(Event &event);
   double getNextTimerTimeout() const;
   void addEventToBuffer(const Event &event);
@@ -104,8 +104,8 @@ private:
 
   typedef std::set<EventQueueTimer *> Timers;
   typedef PriorityQueue<Timer> TimerQueue;
-  typedef std::map<UInt32, Event> EventTable;
-  typedef std::vector<UInt32> EventIDList;
+  typedef std::map<uint32_t, Event> EventTable;
+  typedef std::vector<uint32_t> EventIDList;
   typedef std::map<Event::Type, const char *> TypeMap;
   typedef std::map<String, Event::Type> NameMap;
   typedef std::map<Event::Type, IEventJob *> TypeHandlerTable;

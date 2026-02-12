@@ -23,7 +23,7 @@
 #include "deskflow/protocol_types.h"
 #include "io/IStream.h"
 
-static const UInt16 kIntervalThreshold = 1;
+static const uint16_t kIntervalThreshold = 1;
 
 FileChunk::FileChunk(size_t size) : Chunk(size)
 {
@@ -42,7 +42,7 @@ FileChunk *FileChunk::start(const String &size)
   return start;
 }
 
-FileChunk *FileChunk::data(UInt8 *data, size_t dataSize)
+FileChunk *FileChunk::data(uint8_t *data, size_t dataSize)
 {
   FileChunk *chunk = new FileChunk(dataSize + FILE_CHUNK_META_SIZE);
   char *chunkData = chunk->m_chunk;
@@ -66,7 +66,7 @@ FileChunk *FileChunk::end()
 int FileChunk::assemble(deskflow::IStream *stream, String &dataReceived, size_t &expectedSize)
 {
   // parse
-  UInt8 mark = 0;
+  uint8_t mark = 0;
   String content;
   static size_t receivedDataSize;
   static double elapsedTime;
@@ -128,7 +128,7 @@ int FileChunk::assemble(deskflow::IStream *stream, String &dataReceived, size_t 
   return kError;
 }
 
-void FileChunk::send(deskflow::IStream *stream, UInt8 mark, char *data, size_t dataSize)
+void FileChunk::send(deskflow::IStream *stream, uint8_t mark, char *data, size_t dataSize)
 {
   String chunk(data, dataSize);
 

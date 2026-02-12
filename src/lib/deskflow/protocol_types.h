@@ -32,14 +32,14 @@
 // 1.7   adds security input notifications
 // 1.8   adds language synchronization functionality
 // NOTE: with new version, deskflow minor version should increment
-static const SInt16 kProtocolMajorVersion = 1;
-static const SInt16 kProtocolMinorVersion = 8;
+static const int16_t kProtocolMajorVersion = 1;
+static const int16_t kProtocolMinorVersion = 8;
 
 // default contact port number
-static const UInt16 kDefaultPort = 24800;
+static const uint16_t kDefaultPort = 24800;
 
 // maximum total length for greeting returned by client
-static const UInt32 kMaxHelloLength = 1024;
+static const uint32_t kMaxHelloLength = 1024;
 
 // time between kMsgCKeepAlive (in seconds).  a non-positive value disables
 // keep alives.  this is the default rate that can be overridden using an
@@ -338,20 +338,20 @@ public:
   The position of the upper-left corner of the screen.  This is
   typically 0,0.
   */
-  SInt32 m_x, m_y;
+  int32_t m_x, m_y;
 
   //! Screen size
   /*!
   The size of the screen in pixels.
   */
-  SInt32 m_w, m_h;
+  int32_t m_w, m_h;
 
   //! Obsolete (jump zone size)
-  SInt32 obsolete1;
+  int32_t obsolete1;
 
   //! Mouse position
   /*!
   The current location of the mouse cursor.
   */
-  SInt32 m_mx, m_my;
+  int32_t m_mx, m_my;
 };

@@ -67,7 +67,7 @@ public:
   on X11.  If \p group is \c kGroupPollAndSet then this will poll the
   active group now and use it for future calls to \c pollActiveGroup().
   */
-  void setActiveGroup(SInt32 group);
+  void setActiveGroup(int32_t group);
 
   //! Set the auto-repeat state
   /*!
@@ -106,7 +106,7 @@ public:
   // IKeyState overrides
   virtual bool fakeCtrlAltDel();
   virtual KeyModifierMask pollActiveModifiers() const;
-  virtual SInt32 pollActiveGroup() const;
+  virtual int32_t pollActiveGroup() const;
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const;
 
 protected:
@@ -120,22 +120,22 @@ private:
   void updateKeysymMapXKB(deskflow::KeyMap &);
   bool hasModifiersXKB() const;
   int getEffectiveGroup(KeyCode, int group) const;
-  UInt32 getGroupFromState(unsigned int state) const;
+  uint32_t getGroupFromState(unsigned int state) const;
 
   //! Create and send language change request to \p group by DBus interface
   /*!
   Returns the existance of nedeed DBus interface.
   */
-  bool setCurrentLanguageWithDBus(SInt32 group) const;
+  bool setCurrentLanguageWithDBus(int32_t group) const;
 
-  static void remapKeyModifiers(KeyID, SInt32, deskflow::KeyMap::KeyItem &, void *);
+  static void remapKeyModifiers(KeyID, int32_t, deskflow::KeyMap::KeyItem &, void *);
 
 private:
   struct XKBModifierInfo
   {
   public:
     unsigned char m_level;
-    UInt32 m_mask;
+    uint32_t m_mask;
     bool m_lock;
   };
 
@@ -148,13 +148,13 @@ private:
   typedef std::map<KeyModifierMask, unsigned int> KeyModifierToXMask;
   typedef std::multimap<KeyID, KeyCode> KeyToKeyCodeMap;
   typedef std::map<KeyCode, unsigned int> NonXKBModifierMap;
-  typedef std::map<UInt32, XKBModifierInfo> XKBModifierMap;
+  typedef std::map<uint32_t, XKBModifierInfo> XKBModifierMap;
 
   Display *m_display;
 #if HAVE_XKB_EXTENSION
   XkbDescPtr m_xkb;
 #endif
-  SInt32 m_group;
+  int32_t m_group;
   XKBModifierMap m_lastGoodXKBModifiers;
   NonXKBModifierMap m_lastGoodNonXKBModifiers;
 
@@ -172,11 +172,11 @@ private:
 
 #ifdef TEST_ENV
 public:
-  SInt32 group() const
+  int32_t group() const
   {
     return m_group;
   }
-  void group(const SInt32 &group)
+  void group(const int32_t &group)
   {
     m_group = group;
   }

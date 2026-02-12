@@ -207,7 +207,7 @@ void MSWindowsDesks::resetOptions()
 
 void MSWindowsDesks::setOptions(const OptionsList &options)
 {
-  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+  for (uint32_t i = 0, n = (uint32_t)options.size(); i < n; i += 2) {
     if (options[i] == kOptionWin32KeepForeground) {
       m_leaveForegroundOption = (options[i + 1] != 0);
       LOG((CLOG_DEBUG1 "%s the foreground window", m_leaveForegroundOption ? "don\'t grab" : "grab"));
@@ -221,7 +221,7 @@ void MSWindowsDesks::updateKeys()
 }
 
 void MSWindowsDesks::setShape(
-    SInt32 x, SInt32 y, SInt32 width, SInt32 height, SInt32 xCenter, SInt32 yCenter, bool isMultimon
+    int32_t x, int32_t y, int32_t width, int32_t height, int32_t xCenter, int32_t yCenter, bool isMultimon
 )
 {
   m_x = x;
@@ -251,7 +251,7 @@ void MSWindowsDesks::fakeInputEnd()
   sendMessage(DESKFLOW_MSG_FAKE_INPUT, 0, 0);
 }
 
-void MSWindowsDesks::getCursorPos(SInt32 &x, SInt32 &y) const
+void MSWindowsDesks::getCursorPos(int32_t &x, int32_t &y) const
 {
   POINT pos;
   sendMessage(DESKFLOW_MSG_CURSOR_POS, reinterpret_cast<WPARAM>(&pos), 0);
@@ -316,17 +316,17 @@ void MSWindowsDesks::fakeMouseButton(ButtonID button, bool press)
   sendMessage(DESKFLOW_MSG_FAKE_BUTTON, flags, data);
 }
 
-void MSWindowsDesks::fakeMouseMove(SInt32 x, SInt32 y) const
+void MSWindowsDesks::fakeMouseMove(int32_t x, int32_t y) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_MOVE, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
 }
 
-void MSWindowsDesks::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
+void MSWindowsDesks::fakeMouseRelativeMove(int32_t dx, int32_t dy) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_REL_MOVE, static_cast<WPARAM>(dx), static_cast<LPARAM>(dy));
 }
 
-void MSWindowsDesks::fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const
+void MSWindowsDesks::fakeMouseWheel(int32_t xDelta, int32_t yDelta) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_WHEEL, xDelta, yDelta);
 }
@@ -345,8 +345,8 @@ MSWindowsDesks::createBlankCursor() const
   // create a transparent cursor
   int cw = GetSystemMetrics(SM_CXCURSOR);
   int ch = GetSystemMetrics(SM_CYCURSOR);
-  UInt8 *cursorAND = new UInt8[ch * ((cw + 31) >> 2)];
-  UInt8 *cursorXOR = new UInt8[ch * ((cw + 31) >> 2)];
+  uint8_t *cursorAND = new uint8_t[ch * ((cw + 31) >> 2)];
+  uint8_t *cursorXOR = new uint8_t[ch * ((cw + 31) >> 2)];
   memset(cursorAND, 0xff, ch * ((cw + 31) >> 2));
   memset(cursorXOR, 0x00, ch * ((cw + 31) >> 2));
   HCURSOR c = CreateCursor(MSWindowsScreen::getWindowInstance(), 0, 0, cw, ch, cursorAND, cursorXOR);
@@ -433,20 +433,20 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-void MSWindowsDesks::deskMouseMove(SInt32 x, SInt32 y) const
+void MSWindowsDesks::deskMouseMove(int32_t x, int32_t y) const
 {
   // when using absolute positioning with mouse_event(),
   // the normalized device coordinates range over only
   // the primary screen.
-  SInt32 w = GetSystemMetrics(SM_CXSCREEN);
-  SInt32 h = GetSystemMetrics(SM_CYSCREEN);
+  int32_t w = GetSystemMetrics(SM_CXSCREEN);
+  int32_t h = GetSystemMetrics(SM_CYSCREEN);
   send_mouse_input(
       MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE, (DWORD)((65535.0f * x) / (w - 1) + 0.5f),
       (DWORD)((65535.0f * y) / (h - 1) + 0.5f), 0
   );
 }
 
-void MSWindowsDesks::deskMouseRelativeMove(SInt32 dx, SInt32 dy) const
+void MSWindowsDesks::deskMouseRelativeMove(int32_t dx, int32_t dy) const
 {
   // relative moves are subject to cursor acceleration which we don't
   // want.so we disable acceleration, do the relative move, then
@@ -712,11 +712,11 @@ void MSWindowsDesks::deskThread(void *vdesk)
       break;
 
     case DESKFLOW_MSG_FAKE_MOVE:
-      deskMouseMove(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
+      deskMouseMove(static_cast<int32_t>(msg.wParam), static_cast<int32_t>(msg.lParam));
       break;
 
     case DESKFLOW_MSG_FAKE_REL_MOVE:
-      deskMouseRelativeMove(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
+      deskMouseRelativeMove(static_cast<int32_t>(msg.wParam), static_cast<int32_t>(msg.lParam));
       break;
 
     case DESKFLOW_MSG_FAKE_WHEEL:

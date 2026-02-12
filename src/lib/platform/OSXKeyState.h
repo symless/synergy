@@ -60,13 +60,13 @@ public:
   Returns the deskflow modifier mask corresponding to the OS X modifier
   mask in \p mask.
   */
-  KeyModifierMask mapModifiersFromOSX(UInt32 mask) const;
+  KeyModifierMask mapModifiersFromOSX(uint32_t mask) const;
 
   //! Convert CG flags-style modifier mask to old-style Carbon
   /*!
   Still required in a few places for translation calls.
   */
-  KeyModifierMask mapModifiersToCarbon(UInt32 mask) const;
+  KeyModifierMask mapModifiersToCarbon(uint32_t mask) const;
 
   //! Map key event to keys
   /*!
@@ -83,7 +83,7 @@ public:
   Calculates mac virtual key and mask for a key \p key and modifiers
   \p mask.  Returns \c true if the key can be mapped, \c false otherwise.
   */
-  bool mapDeskflowHotKeyToMac(KeyID key, KeyModifierMask mask, UInt32 &macVirtualKey, UInt32 &macModifierMask) const;
+  bool mapDeskflowHotKeyToMac(KeyID key, KeyModifierMask mask, uint32_t &macVirtualKey, uint32_t &macModifierMask) const;
 
   //@}
 
@@ -91,7 +91,7 @@ public:
   virtual bool fakeCtrlAltDel();
   virtual bool fakeMediaKey(KeyID id);
   virtual KeyModifierMask pollActiveModifiers() const;
-  virtual SInt32 pollActiveGroup() const;
+  virtual int32_t pollActiveGroup() const;
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const;
 
   CGEventFlags getModifierStateAsOSXFlags() const;
@@ -105,19 +105,19 @@ private:
   class KeyResource;
 
   // Add hard coded special keys to a deskflow::KeyMap.
-  void getKeyMapForSpecialKeys(deskflow::KeyMap &keyMap, SInt32 group) const;
+  void getKeyMapForSpecialKeys(deskflow::KeyMap &keyMap, int32_t group) const;
 
   // Convert keyboard resource to a key map
-  bool getKeyMap(deskflow::KeyMap &keyMap, SInt32 group, const IOSXKeyResource &r) const;
+  bool getKeyMap(deskflow::KeyMap &keyMap, int32_t group, const IOSXKeyResource &r) const;
 
   // Get the available keyboard groups
   bool getGroups(AutoCFArray &) const;
 
   // Change active keyboard group to group
-  void setGroup(SInt32 group);
+  void setGroup(int32_t group);
 
   // Send an event for the given modifier key
-  void handleModifierKey(void *target, UInt32 virtualKey, KeyID id, bool down, KeyModifierMask newMask);
+  void handleModifierKey(void *target, uint32_t virtualKey, KeyID id, bool down, KeyModifierMask newMask);
 
   // Checks if any in \p ids is a glyph key and if \p isCommand is false.
   // If so it adds the AltGr modifier to \p mask.  This allows OS X
@@ -129,18 +129,18 @@ private:
 
   // Maps an OS X virtual key id to a KeyButton.  This simply remaps
   // the ids so we don't use KeyButton 0.
-  static KeyButton mapVirtualKeyToKeyButton(UInt32 keyCode);
+  static KeyButton mapVirtualKeyToKeyButton(uint32_t keyCode);
 
   // Maps a KeyButton to an OS X key code.  This is the inverse of
   // mapVirtualKeyToKeyButton.
-  static UInt32 mapKeyButtonToVirtualKey(KeyButton keyButton);
+  static uint32_t mapKeyButtonToVirtualKey(KeyButton keyButton);
 
   void init();
 
   // Post a key event to HID manager. It posts an event to HID client, a
   // much lower level than window manager which's the target from carbon
   // CGEventPost
-  kern_return_t postHIDVirtualKey(UInt8 virtualKeyCode, bool postDown);
+  kern_return_t postHIDVirtualKey(uint8_t virtualKeyCode, bool postDown);
 
   // Get keyboard event flags accorfing to keyboard modifiers
   CGEventFlags getKeyboardEventFlags() const;
@@ -160,11 +160,11 @@ private:
     KeyButtonOffset = 1
   };
 
-  typedef std::map<CFDataRef, SInt32> GroupMap;
-  typedef std::map<UInt32, KeyID> VirtualKeyMap;
+  typedef std::map<CFDataRef, int32_t> GroupMap;
+  typedef std::map<uint32_t, KeyID> VirtualKeyMap;
 
   VirtualKeyMap m_virtualKeyMap;
-  mutable UInt32 m_deadKeyState;
+  mutable uint32_t m_deadKeyState;
   AutoCFArray m_groups{nullptr, CFRelease};
   GroupMap m_groupMap;
   bool m_shiftPressed;

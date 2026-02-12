@@ -54,7 +54,7 @@ void PlatformScreen::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton butto
   getKeyState()->fakeKeyDown(id, mask, button, lang);
 }
 
-bool PlatformScreen::fakeKeyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang)
+bool PlatformScreen::fakeKeyRepeat(KeyID id, KeyModifierMask mask, int32_t count, KeyButton button, const String &lang)
 {
   return getKeyState()->fakeKeyRepeat(id, mask, count, button, lang);
 }
@@ -89,7 +89,7 @@ KeyModifierMask PlatformScreen::pollActiveModifiers() const
   return getKeyState()->pollActiveModifiers();
 }
 
-SInt32 PlatformScreen::pollActiveGroup() const
+int32_t PlatformScreen::pollActiveGroup() const
 {
   return getKeyState()->pollActiveGroup();
 }
@@ -112,7 +112,7 @@ bool PlatformScreen::isDraggingStarted()
   return false;
 }
 
-SInt32 PlatformScreen::mapClientScrollDirection(SInt32 x) const
+int32_t PlatformScreen::mapClientScrollDirection(int32_t x) const
 {
   return (x * m_clientScrollDirection);
 }

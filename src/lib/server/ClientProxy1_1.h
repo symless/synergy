@@ -29,6 +29,6 @@ public:
 
   // IClient overrides
   virtual void keyDown(KeyID, KeyModifierMask, KeyButton, const String &);
-  virtual void keyRepeat(KeyID, KeyModifierMask, SInt32 count, KeyButton, const String &);
+  virtual void keyRepeat(KeyID, KeyModifierMask, int32_t count, KeyButton, const String &);
   virtual void keyUp(KeyID, KeyModifierMask, KeyButton);
 };

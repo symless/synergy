@@ -54,10 +54,10 @@ String MSWindowsClipboardHTMLConverter::doFromIClipboard(const String &data) con
   String suffix("<!--EndFragment--></BODY></HTML>\r\n");
 
   // Get byte offsets for header
-  UInt32 StartFragment = (UInt32)prefix.size();
-  UInt32 EndFragment = StartFragment + (UInt32)data.size();
+  uint32_t StartFragment = (uint32_t)prefix.size();
+  uint32_t EndFragment = StartFragment + (uint32_t)data.size();
   // StartHTML is constant by the design of the prefix
-  UInt32 EndHTML = EndFragment + (UInt32)suffix.size();
+  uint32_t EndHTML = EndFragment + (uint32_t)suffix.size();
 
   prefix.replace(prefix.find("XXXXXXXXXX"), 10, deskflow::string::sprintf("%010u", StartFragment));
   prefix.replace(prefix.find("YYYYYYYYYY"), 10, deskflow::string::sprintf("%010u", EndFragment));
@@ -79,8 +79,8 @@ String MSWindowsClipboardHTMLConverter::doToIClipboard(const String &data) const
   }
 
   // convert args to integers
-  SInt32 start = (SInt32)atoi(startArg.c_str());
-  SInt32 end = (SInt32)atoi(endArg.c_str());
+  int32_t start = (int32_t)atoi(startArg.c_str());
+  int32_t end = (int32_t)atoi(endArg.c_str());
   if (start <= 0 || end <= 0 || start >= end) {
     return String();
   }

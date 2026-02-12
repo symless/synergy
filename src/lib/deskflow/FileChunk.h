@@ -18,7 +18,7 @@
 #pragma once
 
 #include "base/String.h"
-#include "common/basic_types.h"
+#include <cstdint>
 #include "deskflow/Chunk.h"
 
 #define FILE_CHUNK_META_SIZE 2
@@ -33,8 +33,8 @@ public:
   FileChunk(size_t size);
 
   static FileChunk *start(const String &size);
-  static FileChunk *data(UInt8 *data, size_t dataSize);
+  static FileChunk *data(uint8_t *data, size_t dataSize);
   static FileChunk *end();
   static int assemble(deskflow::IStream *stream, String &dataCached, size_t &expectedSize);
-  static void send(deskflow::IStream *stream, UInt8 mark, char *data, size_t dataSize);
+  static void send(deskflow::IStream *stream, uint8_t mark, char *data, size_t dataSize);
 };

@@ -47,19 +47,19 @@ ClientProxy1_5::~ClientProxy1_5()
   m_events->removeHandler(m_events->forFile().keepAlive(), this);
 }
 
-void ClientProxy1_5::sendDragInfo(UInt32 fileCount, const char *info, size_t size)
+void ClientProxy1_5::sendDragInfo(uint32_t fileCount, const char *info, size_t size)
 {
   String data(info, size);
 
   ProtocolUtil::writef(getStream(), kMsgDDragInfo, fileCount, &data);
 }
 
-void ClientProxy1_5::fileChunkSending(UInt8 mark, char *data, size_t dataSize)
+void ClientProxy1_5::fileChunkSending(uint8_t mark, char *data, size_t dataSize)
 {
   FileChunk::send(getStream(), mark, data, dataSize);
 }
 
-bool ClientProxy1_5::parseMessage(const UInt8 *code)
+bool ClientProxy1_5::parseMessage(const uint8_t *code)
 {
   if (memcmp(code, kMsgDFileTransfer, 4) == 0) {
     fileChunkReceived();
@@ -90,7 +90,7 @@ void ClientProxy1_5::fileChunkReceived()
 void ClientProxy1_5::dragInfoReceived()
 {
   // parse
-  UInt32 fileNum = 0;
+  uint32_t fileNum = 0;
   String content;
   ProtocolUtil::readf(getStream(), kMsgDDragInfo + 4, &fileNum, &content);
 

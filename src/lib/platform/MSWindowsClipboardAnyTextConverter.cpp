@@ -42,7 +42,7 @@ MSWindowsClipboardAnyTextConverter::fromIClipboard(const String &data) const
 {
   // convert linefeeds and then convert to desired encoding
   String text = doFromIClipboard(convertLinefeedToWin32(data));
-  UInt32 size = (UInt32)text.size();
+  uint32_t size = (uint32_t)text.size();
 
   // copy to memory handle
   HGLOBAL gData = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, size);
@@ -65,7 +65,7 @@ String MSWindowsClipboardAnyTextConverter::toIClipboard(HANDLE data) const
 {
   // get datator
   const char *src = (const char *)GlobalLock(data);
-  UInt32 srcSize = (UInt32)GlobalSize(data);
+  uint32_t srcSize = (uint32_t)GlobalSize(data);
   if (src == NULL || srcSize <= 1) {
     return String();
   }
@@ -85,8 +85,8 @@ String MSWindowsClipboardAnyTextConverter::convertLinefeedToWin32(const String &
   // note -- we assume src is a valid UTF-8 string
 
   // count newlines in string
-  UInt32 numNewlines = 0;
-  UInt32 n = (UInt32)src.size();
+  uint32_t numNewlines = 0;
+  uint32_t n = (uint32_t)src.size();
   for (const char *scan = src.c_str(); n > 0; ++scan, --n) {
     if (*scan == '\n') {
       ++numNewlines;
@@ -101,7 +101,7 @@ String MSWindowsClipboardAnyTextConverter::convertLinefeedToWin32(const String &
   dst.reserve(src.size() + numNewlines);
 
   // copy string, converting newlines
-  n = (UInt32)src.size();
+  n = (uint32_t)src.size();
   for (const char *scan = src.c_str(); n > 0; ++scan, --n) {
     if (scan[0] == '\n') {
       dst += '\r';
@@ -115,8 +115,8 @@ String MSWindowsClipboardAnyTextConverter::convertLinefeedToWin32(const String &
 String MSWindowsClipboardAnyTextConverter::convertLinefeedToUnix(const String &src) const
 {
   // count newlines in string
-  UInt32 numNewlines = 0;
-  UInt32 n = (UInt32)src.size();
+  uint32_t numNewlines = 0;
+  uint32_t n = (uint32_t)src.size();
   for (const char *scan = src.c_str(); n > 0; ++scan, --n) {
     if (scan[0] == '\r' && scan[1] == '\n') {
       ++numNewlines;
@@ -131,7 +131,7 @@ String MSWindowsClipboardAnyTextConverter::convertLinefeedToUnix(const String &s
   dst.reserve(src.size());
 
   // copy string, converting newlines
-  n = (UInt32)src.size();
+  n = (uint32_t)src.size();
   for (const char *scan = src.c_str(); n > 0; ++scan, --n) {
     if (scan[0] != '\r' || scan[1] != '\n') {
       dst += scan[0];

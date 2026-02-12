@@ -35,7 +35,7 @@ public:
   arbitrary starting time.  Timestamps will wrap around to 0
   after about 49 3/4 days.
   */
-  typedef UInt32 Time;
+  typedef uint32_t Time;
 
   //! Clipboard formats
   /*!
@@ -165,6 +165,6 @@ public:
   //@}
 
 private:
-  static UInt32 readUInt32(const char *);
-  static void writeUInt32(String *, UInt32);
+  static uint32_t readUInt32(const char *);
+  static void writeUInt32(String *, uint32_t);
 };

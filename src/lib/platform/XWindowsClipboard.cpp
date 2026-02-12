@@ -21,7 +21,7 @@
 #include "arch/Arch.h"
 #include "base/Log.h"
 #include "base/Stopwatch.h"
-#include "common/basic_types.h"
+#include <cstdint>
 #include "common/stdvector.h"
 #include "platform/XWindowsClipboardBMPConverter.h"
 #include "platform/XWindowsClipboardHTMLConverter.h"
@@ -431,7 +431,7 @@ void XWindowsClipboard::doClearCache()
 {
   m_checkCache = false;
   m_cached = false;
-  for (SInt32 index = 0; index < kNumFormats; ++index) {
+  for (int32_t index = 0; index < kNumFormats; ++index) {
     m_data[index] = "";
     m_added[index] = false;
   }
@@ -477,7 +477,7 @@ void XWindowsClipboard::icccmFillCache()
 
   XWindowsUtil::convertAtomProperty(data);
   auto targets = static_cast<const Atom *>(static_cast<const void *>(data.data()));
-  const UInt32 numTargets = data.size() / sizeof(Atom);
+  const uint32_t numTargets = data.size() / sizeof(Atom);
   LOG((CLOG_DEBUG "  available targets: %s", XWindowsUtil::atomsToString(m_display, targets, numTargets).c_str()));
 
   // try each converter in order (because they're in order of
@@ -497,7 +497,7 @@ void XWindowsClipboard::icccmFillCache()
     // owners that don't report all the targets they support.
     target = converter->getAtom();
     /*
-    for (UInt32 i = 0; i < numTargets; ++i) {
+    for (uint32_t i = 0; i < numTargets; ++i) {
         if (converter->getAtom() == targets[i]) {
             target = targets[i];
             break;
@@ -615,7 +615,7 @@ bool XWindowsClipboard::motifOwnsClipboard() const
 
   // get the Motif clipboard header property from the root window
   Atom target;
-  SInt32 format;
+  int32_t format;
   String data;
   Window root = RootWindow(m_display, DefaultScreen(m_display));
   if (!XWindowsUtil::getWindowProperty(m_display, root, m_atomMotifClipHeader, &data, &target, &format, False)) {
@@ -640,7 +640,7 @@ void XWindowsClipboard::motifFillCache()
 
   // get the Motif clipboard header property from the root window
   Atom target;
-  SInt32 format;
+  int32_t format;
   String data;
   Window root = RootWindow(m_display, DefaultScreen(m_display));
   if (!XWindowsUtil::getWindowProperty(m_display, root, m_atomMotifClipHeader, &data, &target, &format, False)) {
@@ -676,13 +676,13 @@ void XWindowsClipboard::motifFillCache()
   }
 
   // format list is after static item structure elements
-  const SInt32 numFormats = item.m_numFormats - item.m_numDeletedFormats;
-  auto formats = static_cast<const SInt32 *>(static_cast<const void *>(item.m_size + data.data()));
+  const int32_t numFormats = item.m_numFormats - item.m_numDeletedFormats;
+  auto formats = static_cast<const int32_t *>(static_cast<const void *>(item.m_size + data.data()));
 
   // get the available formats
   typedef std::map<Atom, String> MotifFormatMap;
   MotifFormatMap motifFormats;
-  for (SInt32 i = 0; i < numFormats; ++i) {
+  for (int32_t i = 0; i < numFormats; ++i) {
     // get Motif format property from the root window
     snprintf(name, buffer_size, "_MOTIF_CLIP_ITEM_%d", formats[i]);
     Atom atomFormat = XInternAtom(m_display, name, False);
@@ -705,7 +705,7 @@ void XWindowsClipboard::motifFillCache()
     // save it
     motifFormats.insert(std::make_pair(motifFormat.m_type, data));
   }
-  // const UInt32 numMotifFormats = motifFormats.size();
+  // const uint32_t numMotifFormats = motifFormats.size();
 
   // try each converter in order (because they're in order of
   // preference).
@@ -775,7 +775,7 @@ bool XWindowsClipboard::insertMultipleReply(Window requestor, ::Time time, Atom 
 {
   // get the requested targets
   Atom target;
-  SInt32 format;
+  int32_t format;
   String data;
   if (!XWindowsUtil::getWindowProperty(m_display, requestor, property, &data, &target, &format, False)) {
     // can't get the requested targets
@@ -790,11 +790,11 @@ bool XWindowsClipboard::insertMultipleReply(Window requestor, ::Time time, Atom 
   // data is a list of atom pairs:  target, property
   XWindowsUtil::convertAtomProperty(data);
   auto targets = static_cast<const Atom *>(static_cast<const void *>(data.data()));
-  const UInt32 numTargets = data.size() / sizeof(Atom);
+  const uint32_t numTargets = data.size() / sizeof(Atom);
 
   // add replies for each target
   bool changed = false;
-  for (UInt32 i = 0; i < numTargets; i += 2) {
+  for (uint32_t i = 0; i < numTargets; i += 2) {
     const Atom target = targets[i + 0];
     const Atom property = targets[i + 1];
     if (!addSimpleRequest(requestor, target, time, property)) {
@@ -930,12 +930,12 @@ bool XWindowsClipboard::sendReply(Reply *reply)
 
     // send using INCR if already sending incrementally or if reply
     // is too large, otherwise just send it.
-    const UInt32 maxRequestSize = 3 * XMaxRequestSize(m_display);
+    const uint32_t maxRequestSize = 3 * XMaxRequestSize(m_display);
     const bool useINCR = (reply->m_data.size() > maxRequestSize);
 
     // send INCR reply if incremental and we haven't replied yet
     if (useINCR && !reply->m_replied) {
-      UInt32 size = reply->m_data.size();
+      uint32_t size = reply->m_data.size();
       if (!XWindowsUtil::setWindowProperty(
               m_display, reply->m_requestor, reply->m_property, &size, 4, m_atomINCR, 32
           )) {
@@ -946,7 +946,7 @@ bool XWindowsClipboard::sendReply(Reply *reply)
     // send more INCR reply or entire non-incremental reply
     else {
       // how much more data should we send?
-      UInt32 size = reply->m_data.size() - reply->m_ptr;
+      uint32_t size = reply->m_data.size() - reply->m_ptr;
       if (size > maxRequestSize)
         size = maxRequestSize;
 
@@ -1255,7 +1255,7 @@ bool XWindowsClipboard::CICCCMGetClipboard::readClipboard(
   }
 
   // put unprocessed events back
-  for (UInt32 i = events.size(); i > 0; --i) {
+  for (uint32_t i = events.size(); i > 0; --i) {
     XPutBackEvent(display, &events[i - 1]);
   }
 

@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "common/basic_types.h"
+#include <cstdint>
 #include <base/EventTypes.h>
 
 class Chunk : public EventData

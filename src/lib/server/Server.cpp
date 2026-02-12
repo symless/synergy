@@ -341,9 +341,9 @@ void Server::disconnect()
   }
 }
 
-UInt32 Server::getNumClients() const
+uint32_t Server::getNumClients() const
 {
-  return (SInt32)m_clients.size();
+  return (int32_t)m_clients.size();
 }
 
 void Server::getClients(std::vector<String> &list) const
@@ -363,9 +363,9 @@ String Server::getName(const BaseClientProxy *client) const
   return name;
 }
 
-UInt32 Server::getActivePrimarySides() const
+uint32_t Server::getActivePrimarySides() const
 {
-  UInt32 sides = 0;
+  uint32_t sides = 0;
   if (!isLockedToScreenServer()) {
     if (hasAnyNeighbor(m_primaryClient, kLeft)) {
       sides |= kLeftMask;
@@ -410,7 +410,7 @@ bool Server::isLockedToScreen() const
   return false;
 }
 
-SInt32 Server::getJumpZoneSize(BaseClientProxy *client) const
+int32_t Server::getJumpZoneSize(BaseClientProxy *client) const
 {
   if (client == m_primaryClient) {
     return m_primaryClient->getJumpZoneSize();
@@ -419,13 +419,13 @@ SInt32 Server::getJumpZoneSize(BaseClientProxy *client) const
   }
 }
 
-void Server::switchScreen(BaseClientProxy *dst, SInt32 x, SInt32 y, bool forScreensaver)
+void Server::switchScreen(BaseClientProxy *dst, int32_t x, int32_t y, bool forScreensaver)
 {
   assert(dst != NULL);
 
 #ifndef NDEBUG
   {
-    SInt32 dx, dy, dw, dh;
+    int32_t dx, dy, dw, dh;
     dst->getShape(dx, dy, dw, dh);
     assert(x >= dx && y >= dy && x < dx + dw && y < dy + dh);
   }
@@ -514,15 +514,15 @@ void Server::jumpToScreen(BaseClientProxy *newScreen)
   m_active->setJumpCursorPos(m_x, m_y);
 
   // get the last cursor position on the target screen
-  SInt32 x, y;
+  int32_t x, y;
   newScreen->getJumpCursorPos(x, y);
 
   switchScreen(newScreen, x, y, false);
 }
 
-float Server::mapToFraction(BaseClientProxy *client, EDirection dir, SInt32 x, SInt32 y) const
+float Server::mapToFraction(BaseClientProxy *client, EDirection dir, int32_t x, int32_t y) const
 {
-  SInt32 sx, sy, sw, sh;
+  int32_t sx, sy, sw, sh;
   client->getShape(sx, sy, sw, sh);
   switch (dir) {
   case kLeft:
@@ -540,19 +540,19 @@ float Server::mapToFraction(BaseClientProxy *client, EDirection dir, SInt32 x, S
   return 0.0f;
 }
 
-void Server::mapToPixel(BaseClientProxy *client, EDirection dir, float f, SInt32 &x, SInt32 &y) const
+void Server::mapToPixel(BaseClientProxy *client, EDirection dir, float f, int32_t &x, int32_t &y) const
 {
-  SInt32 sx, sy, sw, sh;
+  int32_t sx, sy, sw, sh;
   client->getShape(sx, sy, sw, sh);
   switch (dir) {
   case kLeft:
   case kRight:
-    y = static_cast<SInt32>(f * sh) + sy;
+    y = static_cast<int32_t>(f * sh) + sy;
     break;
 
   case kTop:
   case kBottom:
-    x = static_cast<SInt32>(f * sw) + sx;
+    x = static_cast<int32_t>(f * sw) + sx;
     break;
 
   case kNoDirection:
@@ -568,7 +568,7 @@ bool Server::hasAnyNeighbor(BaseClientProxy *client, EDirection dir) const
   return m_config->hasNeighbor(getName(client), dir);
 }
 
-BaseClientProxy *Server::getNeighbor(BaseClientProxy *src, EDirection dir, SInt32 &x, SInt32 &y) const
+BaseClientProxy *Server::getNeighbor(BaseClientProxy *src, EDirection dir, int32_t &x, int32_t &y) const
 {
   // note -- must be locked on entry
 
@@ -614,7 +614,7 @@ BaseClientProxy *Server::getNeighbor(BaseClientProxy *src, EDirection dir, SInt3
   }
 }
 
-BaseClientProxy *Server::mapToNeighbor(BaseClientProxy *src, EDirection srcSide, SInt32 &x, SInt32 &y) const
+BaseClientProxy *Server::mapToNeighbor(BaseClientProxy *src, EDirection srcSide, int32_t &x, int32_t &y) const
 {
   // note -- must be locked on entry
 
@@ -627,7 +627,7 @@ BaseClientProxy *Server::mapToNeighbor(BaseClientProxy *src, EDirection srcSide,
   }
 
   // get the source screen's size
-  SInt32 dx, dy, dw, dh;
+  int32_t dx, dy, dw, dh;
   BaseClientProxy *lastGoodScreen = src;
   lastGoodScreen->getShape(dx, dy, dw, dh);
 
@@ -719,7 +719,7 @@ BaseClientProxy *Server::mapToNeighbor(BaseClientProxy *src, EDirection srcSide,
   return dst;
 }
 
-void Server::avoidJumpZone(BaseClientProxy *dst, EDirection dir, SInt32 &x, SInt32 &y) const
+void Server::avoidJumpZone(BaseClientProxy *dst, EDirection dir, int32_t &x, int32_t &y) const
 {
   // we only need to avoid jump zones on the primary screen
   if (dst != m_primaryClient) {
@@ -727,10 +727,10 @@ void Server::avoidJumpZone(BaseClientProxy *dst, EDirection dir, SInt32 &x, SInt
   }
 
   const String dstName(getName(dst));
-  SInt32 dx, dy, dw, dh;
+  int32_t dx, dy, dw, dh;
   dst->getShape(dx, dy, dw, dh);
   float t = mapToFraction(dst, dir, x, y);
-  SInt32 z = getJumpZoneSize(dst);
+  int32_t z = getJumpZoneSize(dst);
 
   // move in far enough to avoid the jump zone.  if entering a side
   // that doesn't have a neighbor (i.e. an asymmetrical side) then we
@@ -762,7 +762,7 @@ void Server::avoidJumpZone(BaseClientProxy *dst, EDirection dir, SInt32 &x, SInt
 }
 
 bool Server::isSwitchOkay(
-    BaseClientProxy *newScreen, EDirection dir, SInt32 x, SInt32 y, SInt32 xActive, SInt32 yActive
+    BaseClientProxy *newScreen, EDirection dir, int32_t x, int32_t y, int32_t xActive, int32_t yActive
 )
 {
   LOG((CLOG_DEBUG1 "try to leave \"%s\" on %s", getName(m_active).c_str(), Config::dirName(dir)));
@@ -818,9 +818,9 @@ bool Server::isSwitchOkay(
   if (options != NULL && options->count(kOptionScreenSwitchCorners) > 0) {
     // get corner mask and size
     Config::ScreenOptions::const_iterator i = options->find(kOptionScreenSwitchCorners);
-    UInt32 corners = static_cast<UInt32>(i->second);
+    uint32_t corners = static_cast<uint32_t>(i->second);
     i = options->find(kOptionScreenSwitchCornerSize);
-    SInt32 size = 0;
+    int32_t size = 0;
     if (i != options->end()) {
       size = i->second;
     }
@@ -855,7 +855,7 @@ bool Server::isSwitchOkay(
   return !preventSwitch;
 }
 
-void Server::noSwitch(SInt32 x, SInt32 y)
+void Server::noSwitch(int32_t x, int32_t y)
 {
   armSwitchTwoTap(x, y);
   stopSwitchWait();
@@ -879,7 +879,7 @@ void Server::startSwitchTwoTap()
   LOG((CLOG_DEBUG1 "waiting for second tap"));
 }
 
-void Server::armSwitchTwoTap(SInt32 x, SInt32 y)
+void Server::armSwitchTwoTap(int32_t x, int32_t y)
 {
   if (m_switchTwoTapEngaged) {
     if (m_switchTwoTapTimer.getTime() > m_switchTwoTapDelay) {
@@ -888,9 +888,9 @@ void Server::armSwitchTwoTap(SInt32 x, SInt32 y)
     } else if (!m_switchTwoTapArmed) {
       // still time for a double tap.  see if we left the tap
       // zone and, if so, arm the two tap.
-      SInt32 ax, ay, aw, ah;
+      int32_t ax, ay, aw, ah;
       m_active->getShape(ax, ay, aw, ah);
-      SInt32 tapZone = m_primaryClient->getJumpZoneSize();
+      int32_t tapZone = m_primaryClient->getJumpZoneSize();
       if (tapZone < m_switchTwoTapZone) {
         tapZone = m_switchTwoTapZone;
       }
@@ -941,7 +941,7 @@ bool Server::shouldSwitchTwoTap() const
   return (m_switchTwoTapArmed && m_switchTwoTapTimer.getTime() <= m_switchTwoTapDelay);
 }
 
-void Server::startSwitchWait(SInt32 x, SInt32 y)
+void Server::startSwitchWait(int32_t x, int32_t y)
 {
   stopSwitchWait();
   m_switchWaitX = x;
@@ -963,16 +963,16 @@ bool Server::isSwitchWaitStarted() const
   return (m_switchWaitTimer != NULL);
 }
 
-UInt32 Server::getCorner(BaseClientProxy *client, SInt32 x, SInt32 y, SInt32 size) const
+uint32_t Server::getCorner(BaseClientProxy *client, int32_t x, int32_t y, int32_t size) const
 {
   assert(client != NULL);
 
   // get client screen shape
-  SInt32 ax, ay, aw, ah;
+  int32_t ax, ay, aw, ah;
   client->getShape(ax, ay, aw, ah);
 
   // check for x,y on the left or right
-  SInt32 xSide;
+  int32_t xSide;
   if (x <= ax) {
     xSide = -1;
   } else if (x >= ax + aw - 1) {
@@ -982,7 +982,7 @@ UInt32 Server::getCorner(BaseClientProxy *client, SInt32 x, SInt32 y, SInt32 siz
   }
 
   // check for x,y on the top or bottom
-  SInt32 ySide;
+  int32_t ySide;
   if (y <= ay) {
     ySide = -1;
   } else if (y >= ay + ah - 1) {
@@ -1016,7 +1016,7 @@ void Server::stopRelativeMoves()
 {
   if (m_relativeMoves && m_active != m_primaryClient) {
     // warp to the center of the active client so we know where we are
-    SInt32 ax, ay, aw, ah;
+    int32_t ax, ay, aw, ah;
     m_active->getShape(ax, ay, aw, ah);
     m_x = ax + (aw >> 1);
     m_y = ay + (ah >> 1);
@@ -1040,7 +1040,7 @@ void Server::sendOptions(BaseClientProxy *client) const
     optionsList.reserve(2 * options->size());
     for (Config::ScreenOptions::const_iterator index = options->begin(); index != options->end(); ++index) {
       optionsList.push_back(index->first);
-      optionsList.push_back(static_cast<UInt32>(index->second));
+      optionsList.push_back(static_cast<uint32_t>(index->second));
     }
   }
 
@@ -1051,7 +1051,7 @@ void Server::sendOptions(BaseClientProxy *client) const
     optionsList.reserve(optionsList.size() + 2 * options->size());
     for (Config::ScreenOptions::const_iterator index = options->begin(); index != options->end(); ++index) {
       optionsList.push_back(index->first);
-      optionsList.push_back(static_cast<UInt32>(index->second));
+      optionsList.push_back(static_cast<uint32_t>(index->second));
     }
   }
 
@@ -1129,7 +1129,7 @@ void Server::handleShapeChanged(const Event &, void *vclient)
   LOG((CLOG_DEBUG "screen \"%s\" shape changed", getName(client).c_str()));
 
   // update jump coordinate
-  SInt32 x, y;
+  int32_t x, y;
   client->getCursorPos(x, y);
   client->setJumpCursorPos(x, y);
 
@@ -1328,7 +1328,7 @@ void Server::handleSwitchInDirectionEvent(const Event &event, void *)
   SwitchInDirectionInfo *info = static_cast<SwitchInDirectionInfo *>(event.getData());
 
   // jump to screen in chosen direction from center of this screen
-  SInt32 x = m_x, y = m_y;
+  int32_t x = m_x, y = m_y;
   BaseClientProxy *newScreen = getNeighbor(m_active, info->m_direction, x, y);
   if (newScreen == NULL) {
     LOG((CLOG_DEBUG1 "no neighbor %s", Config::dirName(info->m_direction)));
@@ -1422,7 +1422,7 @@ void Server::handleFileRecieveCompletedEvent(const Event &event, void *)
   onFileRecieveCompleted();
 }
 
-void Server::onClipboardChanged(BaseClientProxy *sender, ClipboardID id, UInt32 seqNum)
+void Server::onClipboardChanged(BaseClientProxy *sender, ClipboardID id, uint32_t seqNum)
 {
   ClipboardInfo &clipboard = m_clipboards[id];
 
@@ -1490,9 +1490,9 @@ void Server::onScreensaver(bool activated)
     if (m_activeSaver != NULL && m_activeSaver != m_primaryClient) {
       // check position
       BaseClientProxy *screen = m_activeSaver;
-      SInt32 x, y, w, h;
+      int32_t x, y, w, h;
       screen->getShape(x, y, w, h);
-      SInt32 zoneSize = getJumpZoneSize(screen);
+      int32_t zoneSize = getJumpZoneSize(screen);
       if (m_xSaver < x + zoneSize) {
         m_xSaver = x + zoneSize;
       } else if (m_xSaver >= x + w - zoneSize) {
@@ -1565,7 +1565,7 @@ void Server::onKeyUp(KeyID id, KeyModifierMask mask, KeyButton button, const cha
   }
 }
 
-void Server::onKeyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang)
+void Server::onKeyRepeat(KeyID id, KeyModifierMask mask, int32_t count, KeyButton button, const String &lang)
 {
   LOG(
       (CLOG_DEBUG1 "onKeyRepeat id=%d mask=0x%04x count=%d button=0x%04x lang=\"%s\"", id, mask, count, button,
@@ -1615,7 +1615,7 @@ void Server::onMouseUp(ButtonID id)
   }
 }
 
-bool Server::onMouseMovePrimary(SInt32 x, SInt32 y)
+bool Server::onMouseMovePrimary(int32_t x, int32_t y)
 {
   LOG((CLOG_DEBUG4 "onMouseMovePrimary %d,%d", x, y));
 
@@ -1638,12 +1638,12 @@ bool Server::onMouseMovePrimary(SInt32 x, SInt32 y)
   m_y = y;
 
   // get screen shape
-  SInt32 ax, ay, aw, ah;
+  int32_t ax, ay, aw, ah;
   m_active->getShape(ax, ay, aw, ah);
-  SInt32 zoneSize = getJumpZoneSize(m_active);
+  int32_t zoneSize = getJumpZoneSize(m_active);
 
   // clamp position to screen
-  SInt32 xc = x, yc = y;
+  int32_t xc = x, yc = y;
   if (xc < ax + zoneSize) {
     xc = ax;
   } else if (xc >= ax + aw - zoneSize) {
@@ -1659,7 +1659,7 @@ bool Server::onMouseMovePrimary(SInt32 x, SInt32 y)
   // when the cursor is in a corner, there may be a screen either
   // horizontally or vertically.  check both directions.
   EDirection dirh = kNoDirection, dirv = kNoDirection;
-  SInt32 xh = x, yv = y;
+  int32_t xh = x, yv = y;
   if (x < ax + zoneSize) {
     xh -= zoneSize;
     dirh = kLeft;
@@ -1682,7 +1682,7 @@ bool Server::onMouseMovePrimary(SInt32 x, SInt32 y)
 
   // check both horizontally and vertically
   EDirection dirs[] = {dirh, dirv};
-  SInt32 xs[] = {xh, x}, ys[] = {y, yv};
+  int32_t xs[] = {xh, x}, ys[] = {y, yv};
   for (int i = 0; i < 2; ++i) {
     EDirection dir = dirs[i];
     if (dir == kNoDirection) {
@@ -1745,7 +1745,7 @@ void Server::sendDragInfoThread(void *arg)
 void Server::sendDragInfo(BaseClientProxy *newScreen)
 {
   String infoString;
-  UInt32 fileCount = DragInformation::setupDragInfo(m_dragFileList, infoString);
+  uint32_t fileCount = DragInformation::setupDragInfo(m_dragFileList, infoString);
 
   if (fileCount > 0) {
     LOG((CLOG_DEBUG2 "sending drag information to client"));
@@ -1755,15 +1755,15 @@ void Server::sendDragInfo(BaseClientProxy *newScreen)
   }
 }
 
-void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
+void Server::onMouseMoveSecondary(int32_t dx, int32_t dy)
 {
   LOG((CLOG_DEBUG2 "onMouseMoveSecondary initial %+d,%+d", dx, dy));
   const char *envVal = std::getenv("SYNERGY_MOUSE_ADJUSTMENT");
   if (envVal != nullptr) {
     try {
       double multiplier = std::stod(envVal);                                // Convert to double
-      SInt32 adjustedDx = static_cast<SInt32>(std::round(dx * multiplier)); // Apply multiplier and round
-      SInt32 adjustedDy = static_cast<SInt32>(std::round(dy * multiplier));
+      int32_t adjustedDx = static_cast<int32_t>(std::round(dx * multiplier)); // Apply multiplier and round
+      int32_t adjustedDy = static_cast<int32_t>(std::round(dy * multiplier));
       LOG((CLOG_DEBUG2 "Adjusted to %+d,%+d using multiplier %.2f", adjustedDx, adjustedDy, multiplier));
       dx = adjustedDx; // Update dx and dy to adjusted values
       dy = adjustedDy;
@@ -1795,8 +1795,8 @@ void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
   }
 
   // save old position
-  const SInt32 xOld = m_x;
-  const SInt32 yOld = m_y;
+  const int32_t xOld = m_x;
+  const int32_t yOld = m_y;
 
   // save last delta
   m_xDelta2 = m_xDelta;
@@ -1811,7 +1811,7 @@ void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
   m_y += dy;
 
   // get screen shape
-  SInt32 ax, ay, aw, ah;
+  int32_t ax, ay, aw, ah;
   m_active->getShape(ax, ay, aw, ah);
 
   // find direction of neighbor and get the neighbor
@@ -1819,7 +1819,7 @@ void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
   BaseClientProxy *newScreen;
   do {
     // clamp position to screen
-    SInt32 xc = m_x, yc = m_y;
+    int32_t xc = m_x, yc = m_y;
     if (xc < ax) {
       xc = ax;
     } else if (xc >= ax + aw) {
@@ -1850,7 +1850,7 @@ void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
       // then arm the double tap.
       if (m_switchScreen != NULL) {
         bool clearWait;
-        SInt32 zoneSize = m_primaryClient->getJumpZoneSize();
+        int32_t zoneSize = m_primaryClient->getJumpZoneSize();
         switch (m_switchDir) {
         case kLeft:
           clearWait = (m_x >= ax + zoneSize);
@@ -1898,8 +1898,8 @@ void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
       m_sendFileThread.reset(nullptr);
     }
 
-    SInt32 newX = m_x;
-    SInt32 newY = m_y;
+    int32_t newX = m_x;
+    int32_t newY = m_y;
 
     // switch screens
     switchScreen(newScreen, newX, newY, false);
@@ -1930,7 +1930,7 @@ void Server::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
   }
 }
 
-void Server::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
+void Server::onMouseWheel(int32_t xDelta, int32_t yDelta)
 {
   LOG((CLOG_DEBUG1 "onMouseWheel %+d,%+d", xDelta, yDelta));
   assert(m_active != NULL);
@@ -1995,7 +1995,7 @@ bool Server::addClient(BaseClientProxy *client)
   m_clients.insert(std::make_pair(name, client));
 
   // initialize client data
-  SInt32 x, y;
+  int32_t x, y;
   client->getCursorPos(x, y);
   client->setJumpCursorPos(x, y);
 
@@ -2244,7 +2244,7 @@ void Server::sendFileThread(void *data)
   m_sendFileThread.reset(nullptr);
 }
 
-void Server::dragInfoReceived(UInt32 fileNum, String content)
+void Server::dragInfoReceived(uint32_t fileNum, String content)
 {
   if (!m_args.m_enableDragDrop) {
     LOG((CLOG_DEBUG "drag drop not enabled, ignoring drag info."));

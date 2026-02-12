@@ -224,17 +224,17 @@ bool Client::getClipboard(ClipboardID id, IClipboard *clipboard) const
   return m_screen->getClipboard(id, clipboard);
 }
 
-void Client::getShape(SInt32 &x, SInt32 &y, SInt32 &w, SInt32 &h) const
+void Client::getShape(int32_t &x, int32_t &y, int32_t &w, int32_t &h) const
 {
   m_screen->getShape(x, y, w, h);
 }
 
-void Client::getCursorPos(SInt32 &x, SInt32 &y) const
+void Client::getCursorPos(int32_t &x, int32_t &y) const
 {
   m_screen->getCursorPos(x, y);
 }
 
-void Client::enter(SInt32 xAbs, SInt32 yAbs, UInt32, KeyModifierMask mask, bool)
+void Client::enter(int32_t xAbs, int32_t yAbs, uint32_t, KeyModifierMask mask, bool)
 {
   m_active = true;
   m_screen->mouseMove(xAbs, yAbs);
@@ -288,7 +288,7 @@ void Client::keyDown(KeyID id, KeyModifierMask mask, KeyButton button, const Str
   m_screen->keyDown(id, mask, button, lang);
 }
 
-void Client::keyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang)
+void Client::keyRepeat(KeyID id, KeyModifierMask mask, int32_t count, KeyButton button, const String &lang)
 {
   m_screen->keyRepeat(id, mask, count, button, lang);
 }
@@ -308,17 +308,17 @@ void Client::mouseUp(ButtonID id)
   m_screen->mouseUp(id);
 }
 
-void Client::mouseMove(SInt32 x, SInt32 y)
+void Client::mouseMove(int32_t x, int32_t y)
 {
   m_screen->mouseMove(x, y);
 }
 
-void Client::mouseRelativeMove(SInt32 dx, SInt32 dy)
+void Client::mouseRelativeMove(int32_t dx, int32_t dy)
 {
   m_screen->mouseRelativeMove(dx, dy);
 }
 
-void Client::mouseWheel(SInt32 xDelta, SInt32 yDelta)
+void Client::mouseWheel(int32_t xDelta, int32_t yDelta)
 {
   m_screen->mouseWheel(xDelta, yDelta);
 }
@@ -673,7 +673,7 @@ bool Client::isCompatible(int major, int minor) const
 
 void Client::handleHello(const Event &, void *)
 {
-  SInt16 major, minor;
+  int16_t major, minor;
   if (!ProtocolUtil::readf(m_stream, kMsgHello, &major, &minor)) {
     sendConnectionFailedEvent("Protocol error from server, check encryption settings");
     cleanupTimer();
@@ -683,8 +683,8 @@ void Client::handleHello(const Event &, void *)
 
   // check versions
   LOG((CLOG_DEBUG1 "got hello version %d.%d", major, minor));
-  SInt16 helloBackMajor = kProtocolMajorVersion;
-  SInt16 helloBackMinor = kProtocolMinorVersion;
+  int16_t helloBackMajor = kProtocolMajorVersion;
+  int16_t helloBackMinor = kProtocolMinorVersion;
 
   if (isCompatible(major, minor)) {
     // because 1.6 is comptable with 1.7 and 1.8 - downgrading protocol for
@@ -788,7 +788,7 @@ void Client::writeToDropDirThread(void *)
   DropHelper::writeToDir(m_screen->getDropTarget(), m_dragFileList, m_receivedFileData);
 }
 
-void Client::dragInfoReceived(UInt32 fileNum, String data)
+void Client::dragInfoReceived(uint32_t fileNum, String data)
 {
   // TODO: fix duplicate function from CServer
   if (!m_args.m_enableDragDrop) {
@@ -829,7 +829,7 @@ void Client::sendFileThread(void *filename)
   m_sendFileThread.reset(nullptr);
 }
 
-void Client::sendDragInfo(UInt32 fileCount, String &info, size_t size)
+void Client::sendDragInfo(uint32_t fileCount, String &info, size_t size)
 {
   m_server->sendDragInfo(fileCount, info.c_str(), size);
 }

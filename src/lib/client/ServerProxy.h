@@ -64,10 +64,10 @@ public:
   //@}
 
   // sending file chunk to server
-  void fileChunkSending(UInt8 mark, char *data, size_t dataSize);
+  void fileChunkSending(uint8_t mark, char *data, size_t dataSize);
 
   // sending dragging information to server
-  void sendDragInfo(UInt32 fileCount, const char *info, size_t size);
+  void sendDragInfo(uint32_t fileCount, const char *info, size_t size);
 
 #ifdef TEST_ENV
   void handleDataForTest()
@@ -83,8 +83,8 @@ protected:
     kUnknown,
     kDisconnect
   };
-  EResult parseHandshakeMessage(const UInt8 *code);
-  EResult parseMessage(const UInt8 *code);
+  EResult parseHandshakeMessage(const uint8_t *code);
+  EResult parseMessage(const uint8_t *code);
 
 private:
   // if compressing mouse motion then send the last motion now
@@ -108,7 +108,7 @@ private:
   void leave();
   void setClipboard();
   void grabClipboard();
-  void keyDown(UInt16 id, UInt16 mask, UInt16 button, const String &lang);
+  void keyDown(uint16_t id, uint16_t mask, uint16_t button, const String &lang);
   void keyRepeat();
   void keyUp();
   void mouseDown();
@@ -130,17 +130,17 @@ private:
   void checkMissedLanguages() const;
 
 private:
-  typedef EResult (ServerProxy::*MessageParser)(const UInt8 *);
+  typedef EResult (ServerProxy::*MessageParser)(const uint8_t *);
 
   Client *m_client;
   deskflow::IStream *m_stream;
 
-  UInt32 m_seqNum;
+  uint32_t m_seqNum;
 
   bool m_compressMouse;
   bool m_compressMouseRelative;
-  SInt32 m_xMouse, m_yMouse;
-  SInt32 m_dxMouse, m_dyMouse;
+  int32_t m_xMouse, m_yMouse;
+  int32_t m_dxMouse, m_dyMouse;
 
   bool m_ignoreMouse;
 

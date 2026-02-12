@@ -109,7 +109,7 @@ void OSXClipboard::add(EFormat format, const String &data)
     if (converter->getFormat() == format) {
       String osXData = converter->fromIClipboard(data);
       CFStringRef flavorType = converter->getOSXFormat();
-      CFDataRef dataRef = CFDataCreate(kCFAllocatorDefault, (UInt8 *)osXData.data(), osXData.size());
+      CFDataRef dataRef = CFDataCreate(kCFAllocatorDefault, (uint8_t *)osXData.data(), osXData.size());
       PasteboardItemID itemID = 0;
 
       if (dataRef) {

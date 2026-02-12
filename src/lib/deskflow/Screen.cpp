@@ -171,13 +171,13 @@ bool Screen::leave()
   return true;
 }
 
-void Screen::reconfigure(UInt32 activeSides)
+void Screen::reconfigure(uint32_t activeSides)
 {
   assert(m_isPrimary);
   m_screen->reconfigure(activeSides);
 }
 
-void Screen::warpCursor(SInt32 x, SInt32 y)
+void Screen::warpCursor(int32_t x, int32_t y)
 {
   assert(m_isPrimary);
   m_screen->warpCursor(x, y);
@@ -210,7 +210,7 @@ void Screen::keyDown(KeyID id, KeyModifierMask mask, KeyButton button, const Str
   m_screen->fakeKeyDown(id, mask, button, lang);
 }
 
-void Screen::keyRepeat(KeyID id, KeyModifierMask mask, SInt32 count, KeyButton button, const String &lang)
+void Screen::keyRepeat(KeyID id, KeyModifierMask mask, int32_t count, KeyButton button, const String &lang)
 {
   assert(!m_isPrimary);
   m_screen->fakeKeyRepeat(id, mask, count, button, lang);
@@ -231,19 +231,19 @@ void Screen::mouseUp(ButtonID button)
   m_screen->fakeMouseButton(button, false);
 }
 
-void Screen::mouseMove(SInt32 x, SInt32 y)
+void Screen::mouseMove(int32_t x, int32_t y)
 {
   assert(!m_isPrimary);
   m_screen->fakeMouseMove(x, y);
 }
 
-void Screen::mouseRelativeMove(SInt32 dx, SInt32 dy)
+void Screen::mouseRelativeMove(int32_t dx, int32_t dy)
 {
   assert(!m_isPrimary);
   m_screen->fakeMouseRelativeMove(dx, dy);
 }
 
-void Screen::mouseWheel(SInt32 xDelta, SInt32 yDelta) const
+void Screen::mouseWheel(int32_t xDelta, int32_t yDelta) const
 {
   assert(!m_isPrimary);
   m_screen->fakeMouseWheel(xDelta, yDelta);
@@ -261,7 +261,7 @@ void Screen::resetOptions()
 void Screen::setOptions(const OptionsList &options)
 {
   // update options
-  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+  for (uint32_t i = 0, n = (uint32_t)options.size(); i < n; i += 2) {
     if (options[i] == kOptionHalfDuplexCapsLock) {
       if (options[i + 1] != 0) {
         m_halfDuplex |= KeyModifierCapsLock;
@@ -293,17 +293,17 @@ void Screen::setOptions(const OptionsList &options)
   m_screen->setOptions(options);
 }
 
-void Screen::setSequenceNumber(UInt32 seqNum)
+void Screen::setSequenceNumber(uint32_t seqNum)
 {
   m_screen->setSequenceNumber(seqNum);
 }
 
-UInt32 Screen::registerHotKey(KeyID key, KeyModifierMask mask)
+uint32_t Screen::registerHotKey(KeyID key, KeyModifierMask mask)
 {
   return m_screen->registerHotKey(key, mask);
 }
 
-void Screen::unregisterHotKey(UInt32 id)
+void Screen::unregisterHotKey(uint32_t id)
 {
   m_screen->unregisterHotKey(id);
 }
@@ -333,7 +333,7 @@ bool Screen::isLockedToScreen() const
 {
   // check for pressed mouse buttons
   // HACK: commented out as it breaks new drag drop feature
-  UInt32 buttonID = 0;
+  uint32_t buttonID = 0;
 
   if (m_screen->isAnyMouseButtonDown(buttonID)) {
     if (buttonID != kButtonLeft) {
@@ -351,7 +351,7 @@ bool Screen::isLockedToScreen() const
   return false;
 }
 
-SInt32 Screen::getJumpZoneSize() const
+int32_t Screen::getJumpZoneSize() const
 {
   if (!m_isPrimary) {
     return 0;
@@ -360,7 +360,7 @@ SInt32 Screen::getJumpZoneSize() const
   }
 }
 
-void Screen::getCursorCenter(SInt32 &x, SInt32 &y) const
+void Screen::getCursorCenter(int32_t &x, int32_t &y) const
 {
   m_screen->getCursorCenter(x, y);
 }
@@ -425,12 +425,12 @@ bool Screen::getClipboard(ClipboardID id, IClipboard *clipboard) const
   return m_screen->getClipboard(id, clipboard);
 }
 
-void Screen::getShape(SInt32 &x, SInt32 &y, SInt32 &w, SInt32 &h) const
+void Screen::getShape(int32_t &x, int32_t &y, int32_t &w, int32_t &h) const
 {
   m_screen->getShape(x, y, w, h);
 }
 
-void Screen::getCursorPos(SInt32 &x, SInt32 &y) const
+void Screen::getCursorPos(int32_t &x, int32_t &y) const
 {
   m_screen->getCursorPos(x, y);
 }

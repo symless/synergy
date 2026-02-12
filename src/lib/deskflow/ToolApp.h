@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "common/basic_types.h"
+#include <cstdint>
 #include "deskflow/App.h"
 #include "deskflow/ToolArgs.h"
 
@@ -27,7 +27,7 @@ public:
   ToolApp(IEventQueue *events) : MinimalApp(events)
   {
   }
-  UInt32 run(int argc, char **argv);
+  uint32_t run(int argc, char **argv);
   void help();
 
 private:
