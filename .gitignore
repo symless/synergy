@@ -20,3 +20,10 @@ deskflow-config.toml
 /scripts/*.egg-info
 /*.user
 *.ui.autosave
+
+# local docs
+*.pdf
+PR147-FEEDBACK.md
+NIH-REFACTOR.md
+WAYLAND.md
+WHEREWELEFTOFF.md
