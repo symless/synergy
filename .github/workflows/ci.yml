@@ -8,10 +8,18 @@ on:
   workflow_dispatch:
     inputs:
       test-release:
-        description: "Test release"
+        description: "Build a test release"
         required: false
         default: false
         type: boolean
+      aws-s3-bucket:
+        description: "Override AWS S3 bucket"
+        required: false
+        type: string
+      aws-s3-upload-dir:
+        description: "Override AWS S3 upload dir"
+        required: false
+        type: string
   push:
     branches:
       - master*
@@ -370,7 +378,8 @@ jobs:
       - name: Upload to AWS S3
         run: |
           source_dir="./dist/"
-          base_dir="${{ vars.AWS_S3_UPLOAD_DIR }}"
+          bucket="${{ inputs.aws-s3-bucket || vars.AWS_S3_BUCKET }}"
+          base_dir="${{ inputs.aws-s3-upload-dir || vars.AWS_S3_UPLOAD_DIR }}"
           version="${{ needs.get-version.outputs.version }}"
 
           # Separate snapshot and release versions for easier navigation
@@ -383,7 +392,7 @@ jobs:
           fi
 
           target_dir="$base_dir/$sub_dir/$version"
-          url="s3://muskoka-packages/$target_dir"
+          url="s3://$bucket/$target_dir"
 
           echo "Uploading to AWS S3: $url"
           aws s3 cp $source_dir $url --recursive
