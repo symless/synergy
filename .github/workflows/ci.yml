@@ -7,17 +7,17 @@ name: CI
 on:
   workflow_dispatch:
     inputs:
-      test-release:
-        description: "Build a test release"
+      package-type:
+        description: "snapshot (nightly), release (clean semver), or dev (commit SHA)"
         required: false
-        default: false
-        type: boolean
-      aws-s3-bucket:
-        description: "Override AWS S3 bucket"
-        required: false
-        type: string
-      aws-s3-upload-dir:
-        description: "Override AWS S3 upload dir"
+        default: "snapshot"
+        type: choice
+        options:
+          - snapshot
+          - release
+          - dev
+      aws-s3-uri:
+        description: "Override AWS S3 target (e.g. s3://bucket/path)"
         required: false
         type: string
       target:
@@ -45,10 +45,10 @@ env:
   SYNERGY_VERSION_CHECK: ${{ vars.SYNERGY_VERSION_CHECK }}
 
   # Used to determine the version number format (should simply use the contents of `VERSION` file).
-  SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'true') }}
+  SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'release') }}
 
   # Used to determine the version number format (should set the stage part to "snapshot").
-  SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test-release == 'false') }}
+  SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'snapshot') }}
 
   # Gotcha: GitHub checks out a detached head, so the local SHA is not the real head SHA.
   SYNERGY_VERSION_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -317,21 +317,22 @@ jobs:
       - name: Upload to AWS S3
         run: |
           source_dir="./dist/"
-          bucket="${{ inputs.aws-s3-bucket || vars.AWS_S3_BUCKET }}"
-          base_dir="${{ inputs.aws-s3-upload-dir || vars.AWS_S3_UPLOAD_DIR }}"
           version="${{ needs.get-version.outputs.version }}"
+          s3_uri="${{ inputs.aws-s3-uri || format('s3://{0}/{1}', vars.AWS_S3_BUCKET, vars.AWS_S3_UPLOAD_DIR) }}"
+          s3_uri="${s3_uri%/}"
 
-          # Separate snapshot and release versions for easier navigation
+          # Separate snapshot, dev, and release versions for easier navigation
           if [[ "$version" =~ snapshot ]]; then
             # Organize by major.minor.patch dir (i.e. 1.0.0/1.0.0-foobar+r123)
             short_version=$(echo "$version" | cut -d'-' -f1 | cut -d'+' -f1)
             sub_dir="snapshot/$short_version"
+          elif [[ "$version" =~ dev ]]; then
+            sub_dir="dev"
           else
             sub_dir="release"
           fi
 
-          target_dir="$base_dir/$sub_dir/$version"
-          url="s3://$bucket/$target_dir"
+          url="$s3_uri/$sub_dir/$version"
 
           echo "Uploading to AWS S3: $url"
           aws s3 cp $source_dir $url --recursive
