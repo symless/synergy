@@ -319,6 +319,8 @@ jobs:
           source_dir="./dist/"
           version="${{ needs.get-version.outputs.version }}"
           s3_uri="${{ inputs.aws-s3-uri || format('s3://{0}/{1}', vars.AWS_S3_BUCKET, vars.AWS_S3_UPLOAD_DIR) }}"
+
+          # Strip trailing slash to avoid double slash in URL
           s3_uri="${s3_uri%/}"
 
           # Separate snapshot, dev, and release versions for easier navigation
