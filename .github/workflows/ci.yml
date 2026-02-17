@@ -48,7 +48,7 @@ env:
   SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'release') }}
 
   # Used to determine the version number format (should set the stage part to "snapshot").
-  SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'snapshot') }}
+  SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'snapshot') }}
 
   # Gotcha: GitHub checks out a detached head, so the local SHA is not the real head SHA.
   SYNERGY_VERSION_GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
