@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -221,7 +221,7 @@ private:
   void handleHello(const Event &, void *);
   void handleSuspend(const Event &event, void *);
   void handleResume(const Event &event, void *);
-  void handleGrabScreen(const Event &event, void *);
+  void handleGrabInput(const Event &event, void *);
   void handleFileChunkSending(const Event &, void *);
   void handleFileRecieveCompleted(const Event &, void *);
   void handleStopRetry(const Event &, void *);
@@ -261,4 +261,7 @@ private:
   size_t m_maximumClipboardSize;
   deskflow::ClientArgs m_args;
   size_t m_resolvedAddressesCount = 0;
+  bool m_pendingTouchActivation = false;
+  SInt32 m_touchActivateX = 0;
+  SInt32 m_touchActivateY = 0;
 };

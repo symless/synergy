@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2011 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -597,8 +597,7 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     // decode the message
     MSLLHOOKSTRUCT *info = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
 
-    // detect touch-originated mouse events via dwExtraInfo signature.
-    // this must run before the injected check, because Windows marks
+    // must run before the injected check: Windows marks
     // touch-synthesized mouse events as injected (LLMHF_INJECTED).
     if (g_touchActivateScreen) {
       bool isTouchEvent = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
@@ -609,7 +608,7 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
         // On primary: eat the event to prevent edge detection and
         // button-state locking (isLockedToScreen) from racing.
         // On secondary (client): let it through so the click reaches
-        // the target window (e.g. Start menu) — no jump zones on clients.
+        // the target window (e.g. Start menu); no jump zones on clients.
         if (g_isPrimary) {
           return 1;
         }

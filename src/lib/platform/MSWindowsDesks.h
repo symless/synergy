@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2004 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -251,6 +251,9 @@ private:
 
   // true if mouse has entered the screen
   bool m_isOnScreen;
+
+  // suppress WM_MOUSEMOVE hider dismissal briefly after deskLeave
+  ULONGLONG m_deskLeaveTime;
 
   // our resources
   ATOM m_deskClass;

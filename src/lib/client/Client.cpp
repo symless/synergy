@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -89,8 +89,8 @@ Client::Client(
       m_events->forIScreen().resume(), getEventTarget(), new TMethodEventJob<Client>(this, &Client::handleResume)
   );
   m_events->adoptHandler(
-      m_events->forIScreen().grabScreen(), m_screen->getEventTarget(),
-      new TMethodEventJob<Client>(this, &Client::handleGrabScreen)
+      m_events->forIScreen().grabInput(), m_screen->getEventTarget(),
+      new TMethodEventJob<Client>(this, &Client::handleGrabInput)
   );
 
   if (m_args.m_enableDragDrop) {
@@ -112,7 +112,7 @@ Client::~Client()
 
   m_events->removeHandler(m_events->forIScreen().suspend(), getEventTarget());
   m_events->removeHandler(m_events->forIScreen().resume(), getEventTarget());
-  m_events->removeHandler(m_events->forIScreen().grabScreen(), m_screen->getEventTarget());
+  m_events->removeHandler(m_events->forIScreen().grabInput(), m_screen->getEventTarget());
 
   cleanupTimer();
   cleanupScreen();
@@ -245,6 +245,13 @@ void Client::enter(SInt32 xAbs, SInt32 yAbs, UInt32, KeyModifierMask mask, bool)
   m_active = true;
   m_screen->mouseMove(xAbs, yAbs);
   m_screen->enter(mask);
+
+  if (m_pendingTouchActivation) {
+    m_pendingTouchActivation = false;
+    m_screen->activateWindowAt(m_touchActivateX, m_touchActivateY);
+    m_screen->mouseDown(kButtonLeft);
+    m_screen->mouseUp(kButtonLeft);
+  }
 
   if (m_sendFileThread) {
     StreamChunker::interruptFile();
@@ -661,8 +668,7 @@ bool Client::isCompatible(int major, int minor) const
 {
   const std::map<int, std::set<int>> compatibleTable{
       {6, {7, 8}}, // 1.6 is compatible with 1.7 and 1.8
-      {7, {8}},    // 1.7 is compatible with 1.8
-      {8, {9}}     // 1.8 is compatible with 1.9 (touch-to-switch unavailable)
+      {7, {8}}     // 1.7 is compatible with 1.8
   };
 
   bool isCompatible = false;
@@ -744,13 +750,15 @@ void Client::handleResume(const Event &, void *)
   }
 }
 
-void Client::handleGrabScreen(const Event &event, void *)
+void Client::handleGrabInput(const Event &event, void *)
 {
-  // Forward grab screen request to server via protocol
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
   if (m_server != NULL) {
-    LOG((CLOG_DEBUG1 "requesting screen grab at %d,%d", info->m_x, info->m_y));
-    m_server->grabScreen(info->m_x, info->m_y);
+    LOG((CLOG_DEBUG1 "requesting grab input at %d,%d", info->m_x, info->m_y));
+    m_pendingTouchActivation = true;
+    m_touchActivateX = info->m_x;
+    m_touchActivateY = info->m_y;
+    m_server->grabInput(info->m_x, info->m_y);
   }
 }
 

@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -19,7 +19,6 @@
 
 #include "server/ClientProxy1_8.h"
 
-//! Proxy for client implementing protocol version 1.9
 class ClientProxy1_9 : public ClientProxy1_8
 {
 public:
@@ -30,7 +29,7 @@ protected:
   bool parseMessage(const UInt8 *code) override;
 
 private:
-  bool recvGrabScreen();
+  bool recvGrabInput();
 
   IEventQueue *m_events;
 };

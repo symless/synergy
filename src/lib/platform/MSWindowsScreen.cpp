@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -44,6 +44,7 @@
 #include <Shlobj.h>
 #include <comutil.h>
 #include <string.h>
+#include <windowsx.h>
 
 // suppress warning about GetVersionEx, which is used indirectly in this
 // compilation unit.
@@ -83,28 +84,6 @@
 #if !defined(PBT_APMRESUMEAUTOMATIC)
 #define PBT_APMRESUMEAUTOMATIC 0x0012
 #endif
-
-// WM_POINTER stuff (Windows 8+)
-#if !defined(WM_POINTERDOWN)
-#define WM_POINTERDOWN 0x0246
-#define WM_POINTERUP 0x0247
-#define WM_POINTERUPDATE 0x0245
-#define WM_POINTERENTER 0x0249
-#define WM_POINTERLEAVE 0x024A
-#define GET_POINTERID_WPARAM(wParam) (LOWORD(wParam))
-#endif
-
-#if !defined(PT_POINTER)
-#define PT_POINTER 1
-#define PT_TOUCH 2
-#define PT_PEN 3
-#define PT_MOUSE 4
-#endif
-
-// Function pointer type for GetPointerType (loaded dynamically for Win7 compat)
-typedef BOOL(WINAPI *GetPointerTypeFunc)(UINT32 pointerId, DWORD *pointerType);
-static GetPointerTypeFunc s_getPointerType = NULL;
-static bool s_pointerApiChecked = false;
 
 //
 // MSWindowsScreen
@@ -504,7 +483,6 @@ void MSWindowsScreen::setOptions(const OptionsList &options)
 {
   m_desks->setOptions(options);
 
-  // check for touch input local option
   for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
     if (options[i] == kOptionTouchActivateScreen) {
       m_touchActivateScreen = (options[i + 1] != 0);
@@ -995,8 +973,6 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
     return true;
 
   case DESKFLOW_MSG_TOUCH:
-    // Thread messages (PostThreadMessage) bypass DispatchMessage, so
-    // this must be handled here in onPreDispatch, not in onEvent.
     if (!m_touchActivateScreen || m_isOnScreen)
       return true;
     {
@@ -1007,12 +983,12 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
       SInt32 x = static_cast<SInt32>(wParam);
       SInt32 y = static_cast<SInt32>(lParam);
       if (m_isPrimary) {
-        LOG((CLOG_INFO "hook: touch activating primary screen at %d,%d", x, y));
+        LOG((CLOG_INFO "hook: touch activating primary at %d,%d", x, y));
         sendEvent(m_events->forIPrimaryScreen().touchActivatedPrimary(),
                   MotionInfo::alloc(x, y));
       } else {
-        LOG((CLOG_INFO "hook: touch requesting screen grab at %d,%d", x, y));
-        sendEvent(m_events->forIScreen().grabScreen(),
+        LOG((CLOG_INFO "hook: touch requesting grab input at %d,%d", x, y));
+        sendEvent(m_events->forIScreen().grabInput(),
                   MotionInfo::alloc(x, y));
       }
     }
@@ -1107,11 +1083,9 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
   case WM_POINTERUP:
   case WM_POINTERUPDATE:
     if (onPointerInput(wParam, lParam)) {
-      // Touch input was consumed (kept local or triggered screen switch)
       *result = 0;
       return true;
     }
-    // Fall through to let DefWindowProc convert to mouse messages
     return false;
 
   /* On windows 10 we don't receive WM_POWERBROADCAST after sleep.
@@ -1481,22 +1455,8 @@ bool MSWindowsScreen::onScreensaver(bool activated)
 
 bool MSWindowsScreen::isPointerTypeTouch(UINT32 pointerId) const
 {
-  // Dynamically load GetPointerType for Windows 7 compatibility
-  if (!s_pointerApiChecked) {
-    s_pointerApiChecked = true;
-    HMODULE user32 = GetModuleHandle("user32.dll");
-    if (user32 != NULL) {
-      s_getPointerType = (GetPointerTypeFunc)GetProcAddress(user32, "GetPointerType");
-    }
-  }
-
-  if (s_getPointerType == NULL) {
-    // API not available (Windows 7 or earlier)
-    return false;
-  }
-
   DWORD pointerType = PT_POINTER;
-  if (s_getPointerType(pointerId, &pointerType)) {
+  if (GetPointerType(pointerId, &pointerType)) {
     return (pointerType == PT_TOUCH || pointerType == PT_PEN);
   }
   return false;
@@ -1517,16 +1477,16 @@ bool MSWindowsScreen::onPointerInput(WPARAM wParam, LPARAM lParam)
   m_touchDebounceTimer.reset();
 
   POINT pt;
-  if (!GetCursorPos(&pt))
-    return false;
+  pt.x = GET_X_LPARAM(lParam);
+  pt.y = GET_Y_LPARAM(lParam);
 
   if (m_isPrimary) {
-    LOG((CLOG_INFO "touch activating primary screen at %d,%d", pt.x, pt.y));
+    LOG((CLOG_INFO "touch activating primary at %d,%d", pt.x, pt.y));
     sendEvent(m_events->forIPrimaryScreen().touchActivatedPrimary(),
               MotionInfo::alloc(pt.x, pt.y));
   } else {
-    LOG((CLOG_INFO "touch requesting screen grab at %d,%d", pt.x, pt.y));
-    sendEvent(m_events->forIScreen().grabScreen(),
+    LOG((CLOG_INFO "touch requesting grab input at %d,%d", pt.x, pt.y));
+    sendEvent(m_events->forIScreen().grabInput(),
               MotionInfo::alloc(pt.x, pt.y));
   }
 
@@ -2017,16 +1977,21 @@ void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
 
   // Windows restricts SetForegroundWindow to prevent focus stealing,
   // so we use AttachThreadInput to bypass the restriction.
-  DWORD foreThread = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+  HWND foreground = GetForegroundWindow();
+  DWORD foreThread = 0;
+  if (foreground != NULL) {
+    foreThread = GetWindowThreadProcessId(foreground, NULL);
+  }
   DWORD curThread = GetCurrentThreadId();
-  if (foreThread != curThread) {
-    AttachThreadInput(foreThread, curThread, TRUE);
+  BOOL attached = FALSE;
+  if (foreThread != 0 && foreThread != curThread) {
+    attached = AttachThreadInput(foreThread, curThread, TRUE);
   }
   SetForegroundWindow(root);
-  if (foreThread != curThread) {
+  if (attached) {
     AttachThreadInput(foreThread, curThread, FALSE);
   }
-  LOG((CLOG_DEBUG1 "touch: forced foreground window 0x%08x", root));
+  LOG((CLOG_DEBUG1 "touch: forced foreground window %p", static_cast<void*>(root)));
 }
 
 bool MSWindowsScreen::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask state, WPARAM wParam) const

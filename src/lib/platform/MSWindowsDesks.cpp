@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2004 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -32,6 +32,7 @@
 #include "platform/dfwhook.h"
 
 #include <malloc.h>
+#include <windowsx.h>
 
 // these are only defined when WINVER >= 0x0500
 #if !defined(SPI_GETMOUSESPEED)
@@ -123,6 +124,7 @@ MSWindowsDesks::MSWindowsDesks(
     : m_isPrimary(isPrimary),
       m_noHooks(noHooks),
       m_isOnScreen(m_isPrimary),
+      m_deskLeaveTime(0),
       m_x(0),
       m_y(0),
       m_w(0),
@@ -409,17 +411,52 @@ void MSWindowsDesks::destroyWindow(HWND hwnd) const
 
 LRESULT CALLBACK MSWindowsDesks::primaryDeskProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  switch (msg) {
+  case WM_SETCURSOR:
+    SetCursor(NULL);
+    return TRUE;
+  }
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
 LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg) {
-  case WM_SETCURSOR:
-    // Force blank cursor. On touchscreen devices, ShowCursor(FALSE) may
-    // not reliably hide the cursor, so we also set a NULL cursor here.
-    SetCursor(NULL);
-    return TRUE;
+  case WM_POINTERDOWN: {
+    MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
+        GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (self) {
+      UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+      DWORD pointerType = PT_POINTER;
+      GetPointerType(pointerId, &pointerType);
+      if (pointerType == PT_TOUCH || pointerType == PT_PEN) {
+        SInt32 x = GET_X_LPARAM(lParam);
+        SInt32 y = GET_Y_LPARAM(lParam);
+        LOG((CLOG_DEBUG1 "secondary WM_POINTERDOWN touch at %d,%d", x, y));
+        PostThreadMessage(self->m_threadID, DESKFLOW_MSG_TOUCH,
+                          static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+        return 0;
+      }
+    }
+    break;
+  }
+
+  case WM_MOUSEMOVE: {
+    MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
+        GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (self && IsWindowVisible(hwnd)) {
+      if (GetTickCount64() - self->m_deskLeaveTime < 200) {
+        break;
+      }
+      ReleaseCapture();
+      SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0,
+                   SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+      HCURSOR arrow = LoadCursor(NULL, IDC_ARROW);
+      SetClassLongPtr(hwnd, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(arrow));
+      SetCursor(arrow);
+    }
+    break;
+  }
   }
 
   return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -512,14 +549,18 @@ void MSWindowsDesks::deskEnter(Desk *desk)
   if (!m_isPrimary) {
     ReleaseCapture();
 
-    // Restore WS_EX_TRANSPARENT that was removed in deskLeave
     LONG_PTR exStyle = GetWindowLongPtr(desk->m_window, GWL_EXSTYLE);
+    // let hit-testing pass through to windows underneath
     SetWindowLongPtr(desk->m_window, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT);
   }
 
+  SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+
   setCursorVisibility(true);
 
-  SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+  HCURSOR arrow = LoadCursor(NULL, IDC_ARROW);
+  SetClassLongPtr(desk->m_window, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(arrow));
+  SetCursor(arrow);
 
   // restore the foreground window
   // XXX -- this raises the window to the top of the Z-order.  we
@@ -546,8 +587,9 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
     // active window.
     int x, y, w, h;
     if (desk->m_lowLevel) {
-      // with a low level hook the cursor will never budge so
-      // just a 1x1 window is sufficient.
+      // LL hook keeps the cursor pinned at center, so 1x1 is enough.
+      // primaryDeskProc handles WM_SETCURSOR to force a blank cursor
+      // (ShowCursor(FALSE) is unreliable on touchscreen devices).
       x = m_xCenter;
       y = m_yCenter;
       w = 1;
@@ -562,6 +604,10 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
       h = m_h;
     }
     SetWindowPos(desk->m_window, HWND_TOP, x, y, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+
+    // WM_SETCURSOR won't fire until the cursor moves, so force the
+    // blank cursor immediately (LL hook pins cursor at center, no movement).
+    SetCursor(NULL);
 
     // switch to requested keyboard layout
     ActivateKeyboardLayout(keyLayout, 0);
@@ -596,23 +642,20 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
       }
     }
   } else {
-    // Remove WS_EX_TRANSPARENT so the hider window receives hit-testing
-    // and its blank cursor class applies. Without this, hit-testing
-    // passes through and the cursor of the window behind is shown.
+    EnableWindow(desk->m_window, TRUE);
+
+    SetClassLongPtr(desk->m_window, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(m_cursor));
+
     LONG_PTR exStyle = GetWindowLongPtr(desk->m_window, GWL_EXSTYLE);
     SetWindowLongPtr(desk->m_window, GWL_EXSTYLE, exStyle & ~WS_EX_TRANSPARENT);
 
-    // Cover the entire screen with the hider window so the blank cursor
-    // class applies everywhere. On touchscreen devices, ShowCursor(FALSE)
-    // is unreliable, so the blank cursor on a full-screen window is the
-    // primary hiding mechanism.
     SetWindowPos(desk->m_window, HWND_TOPMOST, m_x, m_y, m_w, m_h, SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
     SetCapture(desk->m_window);
 
-    // Brief delay for cursor hiding to take effect, then center the cursor.
-    LOG_DEBUG1("centering cursor on leave: %+d,%+d", m_xCenter, m_yCenter);
+    // brief delay for the hider window's blank cursor to take effect
     ARCH->sleep(0.03);
+    m_deskLeaveTime = GetTickCount64();
     deskMouseMove(m_xCenter, m_yCenter);
   }
 }
@@ -633,12 +676,9 @@ void MSWindowsDesks::deskThread(void *vdesk)
     // create a window.  we use this window to hide the cursor.
     try {
       desk->m_window = createWindow(m_deskClass, DESKFLOW_APP_NAME "Desk");
+      SetWindowLongPtr(desk->m_window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
       LOG((CLOG_DEBUG "desk %s window is 0x%08x", desk->m_name.c_str(), desk->m_window));
 
-      // Register for raw touch input on the desk window. This MUST be on
-      // the desk thread (not the main thread) because the main event loop
-      // uses QS_ALLPOSTMESSAGE which never wakes for WM_INPUT messages.
-      // The desk thread's GetMessage(NULL,0,0) has no such filter.
       RAWINPUTDEVICE rids[4] = {};
       rids[0].usUsagePage = 0x0D; rids[0].usUsage = 0x04; // Touch Screen
       rids[0].dwFlags = RIDEV_INPUTSINK; rids[0].hwndTarget = desk->m_window;
@@ -652,7 +692,6 @@ void MSWindowsDesks::deskThread(void *vdesk)
         LOG((CLOG_DEBUG "desk %s: registered raw touch input on desk window",
              desk->m_name.c_str()));
       } else {
-        // fallback: try just touch screen
         if (RegisterRawInputDevices(rids, 1, sizeof(RAWINPUTDEVICE))) {
           LOG((CLOG_DEBUG "desk %s: registered touch screen raw input",
                desk->m_name.c_str()));
@@ -682,8 +721,6 @@ void MSWindowsDesks::deskThread(void *vdesk)
       continue;
 
     case WM_INPUT: {
-      // Raw touch input from digitizer. Forward to main thread as
-      // DESKFLOW_MSG_TOUCH for the same handling as the LL mouse hook.
       UINT size = 0;
       GetRawInputData(
           reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT,
@@ -695,10 +732,12 @@ void MSWindowsDesks::deskThread(void *vdesk)
                 buffer, &size, sizeof(RAWINPUTHEADER)) != static_cast<UINT>(-1)) {
           RAWINPUT *raw = reinterpret_cast<RAWINPUT *>(buffer);
           if (raw->header.dwType == RIM_TYPEHID &&
-              raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0) {
+              raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0 &&
+              m_isPrimary) {
             POINT pt;
             GetCursorPos(&pt);
             LOG((CLOG_DEBUG1 "desk raw touch at %d,%d", pt.x, pt.y));
+            // same handling path as the LL mouse hook touch detection
             PostThreadMessage(m_threadID, DESKFLOW_MSG_TOUCH,
                               static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
           }

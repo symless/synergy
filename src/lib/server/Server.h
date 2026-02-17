@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -351,7 +351,7 @@ private:
   void handleSwitchToScreenEvent(const Event &, void *);
   void handleSwitchInDirectionEvent(const Event &, void *);
   void handleTouchActivatedPrimaryEvent(const Event &, void *);
-  void handleGrabScreenEvent(const Event &, void *);
+  void handleGrabInputEvent(const Event &, void *);
   void handleKeyboardBroadcastEvent(const Event &, void *);
   void handleLockCursorToScreenEvent(const Event &, void *);
   void handleFakeInputBeginEvent(const Event &, void *);
@@ -484,10 +484,9 @@ private:
   bool m_switchTwoTapArmed;
   SInt32 m_switchTwoTapZone;
 
-  // state for touch-triggered screen switching cooldown
   // prevents edge-triggered switches from immediately undoing touch switches
   Stopwatch m_touchSwitchCooldown;
-  static constexpr double kTouchSwitchCooldownTime = 0.5;  // 500ms cooldown
+  static constexpr double kTouchSwitchCooldownTime = 0.5;
 
   // modifiers needed before switching
   bool m_switchNeedsShift;

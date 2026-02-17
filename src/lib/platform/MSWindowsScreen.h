@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -362,10 +362,8 @@ private:
   PrimaryKeyDownList m_primaryKeyDownList;
   MSWindowsPowerManager m_powerManager;
 
-  // When true, touching this screen activates it (switches focus here)
   bool m_touchActivateScreen;
 
-  // Debounce rapid touch events to prevent multiple switch requests
   Stopwatch m_touchDebounceTimer;
-  static constexpr double kTouchDebounceTime = 0.15;  // 150ms debounce
+  static constexpr double kTouchDebounceTime = 0.15;
 };

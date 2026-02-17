@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -35,22 +35,22 @@ ClientProxy1_9::ClientProxy1_9(
 
 bool ClientProxy1_9::parseMessage(const UInt8 *code)
 {
-  if (memcmp(code, kMsgCGrabScreen, 4) == 0) {
-    return recvGrabScreen();
+  if (memcmp(code, kMsgCGrabInput, 4) == 0) {
+    return recvGrabInput();
   }
   return ClientProxy1_8::parseMessage(code);
 }
 
-bool ClientProxy1_9::recvGrabScreen()
+bool ClientProxy1_9::recvGrabInput()
 {
   SInt16 x, y;
-  if (!ProtocolUtil::readf(getStream(), kMsgCGrabScreen + 4, &x, &y)) {
+  if (!ProtocolUtil::readf(getStream(), kMsgCGrabInput + 4, &x, &y)) {
     return false;
   }
-  LOG((CLOG_DEBUG "received client \"%s\" grab screen request at %d,%d", getName().c_str(), x, y));
+  LOG((CLOG_DEBUG "received client \"%s\" grab input request at %d,%d", getName().c_str(), x, y));
 
   m_events->addEvent(Event(
-      m_events->forClientProxy().grabScreen(),
+      m_events->forClientProxy().grabInput(),
       getEventTarget(),
       IPrimaryScreen::MotionInfo::alloc(x, y)
   ));

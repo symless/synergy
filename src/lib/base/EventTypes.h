@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2013-2016 Symless Ltd.
+ * Copyright (C) 2013-2026 Symless Ltd.
  *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -388,7 +388,7 @@ private:
 class ClientProxyEvents : public EventTypes
 {
 public:
-  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown), m_grabScreen(Event::kUnknown)
+  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown), m_grabInput(Event::kUnknown)
   {
   }
 
@@ -410,20 +410,14 @@ public:
   */
   Event::Type disconnected();
 
-  //! Get grab screen event type
-  /*!
-  Returns the grab screen event type.  This is sent when a client
-  requests to become the active screen (e.g., due to touch input).
-  Event data is MotionInfo* with the position where activation occurred.
-  */
-  Event::Type grabScreen();
+  Event::Type grabInput();
 
   //@}
 
 private:
   Event::Type m_ready;
   Event::Type m_disconnected;
-  Event::Type m_grabScreen;
+  Event::Type m_grabInput;
 };
 
 class ClientProxyUnknownEvents : public EventTypes
@@ -660,11 +654,6 @@ public:
   //!  end of fake input event type
   Event::Type fakeInputEnd();
 
-  //!  touch activated primary screen event type
-  /*!
-  Event data is MotionInfo* with the position where touch occurred.
-  This is sent when touch input on the primary screen should activate it.
-  */
   Event::Type touchActivatedPrimary();
 
   //@}
@@ -692,7 +681,7 @@ public:
         m_shapeChanged(Event::kUnknown),
         m_suspend(Event::kUnknown),
         m_resume(Event::kUnknown),
-        m_grabScreen(Event::kUnknown)
+        m_grabInput(Event::kUnknown)
   {
   }
 
@@ -727,13 +716,7 @@ public:
   */
   Event::Type resume();
 
-  //! Get grab screen event type
-  /*!
-  Returns the grab screen event type. This is sent when a secondary screen
-  requests to become the active screen (e.g., due to touch input).
-  Event data is MotionInfo* with the position where activation occurred.
-  */
-  Event::Type grabScreen();
+  Event::Type grabInput();
 
   //@}
 
@@ -742,7 +725,7 @@ private:
   Event::Type m_shapeChanged;
   Event::Type m_suspend;
   Event::Type m_resume;
-  Event::Type m_grabScreen;
+  Event::Type m_grabInput;
 };
 
 class ClipboardEvents : public EventTypes

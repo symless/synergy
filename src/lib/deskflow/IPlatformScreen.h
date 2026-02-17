@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -200,14 +200,7 @@ public:
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const = 0;
   virtual void clearStaleModifiers() = 0;
 
-  //! Activate the window at the given screen coordinates
-  /*!
-  Brings the window at position \c x, \c y to the foreground.
-  Default implementation does nothing; platforms override as needed.
-  */
-  virtual void activateWindowAt(SInt32 x, SInt32 y)
-  {
-  }
+  virtual void activateWindowAt(SInt32 x, SInt32 y) { /* do nothing */ }
 
   // Drag-and-drop overrides
   virtual String &getDraggingFilename() = 0;

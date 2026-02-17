@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -372,10 +372,10 @@ bool ServerProxy::onGrabClipboard(ClipboardID id)
   return true;
 }
 
-void ServerProxy::grabScreen(SInt32 x, SInt32 y)
+void ServerProxy::grabInput(SInt32 x, SInt32 y)
 {
-  LOG((CLOG_DEBUG1 "requesting screen grab at %d,%d", x, y));
-  ProtocolUtil::writef(m_stream, kMsgCGrabScreen, x, y);
+  LOG((CLOG_DEBUG1 "requesting grab input at %d,%d", x, y));
+  ProtocolUtil::writef(m_stream, kMsgCGrabInput, x, y);
 }
 
 void ServerProxy::onClipboardChanged(ClipboardID id, const IClipboard *clipboard)

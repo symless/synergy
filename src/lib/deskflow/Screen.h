@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -236,7 +236,6 @@ public:
 
   void setEnableDragDrop(bool enabled);
 
-  //! Activate the window at the given screen coordinates
   void activateWindowAt(SInt32 x, SInt32 y);
 
   //! Determine the name of the app causing a secure input state

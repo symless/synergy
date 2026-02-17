@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -782,11 +782,10 @@ bool Server::isSwitchOkay(
     return false;
   }
 
-  // Cooldown prevents edge-triggered switches from immediately undoing
-  // a touch-triggered switch (which causes rapid bounce switching)
-  if (m_touchSwitchCooldown.getTime() < kTouchSwitchCooldownTime) {
+  double elapsedTouchCooldown = m_touchSwitchCooldown.getTime();
+  if (elapsedTouchCooldown > 0.0 && elapsedTouchCooldown < kTouchSwitchCooldownTime) {
     LOG((CLOG_DEBUG1 "edge switch blocked by touch cooldown (%.2fs remaining)",
-         kTouchSwitchCooldownTime - m_touchSwitchCooldown.getTime()));
+         kTouchSwitchCooldownTime - elapsedTouchCooldown));
     return false;
   }
 
@@ -1356,11 +1355,6 @@ void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
   LOG((CLOG_DEBUG1 "touch activated primary at %d,%d", info->m_x, info->m_y));
 
-  if (m_touchSwitchCooldown.getTime() < kTouchSwitchCooldownTime) {
-    LOG((CLOG_DEBUG1 "touch switch rejected (cooldown active)"));
-    return;
-  }
-
   if (m_active != m_primaryClient) {
     m_active->setJumpCursorPos(m_x, m_y);
 
@@ -1381,28 +1375,21 @@ void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
     // touch point never receives it. Explicitly activate that window.
     m_primaryClient->activateWindowAt(x, y);
 
-    // Cooldown prevents edge-triggered switches from undoing this touch switch
     m_touchSwitchCooldown.reset();
     LOG((CLOG_DEBUG1 "touch switch cooldown started"));
   }
 }
 
-void Server::handleGrabScreenEvent(const Event &event, void *vclient)
+void Server::handleGrabInputEvent(const Event &event, void *vclient)
 {
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
   BaseClientProxy *client = static_cast<BaseClientProxy *>(vclient);
 
   LOG((CLOG_DEBUG1 "client \"%s\" requests grab at %d,%d", getName(client).c_str(), info->m_x, info->m_y));
 
-  if (m_touchSwitchCooldown.getTime() < kTouchSwitchCooldownTime) {
-    LOG((CLOG_DEBUG1 "grab rejected (cooldown active)"));
-    return;
-  }
-
   if (client != m_active) {
     m_active->setJumpCursorPos(m_x, m_y);
 
-    // Clamp away from jump zones to avoid triggering an immediate edge switch
     SInt32 x = info->m_x;
     SInt32 y = info->m_y;
     SInt32 dx, dy, dw, dh;
@@ -1415,7 +1402,6 @@ void Server::handleGrabScreenEvent(const Event &event, void *vclient)
 
     switchScreen(client, x, y, false);
 
-    // Cooldown prevents edge-triggered switches from undoing this touch switch
     m_touchSwitchCooldown.reset();
     LOG((CLOG_DEBUG1 "touch switch cooldown started"));
   }
@@ -2074,8 +2060,8 @@ bool Server::addClient(BaseClientProxy *client)
       new TMethodEventJob<Server>(this, &Server::handleClipboardChanged, client)
   );
   m_events->adoptHandler(
-      m_events->forClientProxy().grabScreen(), client->getEventTarget(),
-      new TMethodEventJob<Server>(this, &Server::handleGrabScreenEvent, client)
+      m_events->forClientProxy().grabInput(), client->getEventTarget(),
+      new TMethodEventJob<Server>(this, &Server::handleGrabInputEvent, client)
   );
 
   // add to list
@@ -2105,7 +2091,7 @@ bool Server::removeClient(BaseClientProxy *client)
   m_events->removeHandler(m_events->forIScreen().shapeChanged(), client->getEventTarget());
   m_events->removeHandler(m_events->forClipboard().clipboardGrabbed(), client->getEventTarget());
   m_events->removeHandler(m_events->forClipboard().clipboardChanged(), client->getEventTarget());
-  m_events->removeHandler(m_events->forClientProxy().grabScreen(), client->getEventTarget());
+  m_events->removeHandler(m_events->forClientProxy().grabInput(), client->getEventTarget());
 
   // remove from list
   m_clients.erase(getName(client));

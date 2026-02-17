@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -31,7 +31,7 @@
 // 1.6:  adds clipboard streaming
 // 1.7   adds security input notifications
 // 1.8   adds language synchronization functionality
-// 1.9   adds touch-activated screen switching
+// 1.9   adds touch-activated input switching
 // NOTE: with new version, deskflow minor version should increment
 static const SInt16 kProtocolMajorVersion = 1;
 static const SInt16 kProtocolMinorVersion = 9;
@@ -295,10 +295,10 @@ extern const char *const kMsgDSecureInputNotification;
 // $1 = List of server languages
 extern const char *const kMsgDLanguageSynchronisation;
 
-// grab screen request:  secondary -> primary
-// Client requests to become the active screen (e.g., due to touch input).
+// grab input request:  secondary -> primary
+// Client requests to become the active computer (e.g., due to touch input).
 // $1 = x position, $2 = y position where activation occurred
-extern const char *const kMsgCGrabScreen;
+extern const char *const kMsgCGrabInput;
 
 //
 // query codes
