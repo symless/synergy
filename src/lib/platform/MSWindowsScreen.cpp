@@ -1967,17 +1967,22 @@ void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
   POINT pt = {x, y};
   HWND hwnd = WindowFromPoint(pt);
   if (hwnd == NULL) {
+    LOG((CLOG_DEBUG1 "touch: no window at %d,%d", x, y));
     return;
   }
 
   HWND root = GetAncestor(hwnd, GA_ROOT);
   if (root == NULL) {
+    LOG((CLOG_DEBUG1 "touch: no root ancestor for window %p", static_cast<void*>(hwnd)));
     return;
   }
 
-  // Windows restricts SetForegroundWindow to prevent focus stealing,
-  // so we use AttachThreadInput to bypass the restriction.
   HWND foreground = GetForegroundWindow();
+  if (foreground == root) {
+    LOG((CLOG_DEBUG1 "touch: window %p already foreground", static_cast<void*>(root)));
+    return;
+  }
+
   DWORD foreThread = 0;
   if (foreground != NULL) {
     foreThread = GetWindowThreadProcessId(foreground, NULL);
@@ -1987,11 +1992,18 @@ void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
   if (foreThread != 0 && foreThread != curThread) {
     attached = AttachThreadInput(foreThread, curThread, TRUE);
   }
-  SetForegroundWindow(root);
+  BOOL ok = SetForegroundWindow(root);
   if (attached) {
     AttachThreadInput(foreThread, curThread, FALSE);
   }
-  LOG((CLOG_DEBUG1 "touch: forced foreground window %p", static_cast<void*>(root)));
+
+  if (!ok) {
+    LOG((CLOG_DEBUG1 "touch: SetForegroundWindow(%p) failed (foreground was %p), "
+         "click will activate via WM_MOUSEACTIVATE",
+         static_cast<void*>(root), static_cast<void*>(foreground)));
+  } else {
+    LOG((CLOG_DEBUG1 "touch: activated window %p at %d,%d", static_cast<void*>(root), x, y));
+  }
 }
 
 bool MSWindowsScreen::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask state, WPARAM wParam) const

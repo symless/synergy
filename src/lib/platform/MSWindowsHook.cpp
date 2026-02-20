@@ -46,12 +46,6 @@ static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
 static bool g_touchActivateScreen = false;
 
-// Microsoft touch signature in dwExtraInfo (MI_WP_SIGNATURE).
-// The upper 24 bits (masked by 0xFFFFFF00) identify touch-generated
-// mouse events; the lower 8 bits contain pen/touch flags.
-#define TOUCH_SIGNATURE_MASK 0xFFFFFF00
-#define TOUCH_SIGNATURE 0xFF515700
-
 MSWindowsHook::MSWindowsHook()
 {
 }
@@ -605,11 +599,11 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
         SInt32 x = static_cast<SInt32>(info->pt.x);
         SInt32 y = static_cast<SInt32>(info->pt.y);
         PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
-        // On primary: eat the event to prevent edge detection and
-        // button-state locking (isLockedToScreen) from racing.
-        // On secondary (client): let it through so the click reaches
-        // the target window (e.g. Start menu); no jump zones on clients.
-        if (g_isPrimary) {
+        // Only eat in relay mode (cursor has left this screen) to
+        // prevent edge detection and isLockedToScreen from racing.
+        // In watch mode (cursor on server), let it through for
+        // normal touch behavior on the server's own screens.
+        if (g_isPrimary && g_mode == kHOOK_RELAY_EVENTS) {
           return 1;
         }
       }

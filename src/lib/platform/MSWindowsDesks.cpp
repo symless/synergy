@@ -442,6 +442,10 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
   }
 
   case WM_MOUSEMOVE: {
+    LPARAM extraInfo = GetMessageExtraInfo();
+    if ((extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE)
+      break;
+
     MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
         GetWindowLongPtr(hwnd, GWLP_USERDATA));
     if (self && IsWindowVisible(hwnd)) {
@@ -642,6 +646,7 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
       }
     }
   } else {
+    desk->m_foregroundWindow = getForegroundWindow();
     EnableWindow(desk->m_window, TRUE);
 
     SetClassLongPtr(desk->m_window, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(m_cursor));
@@ -731,13 +736,11 @@ void MSWindowsDesks::deskThread(void *vdesk)
                 reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT,
                 buffer, &size, sizeof(RAWINPUTHEADER)) != static_cast<UINT>(-1)) {
           RAWINPUT *raw = reinterpret_cast<RAWINPUT *>(buffer);
-          if (raw->header.dwType == RIM_TYPEHID &&
-              raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0 &&
-              m_isPrimary) {
+          if (raw->header.dwType == RIM_TYPEHID && m_isPrimary &&
+              raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0) {
             POINT pt;
             GetCursorPos(&pt);
             LOG((CLOG_DEBUG1 "desk raw touch at %d,%d", pt.x, pt.y));
-            // same handling path as the LL mouse hook touch detection
             PostThreadMessage(m_threadID, DESKFLOW_MSG_TOUCH,
                               static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
           }

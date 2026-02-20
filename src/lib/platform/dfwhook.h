@@ -46,6 +46,11 @@
 #define DESKFLOW_HOOK_FAKE_INPUT_VIRTUAL_KEY VK_CANCEL
 #define DESKFLOW_HOOK_FAKE_INPUT_SCANCODE 0
 
+// Microsoft touch signature in dwExtraInfo (MI_WP_SIGNATURE).
+// Touch-synthesized mouse events carry this in the upper 24 bits.
+#define TOUCH_SIGNATURE_MASK 0xFFFFFF00
+#define TOUCH_SIGNATURE 0xFF515700
+
 extern "C"
 {
 
