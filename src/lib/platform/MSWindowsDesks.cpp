@@ -428,7 +428,9 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
     if (self) {
       UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
       DWORD pointerType = PT_POINTER;
-      GetPointerType(pointerId, &pointerType);
+      BOOL gotType = GetPointerType(pointerId, &pointerType);
+      LOG((CLOG_DEBUG "secondary WM_POINTERDOWN: pointerId=%u gotType=%d pointerType=%u",
+           pointerId, gotType ? 1 : 0, pointerType));
       if (pointerType == PT_TOUCH || pointerType == PT_PEN) {
         SInt32 x = GET_X_LPARAM(lParam);
         SInt32 y = GET_Y_LPARAM(lParam);
@@ -443,8 +445,10 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
 
   case WM_MOUSEMOVE: {
     LPARAM extraInfo = GetMessageExtraInfo();
-    if ((extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE)
+    if ((extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      LOG((CLOG_DEBUG "secondary WM_MOUSEMOVE: touch signature detected, keeping hider"));
       break;
+    }
 
     MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
         GetWindowLongPtr(hwnd, GWLP_USERDATA));
@@ -705,6 +709,30 @@ void MSWindowsDesks::deskThread(void *vdesk)
                desk->m_name.c_str(), GetLastError()));
         }
       }
+
+      // enumerate connected HID devices so we can identify touch hardware in logs
+      UINT numDevices = 0;
+      if (GetRawInputDeviceList(NULL, &numDevices, sizeof(RAWINPUTDEVICELIST)) == 0 &&
+          numDevices > 0) {
+        RAWINPUTDEVICELIST *devices = new RAWINPUTDEVICELIST[numDevices];
+        if (GetRawInputDeviceList(devices, &numDevices, sizeof(RAWINPUTDEVICELIST)) !=
+            (UINT)-1) {
+          LOG((CLOG_DEBUG "desk %s: %u raw input device(s) connected",
+               desk->m_name.c_str(), numDevices));
+          for (UINT i = 0; i < numDevices; ++i) {
+            if (devices[i].dwType == RIM_TYPEHID) {
+              RID_DEVICE_INFO info = {};
+              UINT infoSize = sizeof(info);
+              info.cbSize = sizeof(info);
+              GetRawInputDeviceInfo(devices[i].hDevice, RIDI_DEVICEINFO, &info, &infoSize);
+              LOG((CLOG_DEBUG "  HID: VID=0x%04x PID=0x%04x page=0x%02x usage=0x%02x",
+                   info.hid.dwVendorId, info.hid.dwProductId, info.hid.usUsagePage,
+                   info.hid.usUsage));
+            }
+          }
+        }
+        delete[] devices;
+      }
     } catch (...) {
       // ignore
       LOG((CLOG_DEBUG "can't create desk window for %s", desk->m_name.c_str()));
@@ -736,6 +764,13 @@ void MSWindowsDesks::deskThread(void *vdesk)
                 reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT,
                 buffer, &size, sizeof(RAWINPUTHEADER)) != static_cast<UINT>(-1)) {
           RAWINPUT *raw = reinterpret_cast<RAWINPUT *>(buffer);
+          LOG((CLOG_DEBUG "WM_INPUT: type=%s isPrimary=%d count=%u sizeHid=%u",
+               raw->header.dwType == RIM_TYPEHID    ? "HID"
+               : raw->header.dwType == RIM_TYPEMOUSE ? "mouse"
+                                                     : "other",
+               m_isPrimary ? 1 : 0,
+               raw->header.dwType == RIM_TYPEHID ? raw->data.hid.dwCount : 0,
+               raw->header.dwType == RIM_TYPEHID ? raw->data.hid.dwSizeHid : 0));
           if (raw->header.dwType == RIM_TYPEHID && m_isPrimary &&
               raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0) {
             POINT pt;
@@ -743,6 +778,8 @@ void MSWindowsDesks::deskThread(void *vdesk)
             LOG((CLOG_DEBUG1 "desk raw touch at %d,%d", pt.x, pt.y));
             PostThreadMessage(m_threadID, DESKFLOW_MSG_TOUCH,
                               static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
+          } else if (raw->header.dwType == RIM_TYPEHID && !m_isPrimary) {
+            LOG((CLOG_DEBUG "WM_INPUT: HID touch skipped (not primary)"));
           }
         }
       }

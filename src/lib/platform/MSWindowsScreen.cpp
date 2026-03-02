@@ -1466,14 +1466,22 @@ bool MSWindowsScreen::onPointerInput(WPARAM wParam, LPARAM lParam)
 {
   UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
 
-  if (!isPointerTypeTouch(pointerId))
+  if (!isPointerTypeTouch(pointerId)) {
+    DWORD pointerType = PT_POINTER;
+    GetPointerType(pointerId, &pointerType);
+    LOG((CLOG_DEBUG "WM_POINTER: non-touch type=%u (1=generic,2=touch,3=pen,4=mouse)",
+         pointerType));
     return false;
+  }
 
   if (!m_touchActivateScreen || m_isOnScreen)
     return false;
 
-  if (m_touchDebounceTimer.getTime() < kTouchDebounceTime)
+  if (m_touchDebounceTimer.getTime() < kTouchDebounceTime) {
+    LOG((CLOG_DEBUG "WM_POINTER: touch debounced (%.0fms elapsed, %.0fms required)",
+         m_touchDebounceTimer.getTime() * 1000.0, kTouchDebounceTime * 1000.0));
     return true;
+  }
   m_touchDebounceTimer.reset();
 
   POINT pt;
