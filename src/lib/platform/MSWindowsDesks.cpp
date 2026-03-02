@@ -34,6 +34,12 @@
 #include <malloc.h>
 #include <windowsx.h>
 
+#ifndef _NTDEF_
+typedef LONG NTSTATUS;
+#endif
+#include <hidusage.h>
+#include <hidpi.h>
+
 // these are only defined when WINVER >= 0x0500
 #if !defined(SPI_GETMOUSESPEED)
 #define SPI_GETMOUSESPEED 112
@@ -87,6 +93,8 @@
 #define DESKFLOW_MSG_FAKE_REL_MOVE DESKFLOW_HOOK_LAST_MSG + 11
 // enable; <unused>
 #define DESKFLOW_MSG_FAKE_INPUT DESKFLOW_HOOK_LAST_MSG + 12
+// x; y
+#define DESKFLOW_MSG_FAKE_TOUCH DESKFLOW_HOOK_LAST_MSG + 13
 
 static void send_keyboard_input(WORD wVk, WORD wScan, DWORD dwFlags)
 {
@@ -318,6 +326,11 @@ void MSWindowsDesks::fakeMouseButton(ButtonID button, bool press)
   sendMessage(DESKFLOW_MSG_FAKE_BUTTON, flags, data);
 }
 
+void MSWindowsDesks::fakeTouchClick(SInt32 x, SInt32 y) const
+{
+  sendMessage(DESKFLOW_MSG_FAKE_TOUCH, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+}
+
 void MSWindowsDesks::fakeMouseMove(SInt32 x, SInt32 y) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_MOVE, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
@@ -422,6 +435,9 @@ LRESULT CALLBACK MSWindowsDesks::primaryDeskProc(HWND hwnd, UINT msg, WPARAM wPa
 LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg) {
+  case WM_POINTERACTIVATE:
+    return PA_NOACTIVATE;
+
   case WM_POINTERDOWN: {
     MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
         GetWindowLongPtr(hwnd, GWLP_USERDATA));
@@ -477,6 +493,65 @@ void MSWindowsDesks::deskMouseMove(SInt32 x, SInt32 y) const
       MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE, (DWORD)((65535.0f * x) / (w - 1) + 0.5f),
       (DWORD)((65535.0f * y) / (h - 1) + 0.5f), 0
   );
+}
+
+void MSWindowsDesks::deskFakeTouchClick(SInt32 x, SInt32 y) const
+{
+  static bool s_touchReady = false;
+
+  if (!s_touchReady) {
+    if (!InitializeTouchInjection(1, TOUCH_FEEDBACK_DEFAULT)) {
+      DWORD err = GetLastError();
+      LOG((CLOG_WARN "touch: InitializeTouchInjection failed, err=%d", err));
+      deskMouseMove(x, y);
+      send_mouse_input(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+      send_mouse_input(MOUSEEVENTF_LEFTUP, 0, 0, 0);
+      return;
+    }
+    LOG((CLOG_DEBUG1 "touch: InitializeTouchInjection succeeded"));
+    s_touchReady = true;
+  }
+
+  POINTER_TOUCH_INFO contact;
+  memset(&contact, 0, sizeof(POINTER_TOUCH_INFO));
+
+  contact.pointerInfo.pointerType = PT_TOUCH;
+  contact.pointerInfo.pointerId = 0;
+  contact.pointerInfo.ptPixelLocation.x = x;
+  contact.pointerInfo.ptPixelLocation.y = y;
+
+  contact.touchFlags = TOUCH_FLAG_NONE;
+  contact.touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION | TOUCH_MASK_PRESSURE;
+  contact.orientation = 90;
+  contact.pressure = 32000;
+  contact.rcContact.left = x - 2;
+  contact.rcContact.right = x + 2;
+  contact.rcContact.top = y - 2;
+  contact.rcContact.bottom = y + 2;
+
+  contact.pointerInfo.pointerFlags =
+      POINTER_FLAG_DOWN | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+
+  LOG((CLOG_DEBUG1 "touch: injecting DOWN at %d,%d", x, y));
+
+  bool injected = false;
+  if (InjectTouchInput(1, &contact)) {
+    Sleep(30);
+    contact.pointerInfo.pointerFlags = POINTER_FLAG_UP;
+    InjectTouchInput(1, &contact);
+    injected = true;
+    LOG((CLOG_DEBUG1 "touch: injected touch at %d,%d", x, y));
+  } else {
+    DWORD err = GetLastError();
+    LOG((CLOG_WARN "touch: InjectTouchInput failed at %d,%d, err=%d", x, y, err));
+  }
+
+  Sleep(50);
+
+  deskMouseMove(x, y);
+  send_mouse_input(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+  send_mouse_input(MOUSEEVENTF_LEFTUP, 0, 0, 0);
+  LOG((CLOG_DEBUG1 "touch: sent mouse click at %d,%d (touch injected=%d)", x, y, injected));
 }
 
 void MSWindowsDesks::deskMouseRelativeMove(SInt32 dx, SInt32 dy) const
@@ -556,6 +631,8 @@ void MSWindowsDesks::deskEnter(Desk *desk)
     LONG_PTR exStyle = GetWindowLongPtr(desk->m_window, GWL_EXSTYLE);
     // let hit-testing pass through to windows underneath
     SetWindowLongPtr(desk->m_window, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT);
+  } else {
+    registerTouchRawInput(desk->m_window, false);
   }
 
   SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
@@ -645,6 +722,8 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
         AttachThreadInput(thatThread, thisThread, FALSE);
       }
     }
+
+    registerTouchRawInput(desk->m_window, true);
   } else {
     desk->m_foregroundWindow = getForegroundWindow();
     EnableWindow(desk->m_window, TRUE);
@@ -662,6 +741,142 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
     ARCH->sleep(0.03);
     m_deskLeaveTime = GetTickCount64();
     deskMouseMove(m_xCenter, m_yCenter);
+  }
+}
+
+MSWindowsDesks::HidTouchDevice MSWindowsDesks::initHidTouchDevice(HANDLE hDevice)
+{
+  HidTouchDevice dev = {};
+  dev.valid = false;
+
+  UINT ppSize = 0;
+  if (GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA, NULL, &ppSize) != 0 ||
+      ppSize == 0) {
+    return dev;
+  }
+
+  dev.preparsedData.resize(ppSize);
+  if (GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA,
+                            dev.preparsedData.data(), &ppSize) == static_cast<UINT>(-1)) {
+    return dev;
+  }
+
+  auto pp = reinterpret_cast<PHIDP_PREPARSED_DATA>(dev.preparsedData.data());
+
+  HIDP_CAPS caps = {};
+  if (HidP_GetCaps(pp, &caps) != HIDP_STATUS_SUCCESS) {
+    return dev;
+  }
+
+  std::vector<HIDP_VALUE_CAPS> valCaps(caps.NumberInputValueCaps);
+  USHORT numValCaps = caps.NumberInputValueCaps;
+  if (numValCaps == 0 ||
+      HidP_GetValueCaps(HidP_Input, valCaps.data(), &numValCaps, pp) != HIDP_STATUS_SUCCESS) {
+    return dev;
+  }
+
+  // find a link collection that has both X and Y on the generic desktop page
+  struct CollectionInfo {
+    bool hasX = false;
+    bool hasY = false;
+    LONG maxX = 0;
+    LONG maxY = 0;
+  };
+  std::unordered_map<USHORT, CollectionInfo> collections;
+
+  for (USHORT i = 0; i < numValCaps; ++i) {
+    const auto &vc = valCaps[i];
+    if (vc.UsagePage != HID_USAGE_PAGE_GENERIC)
+      continue;
+
+    USAGE usage = vc.IsRange ? vc.Range.UsageMin : vc.NotRange.Usage;
+    auto &ci = collections[vc.LinkCollection];
+    if (usage == HID_USAGE_GENERIC_X) {
+      ci.hasX = true;
+      ci.maxX = vc.LogicalMax > 0 ? vc.LogicalMax : vc.PhysicalMax;
+    } else if (usage == HID_USAGE_GENERIC_Y) {
+      ci.hasY = true;
+      ci.maxY = vc.LogicalMax > 0 ? vc.LogicalMax : vc.PhysicalMax;
+    }
+  }
+
+  for (const auto &pair : collections) {
+    if (pair.second.hasX && pair.second.hasY &&
+        pair.second.maxX > 0 && pair.second.maxY > 0) {
+      dev.linkCollection = pair.first;
+      dev.logicalMaxX = pair.second.maxX;
+      dev.logicalMaxY = pair.second.maxY;
+      dev.valid = true;
+      LOG((CLOG_DEBUG "HID touch device: linkCollection=%d logicalMax X=%ld Y=%ld",
+           dev.linkCollection, dev.logicalMaxX, dev.logicalMaxY));
+      break;
+    }
+  }
+
+  return dev;
+}
+
+bool MSWindowsDesks::parseHidTouch(const RAWINPUT *raw, const HidTouchDevice &dev,
+                                   SInt32 &outX, SInt32 &outY)
+{
+  if (!dev.valid)
+    return false;
+
+  auto pp = reinterpret_cast<PHIDP_PREPARSED_DATA>(
+      const_cast<BYTE *>(dev.preparsedData.data()));
+  auto report = const_cast<PCHAR>(
+      reinterpret_cast<const char *>(raw->data.hid.bRawData));
+  ULONG reportLen = raw->data.hid.dwSizeHid;
+
+  // check Tip Switch (digitizer page 0x0D, usage 0x42)
+  USAGE usages[16] = {};
+  ULONG numUsages = 16;
+  if (HidP_GetUsages(HidP_Input, 0x0D, dev.linkCollection,
+                     usages, &numUsages, pp,
+                     report, reportLen) != HIDP_STATUS_SUCCESS) {
+    numUsages = 0;
+  }
+
+  bool tipDown = false;
+  for (ULONG i = 0; i < numUsages; ++i) {
+    if (usages[i] == 0x42) {
+      tipDown = true;
+      break;
+    }
+  }
+  if (!tipDown)
+    return false;
+
+  ULONG rawX = 0, rawY = 0;
+  if (HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC,
+                         dev.linkCollection, HID_USAGE_GENERIC_X,
+                         &rawX, pp, report, reportLen) != HIDP_STATUS_SUCCESS) {
+    return false;
+  }
+  if (HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC,
+                         dev.linkCollection, HID_USAGE_GENERIC_Y,
+                         &rawY, pp, report, reportLen) != HIDP_STATUS_SUCCESS) {
+    return false;
+  }
+
+  outX = m_x + static_cast<SInt32>(rawX * m_w / dev.logicalMaxX);
+  outY = m_y + static_cast<SInt32>(rawY * m_h / dev.logicalMaxY);
+  return true;
+}
+
+void MSWindowsDesks::registerTouchRawInput(HWND window, bool enable)
+{
+  RAWINPUTDEVICE rids[4] = {};
+  DWORD flags = enable ? RIDEV_INPUTSINK : RIDEV_REMOVE;
+  HWND target = enable ? window : NULL;
+
+  rids[0] = {0x0D, 0x04, flags, target};
+  rids[1] = {0x0D, 0x05, flags, target};
+  rids[2] = {0x0D, 0x01, flags, target};
+  rids[3] = {0x0D, 0x02, flags, target};
+
+  if (!RegisterRawInputDevices(rids, 4, sizeof(RAWINPUTDEVICE))) {
+    RegisterRawInputDevices(rids, 1, sizeof(RAWINPUTDEVICE));
   }
 }
 
@@ -683,28 +898,6 @@ void MSWindowsDesks::deskThread(void *vdesk)
       desk->m_window = createWindow(m_deskClass, DESKFLOW_APP_NAME "Desk");
       SetWindowLongPtr(desk->m_window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
       LOG((CLOG_DEBUG "desk %s window is 0x%08x", desk->m_name.c_str(), desk->m_window));
-
-      RAWINPUTDEVICE rids[4] = {};
-      rids[0].usUsagePage = 0x0D; rids[0].usUsage = 0x04; // Touch Screen
-      rids[0].dwFlags = RIDEV_INPUTSINK; rids[0].hwndTarget = desk->m_window;
-      rids[1].usUsagePage = 0x0D; rids[1].usUsage = 0x05; // Touch Pad
-      rids[1].dwFlags = RIDEV_INPUTSINK; rids[1].hwndTarget = desk->m_window;
-      rids[2].usUsagePage = 0x0D; rids[2].usUsage = 0x01; // Digitizer
-      rids[2].dwFlags = RIDEV_INPUTSINK; rids[2].hwndTarget = desk->m_window;
-      rids[3].usUsagePage = 0x0D; rids[3].usUsage = 0x02; // Pen
-      rids[3].dwFlags = RIDEV_INPUTSINK; rids[3].hwndTarget = desk->m_window;
-      if (RegisterRawInputDevices(rids, 4, sizeof(RAWINPUTDEVICE))) {
-        LOG((CLOG_DEBUG "desk %s: registered raw touch input on desk window",
-             desk->m_name.c_str()));
-      } else {
-        if (RegisterRawInputDevices(rids, 1, sizeof(RAWINPUTDEVICE))) {
-          LOG((CLOG_DEBUG "desk %s: registered touch screen raw input",
-               desk->m_name.c_str()));
-        } else {
-          LOG((CLOG_WARN "desk %s: failed to register raw touch input, error=%d",
-               desk->m_name.c_str(), GetLastError()));
-        }
-      }
     } catch (...) {
       // ignore
       LOG((CLOG_DEBUG "can't create desk window for %s", desk->m_name.c_str()));
@@ -736,13 +929,20 @@ void MSWindowsDesks::deskThread(void *vdesk)
                 reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT,
                 buffer, &size, sizeof(RAWINPUTHEADER)) != static_cast<UINT>(-1)) {
           RAWINPUT *raw = reinterpret_cast<RAWINPUT *>(buffer);
-          if (raw->header.dwType == RIM_TYPEHID && m_isPrimary &&
+          if (raw->header.dwType == RIM_TYPEHID &&
               raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0) {
-            POINT pt;
-            GetCursorPos(&pt);
-            LOG((CLOG_DEBUG1 "desk raw touch at %d,%d", pt.x, pt.y));
-            PostThreadMessage(m_threadID, DESKFLOW_MSG_TOUCH,
-                              static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
+            auto it = m_hidTouchDevices.find(raw->header.hDevice);
+            if (it == m_hidTouchDevices.end()) {
+              it = m_hidTouchDevices.emplace(
+                  raw->header.hDevice, initHidTouchDevice(raw->header.hDevice)).first;
+            }
+
+            SInt32 tx, ty;
+            if (it->second.valid && parseHidTouch(raw, it->second, tx, ty)) {
+              LOG((CLOG_DEBUG1 "desk raw touch at %d,%d", tx, ty));
+              PostThreadMessage(m_threadID, DESKFLOW_MSG_TOUCH,
+                                static_cast<WPARAM>(tx), static_cast<LPARAM>(ty));
+            }
           }
         }
       }
@@ -806,6 +1006,10 @@ void MSWindowsDesks::deskThread(void *vdesk)
 
     case DESKFLOW_MSG_FAKE_REL_MOVE:
       deskMouseRelativeMove(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
+      break;
+
+    case DESKFLOW_MSG_FAKE_TOUCH:
+      deskFakeTouchClick(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
       break;
 
     case DESKFLOW_MSG_FAKE_WHEEL:

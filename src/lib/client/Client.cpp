@@ -248,11 +248,11 @@ void Client::enter(SInt32 xAbs, SInt32 yAbs, UInt32, KeyModifierMask mask, bool)
 
   if (m_pendingTouchActivation) {
     m_pendingTouchActivation = false;
+    ARCH->sleep(0.1);
     LOG((CLOG_DEBUG1 "touch: replaying click at %d,%d (cursor at %d,%d)",
          m_touchActivateX, m_touchActivateY, xAbs, yAbs));
     m_screen->activateWindowAt(m_touchActivateX, m_touchActivateY);
-    m_screen->mouseDown(kButtonLeft);
-    m_screen->mouseUp(kButtonLeft);
+    m_screen->fakeTouchClick(m_touchActivateX, m_touchActivateY);
   }
 
   if (m_sendFileThread) {

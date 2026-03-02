@@ -150,6 +150,8 @@ public:
   /*!
   Synthesize mouse events to generate a press of mouse button \c id.
   */
+  void fakeTouchClick(SInt32 x, SInt32 y);
+
   void mouseDown(ButtonID id);
 
   //! Notify of mouse release

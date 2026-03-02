@@ -30,6 +30,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
+#include <unordered_map>
+#include <vector>
+
 class Event;
 class EventQueueTimer;
 class Thread;
@@ -187,6 +190,8 @@ public:
   */
   void fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
+  void fakeTouchClick(SInt32 x, SInt32 y) const;
+
   //@}
 
 private:
@@ -204,6 +209,14 @@ private:
   };
   typedef std::map<String, Desk *> Desks;
 
+  struct HidTouchDevice {
+    std::vector<BYTE> preparsedData;
+    USHORT linkCollection;
+    LONG logicalMaxX;
+    LONG logicalMaxY;
+    bool valid;
+  };
+
   // initialization and shutdown operations
   HCURSOR createBlankCursor() const;
   void destroyCursor(HCURSOR cursor) const;
@@ -214,6 +227,7 @@ private:
 
   // message handlers
   void deskMouseMove(SInt32 x, SInt32 y) const;
+  void deskFakeTouchClick(SInt32 x, SInt32 y) const;
   void deskMouseRelativeMove(SInt32 dx, SInt32 dy) const;
   void deskEnter(Desk *desk);
   void deskLeave(Desk *desk, HKL keyLayout);
@@ -237,6 +251,11 @@ private:
   HDESK openInputDesktop();
   void closeDesktop(HDESK);
   String getDesktopName(HDESK);
+
+  HidTouchDevice initHidTouchDevice(HANDLE hDevice);
+  bool parseHidTouch(const RAWINPUT *raw, const HidTouchDevice &dev,
+                     SInt32 &outX, SInt32 &outY);
+  void registerTouchRawInput(HWND window, bool enable);
 
   // our desk window procs
   static LRESULT CALLBACK primaryDeskProc(HWND, UINT, WPARAM, LPARAM);
@@ -295,4 +314,6 @@ private:
 
   // true if program should stop on desk switch.
   bool m_stopOnDeskSwitch;
+
+  std::unordered_map<HANDLE, HidTouchDevice> m_hidTouchDevices;
 };

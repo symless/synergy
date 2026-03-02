@@ -593,17 +593,13 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
 
     // must run before the injected check: Windows marks
     // touch-synthesized mouse events as injected (LLMHF_INJECTED).
-    if (g_touchActivateScreen) {
+    if (g_touchActivateScreen && g_mode == kHOOK_RELAY_EVENTS) {
       bool isTouchEvent = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
       if (isTouchEvent && (wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE)) {
         SInt32 x = static_cast<SInt32>(info->pt.x);
         SInt32 y = static_cast<SInt32>(info->pt.y);
         PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
-        // Only eat in relay mode (cursor has left this screen) to
-        // prevent edge detection and isLockedToScreen from racing.
-        // In watch mode (cursor on server), let it through for
-        // normal touch behavior on the server's own screens.
-        if (g_isPrimary && g_mode == kHOOK_RELAY_EVENTS) {
+        if (g_isPrimary) {
           return 1;
         }
       }

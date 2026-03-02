@@ -201,6 +201,7 @@ public:
   virtual void clearStaleModifiers() = 0;
 
   virtual void activateWindowAt(SInt32 x, SInt32 y) { /* do nothing */ }
+  virtual void fakeTouchClick(SInt32 x, SInt32 y) { /* do nothing */ }
 
   // Drag-and-drop overrides
   virtual String &getDraggingFilename() = 0;

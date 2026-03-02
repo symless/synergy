@@ -2006,6 +2006,11 @@ void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
   }
 }
 
+void MSWindowsScreen::fakeTouchClick(SInt32 x, SInt32 y)
+{
+  m_desks->fakeTouchClick(x, y);
+}
+
 bool MSWindowsScreen::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask state, WPARAM wParam) const
 {
   bool result = false;
