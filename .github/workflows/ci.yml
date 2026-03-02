@@ -13,9 +13,9 @@ on:
         default: "snapshot"
         type: choice
         options:
+          - dev
           - snapshot
           - release
-          - dev
       aws-s3-uri:
         description: "Override AWS S3 target (e.g. s3://bucket/path)"
         required: false
