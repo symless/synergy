@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       package-type:
-        description: "snapshot (nightly), release (clean semver), or dev (commit SHA)"
+        description: "dev (commit SHA), snapshot (nightly), release (clean semver)"
         required: false
-        default: "snapshot"
+        default: "dev"
         type: choice
         options:
           - snapshot
