@@ -668,7 +668,6 @@ void Client::handleHello(const Event &, void *)
 
   // only allow client minor version to downgrade, as major versions will likely not be compatible.
   if (major == kProtocolMajorVersion && minor < kProtocolMinorVersion) {
-    helloBackMajor = major;
     helloBackMinor = minor;
     LOG_NOTE(
         "downgrading client protocol version from %d.%d to %d.%d", //
