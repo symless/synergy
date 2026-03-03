@@ -87,6 +87,10 @@ Client::Client(
   m_events->adoptHandler(
       m_events->forIScreen().resume(), getEventTarget(), new TMethodEventJob<Client>(this, &Client::handleResume)
   );
+  m_events->adoptHandler(
+      m_events->forIScreen().grabInput(), m_screen->getEventTarget(),
+      new TMethodEventJob<Client>(this, &Client::handleGrabInput)
+  );
 
   if (m_args.m_enableDragDrop) {
     m_events->adoptHandler(
@@ -107,6 +111,7 @@ Client::~Client()
 
   m_events->removeHandler(m_events->forIScreen().suspend(), getEventTarget());
   m_events->removeHandler(m_events->forIScreen().resume(), getEventTarget());
+  m_events->removeHandler(m_events->forIScreen().grabInput(), m_screen->getEventTarget());
 
   cleanupTimer();
   cleanupScreen();
@@ -239,6 +244,13 @@ void Client::enter(SInt32 xAbs, SInt32 yAbs, UInt32, KeyModifierMask mask, bool)
   m_active = true;
   m_screen->mouseMove(xAbs, yAbs);
   m_screen->enter(mask);
+
+  SInt32 tx, ty;
+  if (m_screen->consumePendingTouchActivation(tx, ty)) {
+    LOG((CLOG_DEBUG "client enter: consuming pending touch at %d,%d", tx, ty));
+    m_screen->activateWindowAt(tx, ty);
+    m_screen->fakeTouchClick(tx, ty);
+  }
 
   if (m_sendFileThread) {
     StreamChunker::interruptFile();
@@ -716,6 +728,16 @@ void Client::handleResume(const Event &, void *)
       m_connectOnResume = false;
       connect();
     }
+  }
+}
+
+void Client::handleGrabInput(const Event &event, void *)
+{
+  IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
+  if (m_server != NULL) {
+    LOG((CLOG_DEBUG1 "requesting grab input at %d,%d", info->m_x, info->m_y));
+    m_screen->setPendingTouchActivation(info->m_x, info->m_y);
+    m_server->grabInput(info->m_x, info->m_y);
   }
 }
 

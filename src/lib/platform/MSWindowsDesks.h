@@ -187,6 +187,12 @@ public:
   */
   void fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
+  //! Fake touch click
+  /*!
+  Activate the window at (\c x, \c y) and inject a touch click there.
+  */
+  void fakeTouchClick(SInt32 x, SInt32 y) const;
+
   //@}
 
 private:

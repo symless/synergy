@@ -29,6 +29,7 @@
 #include "mt/Lock.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsScreen.h"
+#include "platform/MSWindowsTouchInjector.h"
 #include "platform/dfwhook.h"
 
 #include <malloc.h>
@@ -86,6 +87,16 @@
 #define DESKFLOW_MSG_FAKE_REL_MOVE DESKFLOW_HOOK_LAST_MSG + 11
 // enable; <unused>
 #define DESKFLOW_MSG_FAKE_INPUT DESKFLOW_HOOK_LAST_MSG + 12
+// x; y
+#define DESKFLOW_MSG_FAKE_TOUCH DESKFLOW_HOOK_LAST_MSG + 13
+
+// suppress first WM_MOUSEMOVE after leaving screen to prevent the hider
+// window from being hidden by spurious mouse motion during screen switch.
+// accessed only from the desk thread, so no synchronization needed.
+static bool s_suppressMouseMove = false;
+
+// touch injection handler — accessed only from the desk thread.
+static MSWindowsTouchInjector s_touchInjector;
 
 static void send_keyboard_input(WORD wVk, WORD wScan, DWORD dwFlags)
 {
@@ -331,6 +342,11 @@ void MSWindowsDesks::fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const
   sendMessage(DESKFLOW_MSG_FAKE_WHEEL, xDelta, yDelta);
 }
 
+void MSWindowsDesks::fakeTouchClick(SInt32 x, SInt32 y) const
+{
+  sendMessage(DESKFLOW_MSG_FAKE_TOUCH, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+}
+
 void MSWindowsDesks::sendMessage(UINT msg, WPARAM wParam, LPARAM lParam) const
 {
   if (m_activeDesk != NULL && m_activeDesk->m_window != NULL) {
@@ -419,6 +435,12 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
   bool hide = false;
   switch (msg) {
   case WM_MOUSEMOVE:
+    if (s_suppressMouseMove) {
+      // consume the first mouse move after leaving — this prevents
+      // spurious motion from the screen switch from hiding the hider window
+      s_suppressMouseMove = false;
+      break;
+    }
     if (LOWORD(lParam) != 0 || HIWORD(lParam) != 0) {
       hide = true;
     }
@@ -517,6 +539,8 @@ void setCursorVisibility(bool visible)
 
 void MSWindowsDesks::deskEnter(Desk *desk)
 {
+  s_suppressMouseMove = false;
+
   if (!m_isPrimary) {
     ReleaseCapture();
   }
@@ -600,6 +624,10 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
       }
     }
   } else {
+    // suppress the first mouse move to prevent the hider window from
+    // being hidden by spurious motion during screen switch
+    s_suppressMouseMove = true;
+
     // move hider window under the cursor center, raise, and show it
     SetWindowPos(desk->m_window, HWND_TOP, m_xCenter, m_yCenter, 1, 1, SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
@@ -753,6 +781,10 @@ void MSWindowsDesks::deskThread(void *vdesk)
       send_keyboard_input(
           DESKFLOW_HOOK_FAKE_INPUT_VIRTUAL_KEY, DESKFLOW_HOOK_FAKE_INPUT_SCANCODE, msg.wParam ? 0 : KEYEVENTF_KEYUP
       );
+      break;
+
+    case DESKFLOW_MSG_FAKE_TOUCH:
+      s_touchInjector.injectClickAt(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
       break;
     }
 

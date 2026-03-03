@@ -220,6 +220,7 @@ private:
   void handleHello(const Event &, void *);
   void handleSuspend(const Event &event, void *);
   void handleResume(const Event &event, void *);
+  void handleGrabInput(const Event &event, void *);
   void handleFileChunkSending(const Event &, void *);
   void handleFileRecieveCompleted(const Event &, void *);
   void handleStopRetry(const Event &, void *);

@@ -380,6 +380,12 @@ void ServerProxy::onClipboardChanged(ClipboardID id, const IClipboard *clipboard
   StreamChunker::sendClipboard(data, data.size(), id, m_seqNum, m_events, this);
 }
 
+void ServerProxy::grabInput(SInt32 x, SInt32 y)
+{
+  LOG((CLOG_DEBUG1 "sending grab input at %d,%d", x, y));
+  ProtocolUtil::writef(m_stream, kMsgCGrabInput, x, y);
+}
+
 void ServerProxy::flushCompressedMouse()
 {
   if (m_compressMouse) {

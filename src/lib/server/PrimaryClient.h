@@ -83,6 +83,12 @@ public:
   */
   void fakeInputEnd();
 
+  //! Activate the window at the given coordinates
+  void activateWindowAt(SInt32 x, SInt32 y);
+
+  //! Inject a touch click at the given coordinates
+  void fakeTouchClick(SInt32 x, SInt32 y);
+
   //@}
   //! @name accessors
   //@{

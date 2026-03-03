@@ -44,6 +44,8 @@ static BYTE g_keyState[256] = {0};
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+static bool g_touchActivateScreen = false;
+static bool g_isOnScreen = true;
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -146,6 +148,21 @@ void MSWindowsHook::setMode(EHookMode mode)
     return;
   }
   g_mode = mode;
+}
+
+void MSWindowsHook::setTouchActivateScreen(bool enabled)
+{
+  g_touchActivateScreen = enabled;
+}
+
+void MSWindowsHook::setIsPrimary(bool primary)
+{
+  g_isPrimary = primary ? TRUE : FALSE;
+}
+
+void MSWindowsHook::setOnScreen(bool onScreen)
+{
+  g_isOnScreen = onScreen;
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -588,6 +605,17 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     SInt32 x = static_cast<SInt32>(info->pt.x);
     SInt32 y = static_cast<SInt32>(info->pt.y);
     SInt32 w = static_cast<SInt16>(HIWORD(info->mouseData));
+
+    // detect touch-originated mouse events via the MI_WP_SIGNATURE.
+    // fires on both primary (cursor on another screen) and client (cursor on
+    // another screen) — g_isOnScreen is false in both cases.
+    if (g_touchActivateScreen && !g_isOnScreen &&
+        (wParam == WM_LBUTTONDOWN) &&
+        (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH,
+                        static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+      return 1;
+    }
 
     // handle the message
     if (mouseHookHandler(wParam, x, y, w)) {

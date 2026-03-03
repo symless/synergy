@@ -42,6 +42,10 @@ public:
 
   void setMode(EHookMode mode);
 
+  void setTouchActivateScreen(bool enabled);
+  void setIsPrimary(bool primary);
+  void setOnScreen(bool onScreen);
+
   static EHookResult install();
 
   static int uninstall();

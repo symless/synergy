@@ -146,6 +146,18 @@ public:
   */
   void keyUp(KeyID id, KeyModifierMask, KeyButton);
 
+  //! Activate the window at the given coordinates
+  void activateWindowAt(SInt32 x, SInt32 y);
+
+  //! Inject a touch click at the given coordinates
+  void fakeTouchClick(SInt32 x, SInt32 y);
+
+  //! Store coordinates for deferred touch activation after screen switch
+  void setPendingTouchActivation(SInt32 x, SInt32 y);
+
+  //! Consume pending touch activation, returning true if one was pending
+  bool consumePendingTouchActivation(SInt32 &x, SInt32 &y);
+
   //! Notify of mouse press
   /*!
   Synthesize mouse events to generate a press of mouse button \c id.

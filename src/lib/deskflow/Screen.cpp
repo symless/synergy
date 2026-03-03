@@ -221,6 +221,26 @@ void Screen::keyUp(KeyID, KeyModifierMask, KeyButton button)
   m_screen->fakeKeyUp(button);
 }
 
+void Screen::activateWindowAt(SInt32 x, SInt32 y)
+{
+  m_screen->activateWindowAt(x, y);
+}
+
+void Screen::fakeTouchClick(SInt32 x, SInt32 y)
+{
+  m_screen->fakeTouchClick(x, y);
+}
+
+void Screen::setPendingTouchActivation(SInt32 x, SInt32 y)
+{
+  m_screen->setPendingTouchActivation(x, y);
+}
+
+bool Screen::consumePendingTouchActivation(SInt32 &x, SInt32 &y)
+{
+  return m_screen->consumePendingTouchActivation(x, y);
+}
+
 void Screen::mouseDown(ButtonID button)
 {
   m_screen->fakeMouseButton(button, true);

@@ -61,6 +61,8 @@ public:
   bool onGrabClipboard(ClipboardID);
   void onClipboardChanged(ClipboardID, const IClipboard *);
 
+  void grabInput(SInt32 x, SInt32 y);
+
   //@}
 
   // sending file chunk to server

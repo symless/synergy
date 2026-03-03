@@ -200,6 +200,12 @@ public:
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const = 0;
   virtual void clearStaleModifiers() = 0;
 
+  // Touch-to-switch overrides
+  virtual void activateWindowAt(SInt32 x, SInt32 y) {}
+  virtual void fakeTouchClick(SInt32 x, SInt32 y) {}
+  virtual void setPendingTouchActivation(SInt32 x, SInt32 y) { (void)x; (void)y; }
+  virtual bool consumePendingTouchActivation(SInt32 &x, SInt32 &y) { (void)x; (void)y; return false; }
+
   // Drag-and-drop overrides
   virtual String &getDraggingFilename() = 0;
   virtual void clearDraggingFilename() = 0;

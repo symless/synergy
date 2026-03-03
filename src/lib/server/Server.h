@@ -354,6 +354,8 @@ private:
   void handleLockCursorToScreenEvent(const Event &, void *);
   void handleFakeInputBeginEvent(const Event &, void *);
   void handleFakeInputEndEvent(const Event &, void *);
+  void handleTouchActivatedPrimaryEvent(const Event &, void *);
+  void handleGrabInputEvent(const Event &, void *);
   void handleFileChunkSendingEvent(const Event &, void *);
   void handleFileRecieveCompletedEvent(const Event &, void *);
 
@@ -522,4 +524,8 @@ private:
 
   ClientListener *m_clientListener;
   deskflow::ServerArgs m_args;
+
+  // prevents edge-triggered switches from immediately undoing touch switches
+  Stopwatch m_touchSwitchCooldown;
+  static constexpr double kTouchSwitchCooldownTime = 0.5;
 };

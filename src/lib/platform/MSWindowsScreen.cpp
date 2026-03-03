@@ -30,7 +30,9 @@
 #include "deskflow/ArgsBase.h"
 #include "deskflow/ClientApp.h"
 #include "deskflow/Clipboard.h"
+#include "deskflow/IPrimaryScreen.h"
 #include "deskflow/KeyMap.h"
+#include "deskflow/option_types.h"
 #include "deskflow/XScreen.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsClipboard.h"
@@ -244,6 +246,11 @@ void MSWindowsScreen::enable()
   // track the active desk and (re)install the hooks
   m_desks->enable();
 
+  // configure hook for this screen type
+  m_hook.setIsPrimary(m_isPrimary);
+  m_hook.setOnScreen(m_isOnScreen);
+  m_hook.setTouchActivateScreen(m_touchActivateScreen);
+
   if (m_isPrimary) {
     // set jump zones
     m_hook.setZone(m_x, m_y, m_w, m_h, getJumpZoneSize());
@@ -289,6 +296,8 @@ void MSWindowsScreen::disable()
 void MSWindowsScreen::enter()
 {
   m_desks->enter();
+  m_hook.setOnScreen(true);
+
   if (m_isPrimary) {
     // enable special key sequences on win95 family
     enableSpecialKeys(true);
@@ -369,6 +378,7 @@ void MSWindowsScreen::leave()
 
   // now off screen
   m_isOnScreen = false;
+  m_hook.setOnScreen(false);
 
   if (isDraggingStarted() && !m_isPrimary) {
     m_sendDragThread = new Thread(new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::sendDragThread));
@@ -476,6 +486,14 @@ void MSWindowsScreen::resetOptions()
 void MSWindowsScreen::setOptions(const OptionsList &options)
 {
   m_desks->setOptions(options);
+
+  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+    if (options[i] == kOptionTouchActivateScreen) {
+      m_touchActivateScreen = (options[i + 1] != 0);
+      m_hook.setTouchActivateScreen(m_touchActivateScreen);
+      LOG((CLOG_DEBUG1 "touch activate screen: %s", m_touchActivateScreen ? "enabled" : "disabled"));
+    }
+  }
 }
 
 void MSWindowsScreen::setSequenceNumber(UInt32 seqNum)
@@ -957,6 +975,33 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
   case DESKFLOW_MSG_DEBUG:
     LOG((CLOG_DEBUG1 "hook: 0x%08x 0x%08x", wParam, lParam));
     return true;
+
+  case DESKFLOW_MSG_TOUCH: {
+    SInt32 x = static_cast<SInt32>(wParam);
+    SInt32 y = static_cast<SInt32>(lParam);
+
+    // debounce rapid touch events
+    double elapsed = m_touchDebounceTimer.getTime();
+    if (elapsed > 0.0 && elapsed < kTouchDebounceTime) {
+      LOG((CLOG_DEBUG1 "touch debounced at %d,%d (%.0fms)", x, y, elapsed * 1000));
+      return true;
+    }
+    m_touchDebounceTimer.reset();
+    m_touchDebounceTimer.start();
+
+    if (m_isPrimary) {
+      // primary screen: cursor is on another screen, touch here to switch back
+      LOG((CLOG_DEBUG "touch on primary at %d,%d — firing touchActivatedPrimary", x, y));
+      auto *info = IPrimaryScreen::MotionInfo::alloc(x, y);
+      sendEvent(m_events->forIPrimaryScreen().touchActivatedPrimary(), info);
+    } else {
+      // client screen: cursor is on another screen, touch here to grab input
+      LOG((CLOG_DEBUG "touch on client at %d,%d — firing grabInput", x, y));
+      auto *info = IPrimaryScreen::MotionInfo::alloc(x, y);
+      sendEvent(m_events->forIScreen().grabInput(), info);
+    }
+    return true;
+  }
   }
 
   if (m_isPrimary) {
@@ -1898,4 +1943,36 @@ bool MSWindowsScreen::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask
   }
 
   return result;
+}
+
+void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
+{
+  // activation is handled as part of fakeTouchClick via MSWindowsTouchInjector
+  LOG((CLOG_DEBUG1 "activateWindowAt %d,%d (handled by fakeTouchClick)", x, y));
+}
+
+void MSWindowsScreen::fakeTouchClick(SInt32 x, SInt32 y)
+{
+  LOG((CLOG_DEBUG "fakeTouchClick %d,%d — delegating to desk thread", x, y));
+  m_desks->fakeTouchClick(x, y);
+}
+
+void MSWindowsScreen::setPendingTouchActivation(SInt32 x, SInt32 y)
+{
+  m_touchGrabPending = true;
+  m_touchGrabX = x;
+  m_touchGrabY = y;
+  LOG((CLOG_DEBUG1 "pending touch activation set at %d,%d", x, y));
+}
+
+bool MSWindowsScreen::consumePendingTouchActivation(SInt32 &x, SInt32 &y)
+{
+  if (!m_touchGrabPending) {
+    return false;
+  }
+  m_touchGrabPending = false;
+  x = m_touchGrabX;
+  y = m_touchGrabY;
+  LOG((CLOG_DEBUG1 "pending touch activation consumed at %d,%d", x, y));
+  return true;
 }

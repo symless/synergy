@@ -388,7 +388,7 @@ private:
 class ClientProxyEvents : public EventTypes
 {
 public:
-  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown)
+  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown), m_grabInput(Event::kUnknown)
   {
   }
 
@@ -410,11 +410,15 @@ public:
   */
   Event::Type disconnected();
 
+  //! Get grab input event type
+  Event::Type grabInput();
+
   //@}
 
 private:
   Event::Type m_ready;
   Event::Type m_disconnected;
+  Event::Type m_grabInput;
 };
 
 class ClientProxyUnknownEvents : public EventTypes
@@ -603,7 +607,8 @@ public:
         m_hotKeyDown(Event::kUnknown),
         m_hotKeyUp(Event::kUnknown),
         m_fakeInputBegin(Event::kUnknown),
-        m_fakeInputEnd(Event::kUnknown)
+        m_fakeInputEnd(Event::kUnknown),
+        m_touchActivatedPrimary(Event::kUnknown)
   {
   }
 
@@ -650,6 +655,9 @@ public:
   //!  end of fake input event type
   Event::Type fakeInputEnd();
 
+  //! touch activated primary screen event type
+  Event::Type touchActivatedPrimary();
+
   //@}
 
 private:
@@ -664,6 +672,7 @@ private:
   Event::Type m_hotKeyUp;
   Event::Type m_fakeInputBegin;
   Event::Type m_fakeInputEnd;
+  Event::Type m_touchActivatedPrimary;
 };
 
 class IScreenEvents : public EventTypes
@@ -673,7 +682,8 @@ public:
       : m_error(Event::kUnknown),
         m_shapeChanged(Event::kUnknown),
         m_suspend(Event::kUnknown),
-        m_resume(Event::kUnknown)
+        m_resume(Event::kUnknown),
+        m_grabInput(Event::kUnknown)
   {
   }
 
@@ -708,6 +718,9 @@ public:
   */
   Event::Type resume();
 
+  //! Get grab input event type
+  Event::Type grabInput();
+
   //@}
 
 private:
@@ -715,6 +728,7 @@ private:
   Event::Type m_shapeChanged;
   Event::Type m_suspend;
   Event::Type m_resume;
+  Event::Type m_grabInput;
 };
 
 class ClipboardEvents : public EventTypes

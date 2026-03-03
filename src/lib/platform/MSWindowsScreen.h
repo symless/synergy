@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "base/Stopwatch.h"
 #include "base/String.h"
 #include "deskflow/ClientArgs.h"
 #include "deskflow/DragInformation.h"
@@ -136,6 +137,10 @@ public:
   virtual String &getDraggingFilename();
   virtual const String &getDropTarget() const;
   String getSecureInputApp() const override;
+  void activateWindowAt(SInt32 x, SInt32 y) override;
+  void fakeTouchClick(SInt32 x, SInt32 y) override;
+  void setPendingTouchActivation(SInt32 x, SInt32 y) override;
+  bool consumePendingTouchActivation(SInt32 &x, SInt32 &y) override;
 
 protected:
   // IPlatformScreen overrides
@@ -357,4 +362,14 @@ private:
 
   PrimaryKeyDownList m_primaryKeyDownList;
   MSWindowsPowerManager m_powerManager;
+
+  // touch-to-switch
+  bool m_touchActivateScreen = false;
+  Stopwatch m_touchDebounceTimer;
+  static constexpr double kTouchDebounceTime = 0.3;
+
+  // pending touch activation for client-side injection
+  bool m_touchGrabPending = false;
+  SInt32 m_touchGrabX = 0;
+  SInt32 m_touchGrabY = 0;
 };

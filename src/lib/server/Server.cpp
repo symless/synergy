@@ -176,6 +176,10 @@ Server::Server(
       m_events->forIPrimaryScreen().fakeInputEnd(), m_inputFilter,
       new TMethodEventJob<Server>(this, &Server::handleFakeInputEndEvent)
   );
+  m_events->adoptHandler(
+      m_events->forIPrimaryScreen().touchActivatedPrimary(), m_primaryClient->getEventTarget(),
+      new TMethodEventJob<Server>(this, &Server::handleTouchActivatedPrimaryEvent)
+  );
 
   if (m_args.m_enableDragDrop) {
     m_events->adoptHandler(
@@ -225,6 +229,7 @@ Server::~Server()
   m_events->removeHandler(m_events->forIPrimaryScreen().screensaverDeactivated(), m_primaryClient->getEventTarget());
   m_events->removeHandler(m_events->forIPrimaryScreen().fakeInputBegin(), m_inputFilter);
   m_events->removeHandler(m_events->forIPrimaryScreen().fakeInputEnd(), m_inputFilter);
+  m_events->removeHandler(m_events->forIPrimaryScreen().touchActivatedPrimary(), m_primaryClient->getEventTarget());
   m_events->removeHandler(Event::kTimer, this);
   stopSwitch();
 
@@ -299,6 +304,12 @@ void Server::adoptClient(BaseClientProxy *client)
   m_events->adoptHandler(
       m_events->forClientProxy().disconnected(), client,
       new TMethodEventJob<Server>(this, &Server::handleClientDisconnected, client)
+  );
+
+  // watch for client grab input requests (touch-to-switch)
+  m_events->adoptHandler(
+      m_events->forClientProxy().grabInput(), client,
+      new TMethodEventJob<Server>(this, &Server::handleGrabInputEvent, client)
   );
 
   // name must be in our configuration
@@ -773,6 +784,14 @@ bool Server::isSwitchOkay(
     // want to try to switch later.
     LOG((CLOG_DEBUG1 "no neighbor %s", Config::dirName(dir)));
     stopSwitch();
+    return false;
+  }
+
+  // block edge switch if a touch switch happened recently
+  double elapsedTouchCooldown = m_touchSwitchCooldown.getTime();
+  if (elapsedTouchCooldown > 0.0 && elapsedTouchCooldown < kTouchSwitchCooldownTime) {
+    LOG((CLOG_DEBUG1 "edge switch blocked by touch cooldown (%.2fs remaining)",
+         kTouchSwitchCooldownTime - elapsedTouchCooldown));
     return false;
   }
 
@@ -1334,6 +1353,62 @@ void Server::handleSwitchInDirectionEvent(const Event &event, void *)
     LOG((CLOG_DEBUG1 "no neighbor %s", Config::dirName(info->m_direction)));
   } else {
     jumpToScreen(newScreen);
+  }
+}
+
+void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
+{
+  IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
+  LOG((CLOG_DEBUG1 "touch activated primary at %d,%d", info->m_x, info->m_y));
+
+  if (m_active != m_primaryClient) {
+    m_active->setJumpCursorPos(m_x, m_y);
+
+    // clamp away from jump zones to avoid triggering an immediate edge switch
+    SInt32 x = info->m_x;
+    SInt32 y = info->m_y;
+    SInt32 dx, dy, dw, dh;
+    m_primaryClient->getShape(dx, dy, dw, dh);
+    SInt32 z = getJumpZoneSize(m_primaryClient) + 1;
+    x = (std::max)(x, dx + z);
+    x = (std::min)(x, dx + dw - 1 - z);
+    y = (std::max)(y, dy + z);
+    y = (std::min)(y, dy + dh - 1 - z);
+
+    switchScreen(m_primaryClient, x, y, false);
+
+    m_primaryClient->activateWindowAt(x, y);
+    m_primaryClient->fakeTouchClick(x, y);
+
+    m_touchSwitchCooldown.reset();
+    LOG((CLOG_DEBUG1 "touch switch cooldown started"));
+  }
+}
+
+void Server::handleGrabInputEvent(const Event &event, void *vclient)
+{
+  IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
+  BaseClientProxy *client = static_cast<BaseClientProxy *>(vclient);
+
+  LOG((CLOG_DEBUG1 "client \"%s\" requests grab at %d,%d", getName(client).c_str(), info->m_x, info->m_y));
+
+  if (client != m_active) {
+    m_active->setJumpCursorPos(m_x, m_y);
+
+    SInt32 x = info->m_x;
+    SInt32 y = info->m_y;
+    SInt32 dx, dy, dw, dh;
+    client->getShape(dx, dy, dw, dh);
+    SInt32 z = getJumpZoneSize(client) + 1;
+    x = (std::max)(x, dx + z);
+    x = (std::min)(x, dx + dw - 1 - z);
+    y = (std::max)(y, dy + z);
+    y = (std::min)(y, dy + dh - 1 - z);
+
+    switchScreen(client, x, y, false);
+
+    m_touchSwitchCooldown.reset();
+    LOG((CLOG_DEBUG1 "touch switch cooldown started"));
   }
 }
 
@@ -2087,6 +2162,7 @@ void Server::removeActiveClient(BaseClientProxy *client)
 {
   if (removeClient(client)) {
     forceLeaveClient(client);
+    m_events->removeHandler(m_events->forClientProxy().grabInput(), client);
     m_events->removeHandler(m_events->forClientProxy().disconnected(), client);
     if (m_clients.size() == 1 && m_oldClients.empty()) {
       m_events->addEvent(Event(m_events->forServer().disconnected(), this));
