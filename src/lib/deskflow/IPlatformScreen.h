@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -199,6 +199,9 @@ public:
   virtual SInt32 pollActiveGroup() const = 0;
   virtual void pollPressedKeys(KeyButtonSet &pressedKeys) const = 0;
   virtual void clearStaleModifiers() = 0;
+
+  virtual void activateWindowAt(SInt32 x, SInt32 y) { /* do nothing */ }
+  virtual void fakeTouchClick(SInt32 x, SInt32 y) { /* do nothing */ }
 
   // Drag-and-drop overrides
   virtual String &getDraggingFilename() = 0;

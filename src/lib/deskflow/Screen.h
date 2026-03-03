@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -150,6 +150,8 @@ public:
   /*!
   Synthesize mouse events to generate a press of mouse button \c id.
   */
+  void fakeTouchClick(SInt32 x, SInt32 y);
+
   void mouseDown(ButtonID id);
 
   //! Notify of mouse release
@@ -235,6 +237,8 @@ public:
   void startDraggingFiles(DragFileList &fileList);
 
   void setEnableDragDrop(bool enabled);
+
+  void activateWindowAt(SInt32 x, SInt32 y);
 
   //! Determine the name of the app causing a secure input state
   /*!

@@ -69,6 +69,7 @@ static const OptionID kOptionWin32KeepForeground = OPTION_CODE("_KFW");
 static const OptionID kOptionDisableLockToScreen = OPTION_CODE("DLTS");
 static const OptionID kOptionClipboardSharing = OPTION_CODE("CLPS");
 static const OptionID kOptionClipboardSharingSize = OPTION_CODE("CLSZ");
+static const OptionID kOptionTouchActivateScreen = OPTION_CODE("TILC");
 //@}
 
 //! @name Screen switch corner enumeration

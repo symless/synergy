@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2011 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -44,6 +44,7 @@ static BYTE g_keyState[256] = {0};
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+static bool g_touchActivateScreen = false;
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -146,6 +147,16 @@ void MSWindowsHook::setMode(EHookMode mode)
     return;
   }
   g_mode = mode;
+}
+
+void MSWindowsHook::setTouchActivateScreen(bool enabled)
+{
+  g_touchActivateScreen = enabled;
+}
+
+void MSWindowsHook::setIsPrimary(bool primary)
+{
+  g_isPrimary = primary ? TRUE : FALSE;
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -579,6 +590,28 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
   if (code >= 0) {
     // decode the message
     MSLLHOOKSTRUCT *info = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
+
+    // must run before the injected check: Windows marks
+    // touch-synthesized mouse events as injected (LLMHF_INJECTED).
+    if (g_touchActivateScreen && g_mode == kHOOK_RELAY_EVENTS) {
+      bool isTouchEvent = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
+
+      if (wParam == WM_LBUTTONDOWN) {
+        LOG((CLOG_DEBUG "hook: WM_LBUTTONDOWN extraInfo=0x%08x touchSig=%s isPrimary=%d mode=%d",
+             (DWORD)info->dwExtraInfo, isTouchEvent ? "yes" : "no", g_isPrimary, g_mode));
+      }
+
+      if (isTouchEvent && (wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE)) {
+        SInt32 x = static_cast<SInt32>(info->pt.x);
+        SInt32 y = static_cast<SInt32>(info->pt.y);
+        LOG((CLOG_DEBUG "hook: touch at %d,%d posting DESKFLOW_MSG_TOUCH", x, y));
+        PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
+        if (g_isPrimary) {
+          LOG((CLOG_DEBUG "hook: eating touch event (relay mode)"));
+          return 1;
+        }
+      }
+    }
 
     bool const injected = info->flags & LLMHF_INJECTED;
     if (!g_isPrimary && injected) {
