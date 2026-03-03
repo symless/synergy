@@ -670,7 +670,7 @@ void Client::handleHello(const Event &, void *)
     helloBackMajor = major;
     helloBackMinor = minor;
     LOG_NOTE(
-        "downgrading protocol version for server from %d.%d to %d.%d", //
+        "downgrading client protocol version from %d.%d to %d.%d", //
         kProtocolMajorVersion, kProtocolMinorVersion, helloBackMajor, helloBackMinor
     );
   }
