@@ -666,13 +666,19 @@ void Client::handleHello(const Event &, void *)
   SInt16 helloBackMajor = kProtocolMajorVersion;
   SInt16 helloBackMinor = kProtocolMinorVersion;
 
-  if (major < kProtocolMajorVersion || (major == kProtocolMajorVersion && minor < kProtocolMinorVersion)) {
+  // only allow client minor version to downgrade, as major versions will likely not be compatible.
+  if (major == kProtocolMajorVersion && minor < kProtocolMinorVersion) {
     helloBackMajor = major;
     helloBackMinor = minor;
     LOG_NOTE(
         "downgrading client protocol version from %d.%d to %d.%d", //
         kProtocolMajorVersion, kProtocolMinorVersion, helloBackMajor, helloBackMinor
     );
+  } else if (major != kProtocolMajorVersion) {
+    sendConnectionFailedEvent(XIncompatibleClient(major, minor).what());
+    cleanupTimer();
+    cleanupConnection();
+    return;
   }
 
   // say hello back
