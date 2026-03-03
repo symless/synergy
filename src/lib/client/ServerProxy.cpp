@@ -47,10 +47,13 @@ ServerProxy::ServerProxy(Client *client, deskflow::IStream *stream, IEventQueue 
       m_seqNum(0),
       m_compressMouse(false),
       m_compressMouseRelative(false),
+      m_compressWheel(false),
       m_xMouse(0),
       m_yMouse(0),
       m_dxMouse(0),
       m_dyMouse(0),
+      m_xDeltaWheel(0),
+      m_yDeltaWheel(0),
       m_ignoreMouse(false),
       m_keepAliveAlarm(0.0),
       m_keepAliveAlarmTimer(NULL),
@@ -392,6 +395,12 @@ void ServerProxy::flushCompressedMouse()
     m_dxMouse = 0;
     m_dyMouse = 0;
   }
+  if (m_compressWheel) {
+    m_compressWheel = false;
+    m_client->mouseWheel(m_xDeltaWheel, m_yDeltaWheel);
+    m_xDeltaWheel = 0;
+    m_yDeltaWheel = 0;
+  }
 }
 
 void ServerProxy::sendInfo(const ClientInfo &info)
@@ -514,8 +523,11 @@ void ServerProxy::enter()
   // discard old compressed mouse motion, if any
   m_compressMouse = false;
   m_compressMouseRelative = false;
+  m_compressWheel = false;
   m_dxMouse = 0;
   m_dyMouse = 0;
+  m_xDeltaWheel = 0;
+  m_yDeltaWheel = 0;
   m_seqNum = seqNum;
   m_serverLanguage = "";
   m_isUserNotifiedAboutLanguageSyncError = false;
@@ -729,15 +741,24 @@ void ServerProxy::mouseRelativeMove()
 
 void ServerProxy::mouseWheel()
 {
-  // get mouse up to date
-  flushCompressedMouse();
-
   // parse
   SInt16 xDelta, yDelta;
   ProtocolUtil::readf(m_stream, kMsgDMouseWheel + 4, &xDelta, &yDelta);
+
+  if (!m_compressWheel && m_stream->isReady()) {
+    m_compressWheel = true;
+  }
+
+  if (m_compressWheel) {
+    m_xDeltaWheel += xDelta;
+    m_yDeltaWheel += yDelta;
+    return;
+  }
+
   LOG((CLOG_DEBUG2 "recv mouse wheel %+d,%+d", xDelta, yDelta));
 
-  // forward
+  flushCompressedMouse();
+
   m_client->mouseWheel(xDelta, yDelta);
 }
 

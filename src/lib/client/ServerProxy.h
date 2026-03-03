@@ -139,8 +139,10 @@ private:
 
   bool m_compressMouse;
   bool m_compressMouseRelative;
+  bool m_compressWheel;
   SInt32 m_xMouse, m_yMouse;
   SInt32 m_dxMouse, m_dyMouse;
+  SInt32 m_xDeltaWheel, m_yDeltaWheel;
 
   bool m_ignoreMouse;
 

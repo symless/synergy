@@ -328,7 +328,9 @@ void MSWindowsDesks::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 
 void MSWindowsDesks::fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const
 {
-  sendMessage(DESKFLOW_MSG_FAKE_WHEEL, xDelta, yDelta);
+  if (m_activeDesk != NULL && m_activeDesk->m_window != NULL) {
+    PostThreadMessage(m_activeDesk->m_threadID, DESKFLOW_MSG_FAKE_WHEEL, xDelta, yDelta);
+  }
 }
 
 void MSWindowsDesks::sendMessage(UINT msg, WPARAM wParam, LPARAM lParam) const
@@ -720,7 +722,9 @@ void MSWindowsDesks::deskThread(void *vdesk)
       break;
 
     case DESKFLOW_MSG_FAKE_WHEEL:
-      // XXX -- add support for x-axis scrolling
+      if (msg.wParam != 0) {
+        send_mouse_input(MOUSEEVENTF_HWHEEL, 0, 0, (DWORD)msg.wParam);
+      }
       if (msg.lParam != 0) {
         send_mouse_input(MOUSEEVENTF_WHEEL, 0, 0, (DWORD)msg.lParam);
       }
