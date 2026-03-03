@@ -217,7 +217,6 @@ private:
   void handleDisconnected(const Event &, void *);
   void handleShapeChanged(const Event &, void *);
   void handleClipboardGrabbed(const Event &, void *);
-  bool isCompatible(int major, int minor) const;
   void handleHello(const Event &, void *);
   void handleSuspend(const Event &event, void *);
   void handleResume(const Event &event, void *);
