@@ -666,8 +666,14 @@ void Client::handleHello(const Event &, void *)
   SInt16 helloBackMajor = kProtocolMajorVersion;
   SInt16 helloBackMinor = kProtocolMinorVersion;
 
-  LOG((CLOG_NOTE "downgrading protocol version for server"));
-  helloBackMinor = minor;
+  if (major < kProtocolMajorVersion || (major == kProtocolMajorVersion && minor < kProtocolMinorVersion)) {
+    helloBackMajor = major;
+    helloBackMinor = minor;
+    LOG_NOTE(
+        "downgrading protocol version for server from %d.%d to %d.%d", //
+        kProtocolMajorVersion, kProtocolMinorVersion, helloBackMajor, helloBackMinor
+    );
+  }
 
   // say hello back
   LOG((CLOG_DEBUG "say hello version %d.%d", helloBackMajor, helloBackMinor));
