@@ -602,15 +602,18 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     SInt32 x = static_cast<SInt32>(info->pt.x);
     SInt32 y = static_cast<SInt32>(info->pt.y);
 
+    // unconditional diagnostic: log ALL button-down events to verify hook is alive
+    if (wParam == WM_LBUTTONDOWN || wParam == WM_NCLBUTTONDOWN) {
+      LOG((CLOG_DEBUG "hook: LBUTTONDOWN at %d,%d extraInfo=0x%08x isOnScreen=%s flags=0x%x touchOpt=%s",
+           x, y, (unsigned)info->dwExtraInfo, g_isOnScreen ? "true" : "false",
+           (unsigned)info->flags, g_touchActivateScreen ? "true" : "false"));
+    }
+
     // detect touch-originated mouse events via the MI_WP_SIGNATURE.
     // this must run BEFORE the injected check below, because Windows marks
     // touch-generated mouse events as LLMHF_INJECTED (they're synthesized
     // by the touch subsystem). without this ordering, touch events on
     // client screens are silently dropped by the injected early-return.
-    if (wParam == WM_LBUTTONDOWN && g_touchActivateScreen) {
-      LOG((CLOG_DEBUG "hook: LBUTTONDOWN extraInfo=0x%08x isOnScreen=%s flags=0x%x",
-           (unsigned)info->dwExtraInfo, g_isOnScreen ? "true" : "false", (unsigned)info->flags));
-    }
     if (g_touchActivateScreen && !g_isOnScreen &&
         (wParam == WM_LBUTTONDOWN) &&
         (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {

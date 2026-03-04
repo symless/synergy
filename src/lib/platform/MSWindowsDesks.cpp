@@ -95,6 +95,13 @@
 // accessed only from the desk thread, so no synchronization needed.
 static bool s_suppressMouseMove = false;
 
+// main thread ID for posting messages from the desk thread to the event queue.
+// set once from enable() on the main thread.
+static DWORD s_mainThreadID = 0;
+
+// true when touch-to-switch is enabled — set from the main thread, read from desk thread.
+static bool s_touchActivateScreen = false;
+
 // touch injection handler — accessed only from the desk thread.
 static MSWindowsTouchInjector s_touchInjector;
 
@@ -170,6 +177,7 @@ MSWindowsDesks::~MSWindowsDesks()
 void MSWindowsDesks::enable()
 {
   m_threadID = GetCurrentThreadId();
+  s_mainThreadID = m_threadID;
 
   // set the active desk and (re)install the hooks
   checkDesk();
@@ -222,6 +230,8 @@ void MSWindowsDesks::setOptions(const OptionsList &options)
     if (options[i] == kOptionWin32KeepForeground) {
       m_leaveForegroundOption = (options[i + 1] != 0);
       LOG((CLOG_DEBUG1 "%s the foreground window", m_leaveForegroundOption ? "don\'t grab" : "grab"));
+    } else if (options[i] == kOptionTouchActivateScreen) {
+      s_touchActivateScreen = (options[i + 1] != 0);
     }
   }
 }
@@ -445,6 +455,25 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
       hide = true;
     }
     break;
+
+  case WM_LBUTTONDOWN: {
+    // backup touch detection: if the LL hook didn't catch the touch event
+    // (some Windows configs don't route touch-to-mouse through LL hooks),
+    // detect it here via the captured hider window.
+    DWORD extraInfo = (DWORD)GetMessageExtraInfo();
+    LOG((CLOG_DEBUG "secondaryDeskProc: LBUTTONDOWN extraInfo=0x%08x touchOpt=%s",
+         (unsigned)extraInfo, s_touchActivateScreen ? "true" : "false"));
+    if (s_touchActivateScreen && (extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      // get screen coordinates — lParam is client-relative, use GetCursorPos for screen coords
+      POINT pt;
+      GetCursorPos(&pt);
+      LOG((CLOG_DEBUG "secondaryDeskProc: touch detected at %d,%d — posting DESKFLOW_MSG_TOUCH", pt.x, pt.y));
+      PostThreadMessage(s_mainThreadID, DESKFLOW_MSG_TOUCH,
+                        static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
+      return 0;
+    }
+    break;
+  }
   }
 
   if (hide && IsWindowVisible(hwnd)) {
