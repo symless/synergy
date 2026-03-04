@@ -68,6 +68,7 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   m_pCheckBoxCornerBottomRight->setChecked(serverConfig().switchCorner(static_cast<int>(BottomRight)));
   m_pSpinBoxSwitchCornerSize->setValue(serverConfig().switchCornerSize());
   m_pCheckBoxDisableLockToScreen->setChecked(serverConfig().disableLockToScreen());
+  m_pCheckBoxTouchActivateScreen->setChecked(serverConfig().touchActivateScreen());
 
   m_pCheckBoxEnableClipboard->setChecked(serverConfig().clipboardSharing());
   int clipboardSharingSizeM = static_cast<int>(serverConfig().clipboardSharingSize() / 1024);
@@ -142,6 +143,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
     serverConfig().setDisableLockToScreen(v);
     onChange();
   });
+  connect(m_pCheckBoxTouchActivateScreen, &QCheckBox::stateChanged, this, [this](const int &v) {
+    serverConfig().setTouchActivateScreen(v);
+    onChange();
+  });
   connect(m_pCheckBoxCornerTopLeft, &QCheckBox::stateChanged, this, [this](const int &v) {
     serverConfig().setSwitchCorner(static_cast<int>(TopLeft), v);
     onChange();
@@ -190,6 +195,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   });
   connect(m_pCheckBoxDisableLockToScreen, &QCheckBox::checkStateChanged, this, [this](const Qt::CheckState &v) {
     serverConfig().setDisableLockToScreen(v == Qt::Checked);
+    onChange();
+  });
+  connect(m_pCheckBoxTouchActivateScreen, &QCheckBox::checkStateChanged, this, [this](const Qt::CheckState &v) {
+    serverConfig().setTouchActivateScreen(v == Qt::Checked);
     onChange();
   });
   connect(m_pCheckBoxCornerTopLeft, &QCheckBox::checkStateChanged, this, [this](const Qt::CheckState &v) {
