@@ -33,6 +33,7 @@
 #include "platform/dfwhook.h"
 
 #include <malloc.h>
+#include <windowsx.h>
 
 // these are only defined when WINVER >= 0x0500
 #if !defined(SPI_GETMOUSESPEED)
@@ -440,45 +441,70 @@ LRESULT CALLBACK MSWindowsDesks::primaryDeskProc(HWND hwnd, UINT msg, WPARAM wPa
 
 LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  // would like to detect any local user input and hide the hider
-  // window but for now we just detect mouse motion.
-  bool hide = false;
   switch (msg) {
-  case WM_MOUSEMOVE:
-    if (s_suppressMouseMove) {
-      // consume the first mouse move after leaving — this prevents
-      // spurious motion from the screen switch from hiding the hider window
-      s_suppressMouseMove = false;
+  case WM_POINTERACTIVATE:
+    // prevent touch from activating the hider window
+    return PA_NOACTIVATE;
+
+  case WM_POINTERDOWN: {
+    // primary touch detection path: WM_POINTER is the modern Windows
+    // pointer API for touch/pen and is the most reliable detection method.
+    if (!s_touchActivateScreen) {
       break;
     }
-    if (LOWORD(lParam) != 0 || HIWORD(lParam) != 0) {
-      hide = true;
-    }
-    break;
-
-  case WM_LBUTTONDOWN: {
-    // backup touch detection: if the LL hook didn't catch the touch event
-    // (some Windows configs don't route touch-to-mouse through LL hooks),
-    // detect it here via the captured hider window.
-    DWORD extraInfo = (DWORD)GetMessageExtraInfo();
-    LOG((CLOG_DEBUG "secondaryDeskProc: LBUTTONDOWN extraInfo=0x%08x touchOpt=%s",
-         (unsigned)extraInfo, s_touchActivateScreen ? "true" : "false"));
-    if (s_touchActivateScreen && (extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
-      // get screen coordinates — lParam is client-relative, use GetCursorPos for screen coords
-      POINT pt;
-      GetCursorPos(&pt);
-      LOG((CLOG_DEBUG "secondaryDeskProc: touch detected at %d,%d — posting DESKFLOW_MSG_TOUCH", pt.x, pt.y));
-      PostThreadMessage(s_mainThreadID, DESKFLOW_MSG_TOUCH,
-                        static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
+    UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+    DWORD pointerType = PT_POINTER;
+    if (GetPointerType(pointerId, &pointerType) && (pointerType == PT_TOUCH || pointerType == PT_PEN)) {
+      SInt32 x = GET_X_LPARAM(lParam);
+      SInt32 y = GET_Y_LPARAM(lParam);
+      LOG((CLOG_DEBUG "secondaryDeskProc: WM_POINTERDOWN touch at %d,%d", x, y));
+      PostThreadMessage(
+          s_mainThreadID, DESKFLOW_MSG_TOUCH, static_cast<WPARAM>(x), static_cast<LPARAM>(y)
+      );
       return 0;
     }
     break;
   }
+
+  case WM_LBUTTONDOWN: {
+    // backup touch detection via legacy mouse message + touch signature.
+    // SetCapture routes WM_LBUTTONDOWN to the hider window, so this
+    // catches touch events that don't arrive via WM_POINTER (e.g. if
+    // the touch lands outside the 1x1 hider window area).
+    DWORD extraInfo = (DWORD)GetMessageExtraInfo();
+    if (s_touchActivateScreen && (extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      POINT pt;
+      GetCursorPos(&pt);
+      LOG((CLOG_DEBUG "secondaryDeskProc: WM_LBUTTONDOWN touch at %d,%d", pt.x, pt.y));
+      PostThreadMessage(
+          s_mainThreadID, DESKFLOW_MSG_TOUCH, static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y)
+      );
+      return 0;
+    }
+    break;
   }
 
-  if (hide && IsWindowVisible(hwnd)) {
-    ReleaseCapture();
-    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+  case WM_MOUSEMOVE: {
+    if (s_suppressMouseMove) {
+      s_suppressMouseMove = false;
+      break;
+    }
+
+    // filter touch-originated mouse moves — only real mouse motion
+    // should dismiss the hider window
+    DWORD extraInfo = (DWORD)GetMessageExtraInfo();
+    if ((extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      break;
+    }
+
+    if (LOWORD(lParam) != 0 || HIWORD(lParam) != 0) {
+      if (IsWindowVisible(hwnd)) {
+        ReleaseCapture();
+        SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+      }
+    }
+    break;
+  }
   }
 
   return DefWindowProc(hwnd, msg, wParam, lParam);
