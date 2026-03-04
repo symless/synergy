@@ -447,11 +447,9 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
     return PA_NOACTIVATE;
 
   case WM_POINTERDOWN: {
-    // primary touch detection path: WM_POINTER is the modern Windows
-    // pointer API for touch/pen and is the most reliable detection method.
-    if (!s_touchActivateScreen) {
-      break;
-    }
+    // Touch detection via modern Windows pointer API. No config check here —
+    // the hider window only exists when the cursor is off-screen, so any
+    // touch on it is a "switch back" action. The config gate is in onPreDispatch.
     UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
     DWORD pointerType = PT_POINTER;
     if (GetPointerType(pointerId, &pointerType) && (pointerType == PT_TOUCH || pointerType == PT_PEN)) {
@@ -467,12 +465,11 @@ LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM w
   }
 
   case WM_LBUTTONDOWN: {
-    // backup touch detection via legacy mouse message + touch signature.
-    // SetCapture routes WM_LBUTTONDOWN to the hider window, so this
-    // catches touch events that don't arrive via WM_POINTER (e.g. if
-    // the touch lands outside the 1x1 hider window area).
+    // Backup touch detection via legacy mouse message + touch signature.
+    // SetCapture routes WM_LBUTTONDOWN to the hider window for touches
+    // that don't arrive via WM_POINTER.
     DWORD extraInfo = (DWORD)GetMessageExtraInfo();
-    if (s_touchActivateScreen && (extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+    if ((extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
       POINT pt;
       GetCursorPos(&pt);
       LOG((CLOG_DEBUG "secondaryDeskProc: WM_LBUTTONDOWN touch at %d,%d", pt.x, pt.y));

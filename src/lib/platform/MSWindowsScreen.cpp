@@ -975,6 +975,10 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
     return true;
 
   case DESKFLOW_MSG_TOUCH: {
+    if (!m_touchActivateScreen) {
+      return true;
+    }
+
     SInt32 x = static_cast<SInt32>(wParam);
     SInt32 y = static_cast<SInt32>(lParam);
 
