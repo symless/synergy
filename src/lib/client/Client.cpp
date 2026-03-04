@@ -735,7 +735,7 @@ void Client::handleGrabInput(const Event &event, void *)
 {
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
   if (m_server != NULL) {
-    LOG((CLOG_DEBUG1 "requesting grab input at %d,%d", info->m_x, info->m_y));
+    LOG((CLOG_DEBUG "requesting grab input at %d,%d", info->m_x, info->m_y));
     m_screen->setPendingTouchActivation(info->m_x, info->m_y);
     m_server->grabInput(info->m_x, info->m_y);
   }

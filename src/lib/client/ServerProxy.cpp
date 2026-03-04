@@ -382,7 +382,7 @@ void ServerProxy::onClipboardChanged(ClipboardID id, const IClipboard *clipboard
 
 void ServerProxy::grabInput(SInt32 x, SInt32 y)
 {
-  LOG((CLOG_DEBUG1 "sending grab input at %d,%d", x, y));
+  LOG((CLOG_DEBUG "sending grab input at %d,%d", x, y));
   ProtocolUtil::writef(m_stream, kMsgCGrabInput, x, y);
 }
 

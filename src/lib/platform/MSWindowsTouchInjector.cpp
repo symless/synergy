@@ -40,13 +40,13 @@ void MSWindowsTouchInjector::injectClickAt(SInt32 x, SInt32 y)
 
   HWND activated = activateWindowAt(x, y);
   if (activated == NULL) {
-    LOG((CLOG_DEBUG1 "touch injector: no window at %d,%d", x, y));
+    LOG((CLOG_DEBUG "touch injector: no window at %d,%d", x, y));
     return;
   }
 
   // try touch injection first, fall back to mouse
   if (!injectTouch(x, y)) {
-    LOG((CLOG_DEBUG1 "touch injector: touch failed, falling back to mouse click"));
+    LOG((CLOG_DEBUG "touch injector: touch failed, falling back to mouse click"));
     injectMouseClick(x, y);
   }
 }
@@ -56,7 +56,7 @@ HWND MSWindowsTouchInjector::activateWindowAt(SInt32 x, SInt32 y)
   POINT pt = {x, y};
   HWND child = WindowFromPoint(pt);
   if (child == NULL) {
-    LOG((CLOG_DEBUG1 "touch injector: WindowFromPoint returned NULL for %d,%d", x, y));
+    LOG((CLOG_DEBUG "touch injector: WindowFromPoint returned NULL for %d,%d", x, y));
     return NULL;
   }
 
@@ -66,7 +66,7 @@ HWND MSWindowsTouchInjector::activateWindowAt(SInt32 x, SInt32 y)
     root = child;
   }
 
-  LOG((CLOG_DEBUG1 "touch injector: activating window 0x%08x (root of 0x%08x) at %d,%d", root, child, x, y));
+  LOG((CLOG_DEBUG "touch injector: activating window 0x%08x (root of 0x%08x) at %d,%d", root, child, x, y));
 
   // try to set foreground directly first
   DWORD currentThread = GetCurrentThreadId();
@@ -77,16 +77,16 @@ HWND MSWindowsTouchInjector::activateWindowAt(SInt32 x, SInt32 y)
   AttachThreadInput(currentThread, targetThread, FALSE);
 
   if (setResult && GetForegroundWindow() == root) {
-    LOG((CLOG_DEBUG1 "touch injector: SetForegroundWindow succeeded immediately"));
+    LOG((CLOG_DEBUG "touch injector: SetForegroundWindow succeeded immediately"));
     return root;
   }
 
   // if direct activation failed, wait event-driven using SetWinEventHook
-  LOG((CLOG_DEBUG1 "touch injector: waiting for foreground activation via hook"));
+  LOG((CLOG_DEBUG "touch injector: waiting for foreground activation via hook"));
   if (waitForForeground(root, 300)) {
-    LOG((CLOG_DEBUG1 "touch injector: foreground activation confirmed via hook"));
+    LOG((CLOG_DEBUG "touch injector: foreground activation confirmed via hook"));
   } else {
-    LOG((CLOG_DEBUG1 "touch injector: foreground wait timed out, proceeding anyway"));
+    LOG((CLOG_DEBUG "touch injector: foreground wait timed out, proceeding anyway"));
   }
 
   return root;
@@ -201,7 +201,7 @@ bool MSWindowsTouchInjector::injectTouch(SInt32 x, SInt32 y)
     return false;
   }
 
-  LOG((CLOG_DEBUG1 "touch injector: touch DOWN at %d,%d", x, y));
+  LOG((CLOG_DEBUG "touch injector: touch DOWN at %d,%d", x, y));
 
   // Windows requires a short delay between touch down and up
   Sleep(20);
@@ -214,7 +214,7 @@ bool MSWindowsTouchInjector::injectTouch(SInt32 x, SInt32 y)
     return true;
   }
 
-  LOG((CLOG_DEBUG1 "touch injector: touch UP at %d,%d", x, y));
+  LOG((CLOG_DEBUG "touch injector: touch UP at %d,%d", x, y));
   return true;
 }
 
@@ -233,5 +233,5 @@ void MSWindowsTouchInjector::injectMouseClick(SInt32 x, SInt32 y)
 
   mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 
-  LOG((CLOG_DEBUG1 "touch injector: mouse click at %d,%d", x, y));
+  LOG((CLOG_DEBUG "touch injector: mouse click at %d,%d", x, y));
 }

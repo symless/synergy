@@ -153,6 +153,7 @@ void MSWindowsHook::setMode(EHookMode mode)
 void MSWindowsHook::setTouchActivateScreen(bool enabled)
 {
   g_touchActivateScreen = enabled;
+  LOG((CLOG_DEBUG "hook: touchActivateScreen=%s", enabled ? "true" : "false"));
 }
 
 void MSWindowsHook::setIsPrimary(bool primary)
@@ -163,6 +164,7 @@ void MSWindowsHook::setIsPrimary(bool primary)
 void MSWindowsHook::setOnScreen(bool onScreen)
 {
   g_isOnScreen = onScreen;
+  LOG((CLOG_DEBUG "hook: isOnScreen=%s", onScreen ? "true" : "false"));
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -605,9 +607,14 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     // touch-generated mouse events as LLMHF_INJECTED (they're synthesized
     // by the touch subsystem). without this ordering, touch events on
     // client screens are silently dropped by the injected early-return.
+    if (wParam == WM_LBUTTONDOWN && g_touchActivateScreen) {
+      LOG((CLOG_DEBUG "hook: LBUTTONDOWN extraInfo=0x%08x isOnScreen=%s flags=0x%x",
+           (unsigned)info->dwExtraInfo, g_isOnScreen ? "true" : "false", (unsigned)info->flags));
+    }
     if (g_touchActivateScreen && !g_isOnScreen &&
         (wParam == WM_LBUTTONDOWN) &&
         (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      LOG((CLOG_DEBUG "hook: touch detected at %d,%d — posting DESKFLOW_MSG_TOUCH", x, y));
       PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH,
                         static_cast<WPARAM>(x), static_cast<LPARAM>(y));
       return 1;

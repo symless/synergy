@@ -491,7 +491,7 @@ void MSWindowsScreen::setOptions(const OptionsList &options)
     if (options[i] == kOptionTouchActivateScreen) {
       m_touchActivateScreen = (options[i + 1] != 0);
       m_hook.setTouchActivateScreen(m_touchActivateScreen);
-      LOG((CLOG_DEBUG1 "touch activate screen: %s", m_touchActivateScreen ? "enabled" : "disabled"));
+      LOG((CLOG_DEBUG "touch activate screen: %s", m_touchActivateScreen ? "enabled" : "disabled"));
     }
   }
 }
@@ -983,7 +983,7 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
     // debounce rapid touch events
     double elapsed = m_touchDebounceTimer.getTime();
     if (elapsed > 0.0 && elapsed < kTouchDebounceTime) {
-      LOG((CLOG_DEBUG1 "touch debounced at %d,%d (%.0fms)", x, y, elapsed * 1000));
+      LOG((CLOG_DEBUG "touch debounced at %d,%d (%.0fms)", x, y, elapsed * 1000));
       return true;
     }
     m_touchDebounceTimer.reset();
@@ -1948,7 +1948,7 @@ bool MSWindowsScreen::isModifierRepeat(KeyModifierMask oldState, KeyModifierMask
 void MSWindowsScreen::activateWindowAt(SInt32 x, SInt32 y)
 {
   // activation is handled as part of fakeTouchClick via MSWindowsTouchInjector
-  LOG((CLOG_DEBUG1 "activateWindowAt %d,%d (handled by fakeTouchClick)", x, y));
+  LOG((CLOG_DEBUG "activateWindowAt %d,%d (handled by fakeTouchClick)", x, y));
 }
 
 void MSWindowsScreen::fakeTouchClick(SInt32 x, SInt32 y)
@@ -1962,7 +1962,7 @@ void MSWindowsScreen::setPendingTouchActivation(SInt32 x, SInt32 y)
   m_touchGrabPending = true;
   m_touchGrabX = x;
   m_touchGrabY = y;
-  LOG((CLOG_DEBUG1 "pending touch activation set at %d,%d", x, y));
+  LOG((CLOG_DEBUG "pending touch activation set at %d,%d", x, y));
 }
 
 bool MSWindowsScreen::consumePendingTouchActivation(SInt32 &x, SInt32 &y)
@@ -1973,6 +1973,6 @@ bool MSWindowsScreen::consumePendingTouchActivation(SInt32 &x, SInt32 &y)
   m_touchGrabPending = false;
   x = m_touchGrabX;
   y = m_touchGrabY;
-  LOG((CLOG_DEBUG1 "pending touch activation consumed at %d,%d", x, y));
+  LOG((CLOG_DEBUG "pending touch activation consumed at %d,%d", x, y));
   return true;
 }

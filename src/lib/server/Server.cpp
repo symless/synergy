@@ -790,7 +790,7 @@ bool Server::isSwitchOkay(
   // block edge switch if a touch switch happened recently
   double elapsedTouchCooldown = m_touchSwitchCooldown.getTime();
   if (elapsedTouchCooldown > 0.0 && elapsedTouchCooldown < kTouchSwitchCooldownTime) {
-    LOG((CLOG_DEBUG1 "edge switch blocked by touch cooldown (%.2fs remaining)",
+    LOG((CLOG_DEBUG "edge switch blocked by touch cooldown (%.2fs remaining)",
          kTouchSwitchCooldownTime - elapsedTouchCooldown));
     return false;
   }
@@ -1359,7 +1359,7 @@ void Server::handleSwitchInDirectionEvent(const Event &event, void *)
 void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
 {
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
-  LOG((CLOG_DEBUG1 "touch activated primary at %d,%d", info->m_x, info->m_y));
+  LOG((CLOG_DEBUG "touch activated primary at %d,%d", info->m_x, info->m_y));
 
   if (m_active != m_primaryClient) {
     m_active->setJumpCursorPos(m_x, m_y);
@@ -1381,7 +1381,7 @@ void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
     m_primaryClient->fakeTouchClick(x, y);
 
     m_touchSwitchCooldown.reset();
-    LOG((CLOG_DEBUG1 "touch switch cooldown started"));
+    LOG((CLOG_DEBUG "touch switch cooldown started"));
   }
 }
 
@@ -1390,7 +1390,7 @@ void Server::handleGrabInputEvent(const Event &event, void *vclient)
   IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
   BaseClientProxy *client = static_cast<BaseClientProxy *>(vclient);
 
-  LOG((CLOG_DEBUG1 "client \"%s\" requests grab at %d,%d", getName(client).c_str(), info->m_x, info->m_y));
+  LOG((CLOG_DEBUG "client \"%s\" requests grab at %d,%d", getName(client).c_str(), info->m_x, info->m_y));
 
   if (client != m_active) {
     m_active->setJumpCursorPos(m_x, m_y);
@@ -1408,7 +1408,7 @@ void Server::handleGrabInputEvent(const Event &event, void *vclient)
     switchScreen(client, x, y, false);
 
     m_touchSwitchCooldown.reset();
-    LOG((CLOG_DEBUG1 "touch switch cooldown started"));
+    LOG((CLOG_DEBUG "touch switch cooldown started"));
   }
 }
 
