@@ -44,7 +44,6 @@ public:
 
   void setTouchActivateScreen(bool enabled);
   void setIsPrimary(bool primary);
-  void setOnScreen(bool onScreen);
 
   static EHookResult install();
 

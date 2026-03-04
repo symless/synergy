@@ -194,6 +194,8 @@ private: // HACK
   bool onMouseWheel(SInt32 xDelta, SInt32 yDelta);
   bool onScreensaver(bool activated);
   bool onDisplayChange();
+  bool isPointerTypeTouch(UINT32 pointerId) const;
+  bool onPointerInput(WPARAM wParam, LPARAM lParam);
   bool onClipboardChange();
 
   // warp cursor without discarding queued events

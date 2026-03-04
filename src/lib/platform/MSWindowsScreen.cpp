@@ -43,6 +43,7 @@
 #include "platform/MSWindowsScreenSaver.h"
 
 #include <Shlobj.h>
+#include <windowsx.h>
 #include <comutil.h>
 #include <string.h>
 
@@ -135,8 +136,9 @@ MSWindowsScreen::MSWindowsScreen(
 
   s_screen = this;
   try {
-    if (m_isPrimary && !m_noHooks) {
+    if (!m_noHooks) {
       m_hook.loadLibrary();
+      m_hook.setIsPrimary(m_isPrimary);
     }
 
     m_screensaver = new MSWindowsScreenSaver();
@@ -247,8 +249,6 @@ void MSWindowsScreen::enable()
   m_desks->enable();
 
   // configure hook for this screen type
-  m_hook.setIsPrimary(m_isPrimary);
-  m_hook.setOnScreen(m_isOnScreen);
   m_hook.setTouchActivateScreen(m_touchActivateScreen);
 
   if (m_isPrimary) {
@@ -296,7 +296,6 @@ void MSWindowsScreen::disable()
 void MSWindowsScreen::enter()
 {
   m_desks->enter();
-  m_hook.setOnScreen(true);
 
   if (m_isPrimary) {
     // enable special key sequences on win95 family
@@ -378,7 +377,6 @@ void MSWindowsScreen::leave()
 
   // now off screen
   m_isOnScreen = false;
-  m_hook.setOnScreen(false);
 
   if (isDraggingStarted() && !m_isPrimary) {
     m_sendDragThread = new Thread(new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::sendDragThread));
@@ -1088,6 +1086,15 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
   case WM_DISPLAYCHANGE:
     return onDisplayChange();
 
+  case WM_POINTERDOWN:
+  case WM_POINTERUP:
+  case WM_POINTERUPDATE:
+    if (onPointerInput(wParam, lParam)) {
+      *result = 0;
+      return true;
+    }
+    return false;
+
   /* On windows 10 we don't receive WM_POWERBROADCAST after sleep.
    We receive only WM_TIMECHANGE hence this message is used to resume.*/
   case WM_TIMECHANGE:
@@ -1448,6 +1455,51 @@ bool MSWindowsScreen::onScreensaver(bool activated)
       m_screensaverActive = false;
       sendEvent(m_events->forIPrimaryScreen().screensaverDeactivated());
     }
+  }
+
+  return true;
+}
+
+bool MSWindowsScreen::isPointerTypeTouch(UINT32 pointerId) const
+{
+  DWORD pointerType = PT_POINTER;
+  if (GetPointerType(pointerId, &pointerType)) {
+    return (pointerType == PT_TOUCH || pointerType == PT_PEN);
+  }
+  return false;
+}
+
+bool MSWindowsScreen::onPointerInput(WPARAM wParam, LPARAM lParam)
+{
+  UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+
+  if (!isPointerTypeTouch(pointerId)) {
+    return false;
+  }
+
+  if (!m_touchActivateScreen || m_isOnScreen) {
+    return false;
+  }
+
+  double elapsed = m_touchDebounceTimer.getTime();
+  if (elapsed > 0.0 && elapsed < kTouchDebounceTime) {
+    LOG((CLOG_DEBUG "WM_POINTER: touch debounced (%.0fms)", elapsed * 1000));
+    return true;
+  }
+  m_touchDebounceTimer.reset();
+  m_touchDebounceTimer.start();
+
+  SInt32 x = GET_X_LPARAM(lParam);
+  SInt32 y = GET_Y_LPARAM(lParam);
+
+  if (m_isPrimary) {
+    LOG((CLOG_DEBUG "WM_POINTER: touch on primary at %d,%d — firing touchActivatedPrimary", x, y));
+    auto *info = IPrimaryScreen::MotionInfo::alloc(x, y);
+    sendEvent(m_events->forIPrimaryScreen().touchActivatedPrimary(), info);
+  } else {
+    LOG((CLOG_DEBUG "WM_POINTER: touch on client at %d,%d — firing grabInput", x, y));
+    auto *info = IPrimaryScreen::MotionInfo::alloc(x, y);
+    sendEvent(m_events->forIScreen().grabInput(), info);
   }
 
   return true;

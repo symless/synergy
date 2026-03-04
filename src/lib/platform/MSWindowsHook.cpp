@@ -45,7 +45,6 @@ static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
 static bool g_touchActivateScreen = false;
-static bool g_isOnScreen = true;
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -161,11 +160,7 @@ void MSWindowsHook::setIsPrimary(bool primary)
   g_isPrimary = primary ? TRUE : FALSE;
 }
 
-void MSWindowsHook::setOnScreen(bool onScreen)
-{
-  g_isOnScreen = onScreen;
-  LOG((CLOG_DEBUG "hook: isOnScreen=%s", onScreen ? "true" : "false"));
-}
+
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
 {
@@ -599,28 +594,28 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     // decode the message
     MSLLHOOKSTRUCT *info = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
 
-    SInt32 x = static_cast<SInt32>(info->pt.x);
-    SInt32 y = static_cast<SInt32>(info->pt.y);
-
-    // unconditional diagnostic: log ALL button-down events to verify hook is alive
-    if (wParam == WM_LBUTTONDOWN || wParam == WM_NCLBUTTONDOWN) {
-      LOG((CLOG_DEBUG "hook: LBUTTONDOWN at %d,%d extraInfo=0x%08x isOnScreen=%s flags=0x%x touchOpt=%s",
-           x, y, (unsigned)info->dwExtraInfo, g_isOnScreen ? "true" : "false",
-           (unsigned)info->flags, g_touchActivateScreen ? "true" : "false"));
-    }
-
     // detect touch-originated mouse events via the MI_WP_SIGNATURE.
-    // this must run BEFORE the injected check below, because Windows marks
+    // must run BEFORE the injected check below, because Windows marks
     // touch-generated mouse events as LLMHF_INJECTED (they're synthesized
     // by the touch subsystem). without this ordering, touch events on
     // client screens are silently dropped by the injected early-return.
-    if (g_touchActivateScreen && !g_isOnScreen &&
-        (wParam == WM_LBUTTONDOWN) &&
-        (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
-      LOG((CLOG_DEBUG "hook: touch detected at %d,%d — posting DESKFLOW_MSG_TOUCH", x, y));
-      PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH,
-                        static_cast<WPARAM>(x), static_cast<LPARAM>(y));
-      return 1;
+    if (g_touchActivateScreen && g_mode == kHOOK_RELAY_EVENTS) {
+      bool isTouchEvent = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
+
+      if (wParam == WM_LBUTTONDOWN) {
+        LOG((CLOG_DEBUG "hook: WM_LBUTTONDOWN extraInfo=0x%08x touchSig=%s isPrimary=%d mode=%d",
+             (DWORD)info->dwExtraInfo, isTouchEvent ? "yes" : "no", g_isPrimary, g_mode));
+      }
+
+      if (isTouchEvent && (wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE)) {
+        SInt32 x = static_cast<SInt32>(info->pt.x);
+        SInt32 y = static_cast<SInt32>(info->pt.y);
+        LOG((CLOG_DEBUG "hook: touch at %d,%d posting DESKFLOW_MSG_TOUCH", x, y));
+        PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
+        if (g_isPrimary) {
+          return 1; // eat event on primary
+        }
+      }
     }
 
     bool const injected = info->flags & LLMHF_INJECTED;
@@ -628,6 +623,8 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
       return CallNextHookEx(g_mouseLL, code, wParam, lParam);
     }
 
+    SInt32 x = static_cast<SInt32>(info->pt.x);
+    SInt32 y = static_cast<SInt32>(info->pt.y);
     SInt32 w = static_cast<SInt16>(HIWORD(info->mouseData));
 
     // handle the message
