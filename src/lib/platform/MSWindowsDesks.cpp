@@ -106,6 +106,10 @@ static bool s_touchActivateScreen = false;
 // touch injection handler — accessed only from the desk thread.
 static MSWindowsTouchInjector s_touchInjector;
 
+// true when cursor is hidden due to touch injection — show on next mouse move.
+// accessed only from the desk thread, so no synchronization needed.
+static bool s_touchCursorHidden = false;
+
 static void send_keyboard_input(WORD wVk, WORD wScan, DWORD dwFlags)
 {
   INPUT inp;
@@ -592,6 +596,7 @@ void setCursorVisibility(bool visible)
 void MSWindowsDesks::deskEnter(Desk *desk)
 {
   s_suppressMouseMove = false;
+  s_touchCursorHidden = false;
 
   if (!m_isPrimary) {
     ReleaseCapture();
@@ -618,6 +623,7 @@ void MSWindowsDesks::deskEnter(Desk *desk)
 
 void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
 {
+  s_touchCursorHidden = false;
   setCursorVisibility(false);
 
   if (m_isPrimary) {
@@ -792,6 +798,10 @@ void MSWindowsDesks::deskThread(void *vdesk)
       break;
 
     case DESKFLOW_MSG_FAKE_MOVE:
+      if (s_touchCursorHidden) {
+        setCursorVisibility(true);
+        s_touchCursorHidden = false;
+      }
       deskMouseMove(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
       break;
 
@@ -836,6 +846,10 @@ void MSWindowsDesks::deskThread(void *vdesk)
       break;
 
     case DESKFLOW_MSG_FAKE_TOUCH:
+      // Hide cursor before injection to emulate normal Windows touch behavior:
+      // touch hides cursor, cursor reappears on next mouse movement.
+      setCursorVisibility(false);
+      s_touchCursorHidden = true;
       s_touchInjector.injectClickAt(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
       break;
     }

@@ -38,13 +38,12 @@ void MSWindowsTouchInjector::injectClickAt(SInt32 x, SInt32 y)
 {
   LOG((CLOG_DEBUG "touch injector: click at %d,%d", x, y));
 
-  HWND activated = activateWindowAt(x, y);
-  if (activated == NULL) {
-    LOG((CLOG_DEBUG "touch injector: no window at %d,%d", x, y));
-    return;
-  }
+  // Skip window activation — deskEnter() already restored the foreground window.
+  // The previous activateWindowAt + waitForForeground(300ms) was racing with
+  // deskEnter's SetForegroundWindow and caused unreliable injection (1 in 8).
 
-  // try touch injection first, fall back to mouse
+  // Try touch injection first (produces WM_POINTERDOWN/WM_TOUCH),
+  // fall back to mouse click (produces WM_LBUTTONDOWN — always reliable).
   if (!injectTouch(x, y)) {
     LOG((CLOG_DEBUG "touch injector: touch failed, falling back to mouse click"));
     injectMouseClick(x, y);
