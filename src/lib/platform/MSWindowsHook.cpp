@@ -597,18 +597,14 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     // decode the message
     MSLLHOOKSTRUCT *info = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
 
-    bool const injected = info->flags & LLMHF_INJECTED;
-    if (!g_isPrimary && injected) {
-      return CallNextHookEx(g_mouseLL, code, wParam, lParam);
-    }
-
     SInt32 x = static_cast<SInt32>(info->pt.x);
     SInt32 y = static_cast<SInt32>(info->pt.y);
-    SInt32 w = static_cast<SInt16>(HIWORD(info->mouseData));
 
     // detect touch-originated mouse events via the MI_WP_SIGNATURE.
-    // fires on both primary (cursor on another screen) and client (cursor on
-    // another screen) — g_isOnScreen is false in both cases.
+    // this must run BEFORE the injected check below, because Windows marks
+    // touch-generated mouse events as LLMHF_INJECTED (they're synthesized
+    // by the touch subsystem). without this ordering, touch events on
+    // client screens are silently dropped by the injected early-return.
     if (g_touchActivateScreen && !g_isOnScreen &&
         (wParam == WM_LBUTTONDOWN) &&
         (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
@@ -616,6 +612,13 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
                         static_cast<WPARAM>(x), static_cast<LPARAM>(y));
       return 1;
     }
+
+    bool const injected = info->flags & LLMHF_INJECTED;
+    if (!g_isPrimary && injected) {
+      return CallNextHookEx(g_mouseLL, code, wParam, lParam);
+    }
+
+    SInt32 w = static_cast<SInt16>(HIWORD(info->mouseData));
 
     // handle the message
     if (mouseHookHandler(wParam, x, y, w)) {
