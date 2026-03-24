@@ -55,4 +55,6 @@ public:
   void setIsPrimary(bool primary);
 
   void setIsOnScreen(bool onScreen);
+
+  void setCursorCenter(SInt32 x, SInt32 y);
 };

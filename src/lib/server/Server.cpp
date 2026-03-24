@@ -726,6 +726,17 @@ BaseClientProxy *Server::mapToNeighbor(BaseClientProxy *src, EDirection srcSide,
   // move inwards because that side can't provoke a jump.
   avoidJumpZone(dst, srcSide, x, y);
 
+  // Clamp entry coordinates 1px inside the destination screen.
+  // avoidJumpZone only adjusts the crossing axis; the parallel axis can
+  // land exactly on the edge, which the cursor-warp logic treats as still
+  // being on the source side, bouncing the cursor back immediately.
+  SInt32 cx, cy, cw, ch;
+  dst->getShape(cx, cy, cw, ch);
+  if (x < cx + 1)      x = cx + 1;
+  if (x > cx + cw - 2) x = cx + cw - 2;
+  if (y < cy + 1)      y = cy + 1;
+  if (y > cy + ch - 2) y = cy + ch - 2;
+
   return dst;
 }
 

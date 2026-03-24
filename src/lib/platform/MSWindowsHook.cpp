@@ -46,6 +46,8 @@ static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
 static BOOL g_isOnScreen = TRUE;
 static bool g_touchActivateScreen = false;
+static SInt32 g_xCenter = 0;
+static SInt32 g_yCenter = 0;
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -164,6 +166,12 @@ void MSWindowsHook::setIsPrimary(bool primary)
 void MSWindowsHook::setIsOnScreen(bool onScreen)
 {
   g_isOnScreen = onScreen ? TRUE : FALSE;
+}
+
+void MSWindowsHook::setCursorCenter(SInt32 x, SInt32 y)
+{
+  g_xCenter = x;
+  g_yCenter = y;
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -615,12 +623,20 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
       if (isTouchEvent && (wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE)) {
         SInt32 x = static_cast<SInt32>(info->pt.x);
         SInt32 y = static_cast<SInt32>(info->pt.y);
-        LOG((CLOG_DEBUG "hook: touch at %d,%d posting DESKFLOW_MSG_TOUCH", x, y));
-        PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
-        if (g_isPrimary) {
-          LOG((CLOG_DEBUG "hook: eating touch event (relay mode)"));
+
+        // Filter out warp-echo: the server warps the cursor to center after
+        // a switch, which generates a synthetic mouse event at that position.
+        // Without this filter, the echo triggers an immediate switch-back.
+        SInt32 dxc = x - g_xCenter;
+        SInt32 dyc = y - g_yCenter;
+        if (dxc >= -1 && dxc <= 1 && dyc >= -1 && dyc <= 1) {
+          LOG((CLOG_DEBUG2 "hook: ignoring touch at cursor center %d,%d", x, y));
           return 1;
         }
+
+        LOG((CLOG_DEBUG "hook: touch at %d,%d posting DESKFLOW_MSG_TOUCH", x, y));
+        PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
+        // let the touch event pass through to the app so the click registers
       }
     }
 

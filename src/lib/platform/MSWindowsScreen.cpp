@@ -996,6 +996,7 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
                   MotionInfo::alloc(x, y));
       } else {
         LOG((CLOG_INFO "hook: touch requesting grab input at %d,%d", x, y));
+        m_desks->setPendingTouchClick(x, y);
         sendEvent(m_events->forIScreen().grabInput(),
                   MotionInfo::alloc(x, y));
       }
@@ -1640,6 +1641,8 @@ void MSWindowsScreen::updateScreenShape()
 
   // tell the desks
   m_desks->setShape(m_x, m_y, m_w, m_h, m_xCenter, m_yCenter, m_multimon);
+
+  m_hook.setCursorCenter(m_xCenter, m_yCenter);
 }
 
 void MSWindowsScreen::handleFixes(const Event &, void *)

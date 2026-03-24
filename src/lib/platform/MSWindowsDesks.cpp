@@ -332,6 +332,15 @@ void MSWindowsDesks::fakeTouchClick(SInt32 x, SInt32 y) const
   sendMessage(DESKFLOW_MSG_FAKE_TOUCH, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
 }
 
+void MSWindowsDesks::setPendingTouchClick(SInt32 x, SInt32 y)
+{
+  m_pendingTouchX = x;
+  m_pendingTouchY = y;
+  m_pendingTouchUp = true;
+  m_touchLifted = true;
+  LOG((CLOG_DEBUG "touch: LL hook path, pending click at %d,%d for deskEnter replay", x, y));
+}
+
 void MSWindowsDesks::fakeMouseMove(SInt32 x, SInt32 y) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_MOVE, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
@@ -883,12 +892,21 @@ MSWindowsDesks::HidTouchDevice MSWindowsDesks::initHidTouchDevice(HANDLE hDevice
 
     USAGE usage = vc.IsRange ? vc.Range.UsageMin : vc.NotRange.Usage;
     auto &ci = collections[vc.LinkCollection];
+
+    // Windows sign-extends LogicalMax into a LONG using BitSize bits.
+    // A 16-bit descriptor with max 0xFFFF becomes -1 as a signed LONG.
+    // Reconstruct the unsigned value from the bit width.
+    LONG logMax = vc.LogicalMax;
+    if (logMax < 0 && vc.BitSize > 0 && vc.BitSize < 32) {
+      logMax = static_cast<LONG>((1UL << vc.BitSize) - 1);
+    }
+
     if (usage == HID_USAGE_GENERIC_X) {
       ci.hasX = true;
-      ci.maxX = vc.LogicalMax > 0 ? vc.LogicalMax : vc.PhysicalMax;
+      ci.maxX = logMax > 0 ? logMax : vc.PhysicalMax;
     } else if (usage == HID_USAGE_GENERIC_Y) {
       ci.hasY = true;
-      ci.maxY = vc.LogicalMax > 0 ? vc.LogicalMax : vc.PhysicalMax;
+      ci.maxY = logMax > 0 ? logMax : vc.PhysicalMax;
     }
   }
 
@@ -954,6 +972,9 @@ bool MSWindowsDesks::parseHidTouch(const RAWINPUT *raw, const HidTouchDevice &de
   // Touch digitizer maps to the primary monitor, not the virtual desktop
   SInt32 pw = GetSystemMetrics(SM_CXSCREEN);
   SInt32 ph = GetSystemMetrics(SM_CYSCREEN);
+  if (dev.logicalMaxX == 0 || dev.logicalMaxY == 0) {
+    return false;
+  }
   outX = static_cast<SInt32>(rawX * pw / dev.logicalMaxX);
   outY = static_cast<SInt32>(rawY * ph / dev.logicalMaxY);
   LOG((CLOG_DEBUG1 "touch HID: raw=%lu,%lu logMax=%lu,%lu primary=%dx%d -> %d,%d",
