@@ -20,3 +20,6 @@ deskflow-config.toml
 /scripts/*.egg-info
 /*.user
 *.ui.autosave
+
+# local strategy docs and tracking (not for upstream)
+/local/

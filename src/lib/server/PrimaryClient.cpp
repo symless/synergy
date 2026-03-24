@@ -71,6 +71,16 @@ void PrimaryClient::fakeInputEnd()
   }
 }
 
+void PrimaryClient::activateWindowAt(SInt32 x, SInt32 y)
+{
+  m_screen->activateWindowAt(x, y);
+}
+
+void PrimaryClient::fakeTouchClick(SInt32 x, SInt32 y)
+{
+  m_screen->fakeTouchClick(x, y);
+}
+
 SInt32 PrimaryClient::getJumpZoneSize() const
 {
   return m_screen->getJumpZoneSize();

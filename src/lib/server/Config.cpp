@@ -699,6 +699,8 @@ void Config::readSectionOptions(ConfigReadContext &s)
       addOption("", kOptionClipboardSharing, s.parseBoolean(value));
     } else if (name == "clipboardSharingSize") {
       addOption("", kOptionClipboardSharingSize, s.parseInt(value));
+    } else if (name == "touchActivateScreen" || name == "touchInputLocal") {
+      addOption("", kOptionTouchActivateScreen, s.parseBoolean(value));
     } else if (name == "clientAddress") {
       m_ClientAddress = value;
     } else {

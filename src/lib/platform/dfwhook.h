@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -17,14 +17,6 @@
  */
 
 #pragma once
-
-// hack: vs2005 doesn't declare _WIN32_WINNT, so we need to hard code it.
-// however, some say that this should be hard coded since it defines the
-// target system, but since this is suposed to compile on pre-XP, maybe
-// we should just leave it like this.
-#if _MSC_VER == 1400
-#define _WIN32_WINNT 0x0400
-#endif
 
 #include "base/EventTypes.h"
 
@@ -46,12 +38,18 @@
 #define DESKFLOW_MSG_PRE_WARP WM_APP + 0x0017     // x; y
 #define DESKFLOW_MSG_SCREEN_SAVER WM_APP + 0x0018 // activated; <unused>
 #define DESKFLOW_MSG_DEBUG WM_APP + 0x0019        // data, data
+#define DESKFLOW_MSG_TOUCH WM_APP + 0x001A        // x; y (touch-originated mouse event)
 #define DESKFLOW_MSG_INPUT_FIRST DESKFLOW_MSG_KEY
 #define DESKFLOW_MSG_INPUT_LAST DESKFLOW_MSG_PRE_WARP
-#define DESKFLOW_HOOK_LAST_MSG DESKFLOW_MSG_DEBUG
+#define DESKFLOW_HOOK_LAST_MSG DESKFLOW_MSG_TOUCH
 
 #define DESKFLOW_HOOK_FAKE_INPUT_VIRTUAL_KEY VK_CANCEL
 #define DESKFLOW_HOOK_FAKE_INPUT_SCANCODE 0
+
+// Microsoft touch signature in dwExtraInfo (MI_WP_SIGNATURE).
+// Touch-synthesized mouse events carry this in the upper 24 bits.
+#define TOUCH_SIGNATURE_MASK 0xFFFFFF00
+#define TOUCH_SIGNATURE 0xFF515700
 
 extern "C"
 {
