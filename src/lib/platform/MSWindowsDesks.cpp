@@ -332,6 +332,15 @@ void MSWindowsDesks::fakeTouchClick(SInt32 x, SInt32 y) const
   sendMessage(DESKFLOW_MSG_FAKE_TOUCH, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
 }
 
+void MSWindowsDesks::setPendingTouchClick(SInt32 x, SInt32 y)
+{
+  m_pendingTouchX = x;
+  m_pendingTouchY = y;
+  m_pendingTouchUp = true;
+  m_touchLifted = true;
+  LOG((CLOG_DEBUG "touch: LL hook path, pending click at %d,%d for deskEnter replay", x, y));
+}
+
 void MSWindowsDesks::fakeMouseMove(SInt32 x, SInt32 y) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_MOVE, static_cast<WPARAM>(x), static_cast<LPARAM>(y));

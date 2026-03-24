@@ -996,6 +996,7 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
                   MotionInfo::alloc(x, y));
       } else {
         LOG((CLOG_INFO "hook: touch requesting grab input at %d,%d", x, y));
+        m_desks->setPendingTouchClick(x, y);
         sendEvent(m_events->forIScreen().grabInput(),
                   MotionInfo::alloc(x, y));
       }

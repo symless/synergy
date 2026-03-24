@@ -172,6 +172,8 @@ public:
   */
   void fakeMouseButton(ButtonID id, bool press);
 
+  void setPendingTouchClick(SInt32 x, SInt32 y);
+
   //! Fake mouse move
   /*!
   Synthesize a mouse move to the absolute coordinates \c x,y.
