@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -29,6 +29,7 @@
 #include "deskflow/DropHelper.h"
 #include "deskflow/FileChunk.h"
 #include "deskflow/IPlatformScreen.h"
+#include "deskflow/IPrimaryScreen.h"
 #include "deskflow/PacketStreamFilter.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/Screen.h"
@@ -87,6 +88,10 @@ Client::Client(
   m_events->adoptHandler(
       m_events->forIScreen().resume(), getEventTarget(), new TMethodEventJob<Client>(this, &Client::handleResume)
   );
+  m_events->adoptHandler(
+      m_events->forIScreen().grabInput(), m_screen->getEventTarget(),
+      new TMethodEventJob<Client>(this, &Client::handleGrabInput)
+  );
 
   if (m_args.m_enableDragDrop) {
     m_events->adoptHandler(
@@ -107,6 +112,7 @@ Client::~Client()
 
   m_events->removeHandler(m_events->forIScreen().suspend(), getEventTarget());
   m_events->removeHandler(m_events->forIScreen().resume(), getEventTarget());
+  m_events->removeHandler(m_events->forIScreen().grabInput(), m_screen->getEventTarget());
 
   cleanupTimer();
   cleanupScreen();
@@ -716,6 +722,15 @@ void Client::handleResume(const Event &, void *)
       m_connectOnResume = false;
       connect();
     }
+  }
+}
+
+void Client::handleGrabInput(const Event &event, void *)
+{
+  IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
+  if (m_server != NULL) {
+    LOG((CLOG_DEBUG1 "requesting grab input at %d,%d", info->m_x, info->m_y));
+    m_server->grabInput(info->m_x, info->m_y);
   }
 }
 

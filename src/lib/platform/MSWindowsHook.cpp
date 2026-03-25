@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2011 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -44,6 +44,8 @@ static BYTE g_keyState[256] = {0};
 static DWORD g_hookThread = 0;
 static bool g_fakeServerInput = false;
 static BOOL g_isPrimary = TRUE;
+static BOOL g_isOnScreen = TRUE;
+static bool g_touchActivateScreen = false;
 
 MSWindowsHook::MSWindowsHook()
 {
@@ -106,6 +108,7 @@ int MSWindowsHook::init(DWORD threadID)
 
   // set defaults
   g_mode = kHOOK_DISABLE;
+  g_isOnScreen = TRUE;
   g_zoneSides = 0;
   g_zoneSize = 0;
   g_xScreen = 0;
@@ -146,6 +149,21 @@ void MSWindowsHook::setMode(EHookMode mode)
     return;
   }
   g_mode = mode;
+}
+
+void MSWindowsHook::setTouchActivateScreen(bool enabled)
+{
+  g_touchActivateScreen = enabled;
+}
+
+void MSWindowsHook::setIsPrimary(bool primary)
+{
+  g_isPrimary = primary ? TRUE : FALSE;
+}
+
+void MSWindowsHook::setIsOnScreen(bool onScreen)
+{
+  g_isOnScreen = onScreen ? TRUE : FALSE;
 }
 
 static void keyboardGetState(BYTE keys[256], DWORD vkCode, bool kf_up)
@@ -580,7 +598,58 @@ static LRESULT CALLBACK mouseLLHook(int code, WPARAM wParam, LPARAM lParam)
     // decode the message
     MSLLHOOKSTRUCT *info = reinterpret_cast<MSLLHOOKSTRUCT *>(lParam);
 
+    // must run before the injected check: Windows marks
+    // touch-synthesized mouse events as injected (LLMHF_INJECTED).
+    // on primary: only detect touch in relay mode (cursor off-screen).
+    // on secondary (client): always detect touch — g_mode is never set
+    // to RELAY on secondary screens, so the mode check alone would
+    // prevent touch detection from ever firing on the client.
+    if (g_touchActivateScreen && (g_mode == kHOOK_RELAY_EVENTS || !g_isPrimary)) {
+      bool isTouchEvent = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
+
+      if (wParam == WM_LBUTTONDOWN) {
+        LOG((CLOG_DEBUG "hook: WM_LBUTTONDOWN extraInfo=0x%08x touchSig=%s isPrimary=%d mode=%d",
+             (DWORD)info->dwExtraInfo, isTouchEvent ? "yes" : "no", g_isPrimary, g_mode));
+      }
+
+      if (isTouchEvent && (wParam == WM_LBUTTONDOWN || wParam == WM_MOUSEMOVE)) {
+        SInt32 x = static_cast<SInt32>(info->pt.x);
+        SInt32 y = static_cast<SInt32>(info->pt.y);
+        LOG((CLOG_DEBUG "hook: touch at %d,%d posting DESKFLOW_MSG_TOUCH", x, y));
+        PostThreadMessage(g_threadID, DESKFLOW_MSG_TOUCH, x, y);
+        if (g_isPrimary) {
+          // HACK: Win10 — pass touch through to local app instead of eating and re-injecting.
+          // CallNextHookEx allows local delivery; bypassing mouseHookHandler prevents relay
+          // to the client. On Win11 this changes touch delivery behaviour — test for regressions.
+          LOG((CLOG_DEBUG "hook: passing touch event to local app (skip relay)"));
+          return CallNextHookEx(g_mouseLL, code, wParam, lParam);
+        }
+      } else if (isTouchEvent && wParam == WM_LBUTTONUP && g_isPrimary) {
+        // HACK: Win10 — also pass touch UP through so the click sequence is complete.
+        // Without this, WM_LBUTTONUP falls through to mouseHookHandler which eats it in
+        // relay mode, leaving the target window in a stuck-button-down state. Explorer and
+        // Start Menu then interpret subsequent taps as Ctrl/Shift+click.
+        LOG((CLOG_DEBUG "hook: passing touch UP to local app (skip relay)"));
+        return CallNextHookEx(g_mouseLL, code, wParam, lParam);
+      }
+    }
+
     bool const injected = info->flags & LLMHF_INJECTED;
+    // HACK: Win10 — let touch-synthesized injected events through even when off-screen,
+    // so the cursor moves to the touch position and WM_LBUTTONDOWN reaches the right app.
+    // Non-touch injected events (synergy's own cursor control) are still eaten.
+    // On Win11, WM_POINTER delivers the click independently; this path may double-click.
+    bool const isTouchSig = (info->dwExtraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE;
+
+    // On secondary when off-screen, eat injected mouse events (which
+    // includes touch-synthesized ones marked LLMHF_INJECTED). This
+    // prevents the cursor from jumping to the touch point and becoming
+    // visible. Local (non-injected) mouse events pass through so the
+    // cursor can move normally (hidden via ShowCursor counter).
+    if (!g_isPrimary && !g_isOnScreen && injected && !isTouchSig) {
+      return 1;
+    }
+
     if (!g_isPrimary && injected) {
       return CallNextHookEx(g_mouseLL, code, wParam, lParam);
     }

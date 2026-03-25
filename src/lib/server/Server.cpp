@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -40,6 +40,7 @@
 #include "server/ClientProxyUnknown.h"
 #include "server/PrimaryClient.h"
 
+#include <algorithm>
 #include <climits>
 #include <cmath>
 #include <cstdlib>
@@ -176,6 +177,10 @@ Server::Server(
       m_events->forIPrimaryScreen().fakeInputEnd(), m_inputFilter,
       new TMethodEventJob<Server>(this, &Server::handleFakeInputEndEvent)
   );
+  m_events->adoptHandler(
+      m_events->forIPrimaryScreen().touchActivatedPrimary(), m_primaryClient->getEventTarget(),
+      new TMethodEventJob<Server>(this, &Server::handleTouchActivatedPrimaryEvent)
+  );
 
   if (m_args.m_enableDragDrop) {
     m_events->adoptHandler(
@@ -225,6 +230,7 @@ Server::~Server()
   m_events->removeHandler(m_events->forIPrimaryScreen().screensaverDeactivated(), m_primaryClient->getEventTarget());
   m_events->removeHandler(m_events->forIPrimaryScreen().fakeInputBegin(), m_inputFilter);
   m_events->removeHandler(m_events->forIPrimaryScreen().fakeInputEnd(), m_inputFilter);
+  m_events->removeHandler(m_events->forIPrimaryScreen().touchActivatedPrimary(), m_primaryClient->getEventTarget());
   m_events->removeHandler(Event::kTimer, this);
   stopSwitch();
 
@@ -478,6 +484,10 @@ void Server::switchScreen(BaseClientProxy *dst, SInt32 x, SInt32 y, bool forScre
       }
     }
 #endif
+
+    if (m_active == m_primaryClient) {
+      m_touchSwitchCooldown.reset();
+    }
 
     // cut over
     m_active = dst;
@@ -773,6 +783,13 @@ bool Server::isSwitchOkay(
     // want to try to switch later.
     LOG((CLOG_DEBUG1 "no neighbor %s", Config::dirName(dir)));
     stopSwitch();
+    return false;
+  }
+
+  double elapsedTouchCooldown = m_touchSwitchCooldown.getTime();
+  if (elapsedTouchCooldown > 0.0 && elapsedTouchCooldown < kTouchSwitchCooldownTime) {
+    LOG((CLOG_DEBUG1 "edge switch blocked by touch cooldown (%.2fs remaining)",
+         kTouchSwitchCooldownTime - elapsedTouchCooldown));
     return false;
   }
 
@@ -1334,6 +1351,71 @@ void Server::handleSwitchInDirectionEvent(const Event &event, void *)
     LOG((CLOG_DEBUG1 "no neighbor %s", Config::dirName(info->m_direction)));
   } else {
     jumpToScreen(newScreen);
+  }
+}
+
+void Server::handleTouchActivatedPrimaryEvent(const Event &event, void *)
+{
+  IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
+  LOG((CLOG_DEBUG1 "touch activated primary at %d,%d", info->m_x, info->m_y));
+
+  double elapsed = m_touchSwitchCooldown.getTime();
+  if (elapsed > 0.0 && elapsed < kTouchSwitchCooldownTime) {
+    LOG((CLOG_DEBUG1 "touch activation blocked by switch cooldown (%.2fs remaining)",
+         kTouchSwitchCooldownTime - elapsed));
+    return;
+  }
+
+  if (m_active != m_primaryClient) {
+    m_active->setJumpCursorPos(m_x, m_y);
+
+    // Clamp away from jump zones to avoid triggering an immediate edge switch
+    SInt32 x = info->m_x;
+    SInt32 y = info->m_y;
+    SInt32 dx, dy, dw, dh;
+    m_primaryClient->getShape(dx, dy, dw, dh);
+    SInt32 z = getJumpZoneSize(m_primaryClient) + 1;
+    x = (std::max)(x, dx + z);
+    x = (std::min)(x, dx + dw - 1 - z);
+    y = (std::max)(y, dy + z);
+    y = (std::min)(y, dy + dh - 1 - z);
+
+    switchScreen(m_primaryClient, x, y, false);
+
+    // HACK: Win10 — activateWindowAt removed; the natural touch click (WM_LBUTTONDOWN)
+    // is now delivered by the OS directly via the hook change in mouseLLHook.
+    // On Win11, activateWindowAt brought the target window to foreground before injection;
+    // natural delivery may not always activate the target window.
+
+    m_touchSwitchCooldown.reset();
+    LOG((CLOG_DEBUG1 "touch switch cooldown started"));
+  }
+}
+
+void Server::handleGrabInputEvent(const Event &event, void *vclient)
+{
+  IPrimaryScreen::MotionInfo *info = static_cast<IPrimaryScreen::MotionInfo *>(event.getData());
+  BaseClientProxy *client = static_cast<BaseClientProxy *>(vclient);
+
+  LOG((CLOG_DEBUG1 "client \"%s\" requests grab at %d,%d", getName(client).c_str(), info->m_x, info->m_y));
+
+  if (client != m_active) {
+    m_active->setJumpCursorPos(m_x, m_y);
+
+    SInt32 x = info->m_x;
+    SInt32 y = info->m_y;
+    SInt32 dx, dy, dw, dh;
+    client->getShape(dx, dy, dw, dh);
+    SInt32 z = getJumpZoneSize(client) + 1;
+    x = (std::max)(x, dx + z);
+    x = (std::min)(x, dx + dw - 1 - z);
+    y = (std::max)(y, dy + z);
+    y = (std::min)(y, dy + dh - 1 - z);
+
+    switchScreen(client, x, y, false);
+
+    m_touchSwitchCooldown.reset();
+    LOG((CLOG_DEBUG1 "touch switch cooldown started"));
   }
 }
 
@@ -1989,6 +2071,10 @@ bool Server::addClient(BaseClientProxy *client)
       m_events->forClipboard().clipboardChanged(), client->getEventTarget(),
       new TMethodEventJob<Server>(this, &Server::handleClipboardChanged, client)
   );
+  m_events->adoptHandler(
+      m_events->forClientProxy().grabInput(), client->getEventTarget(),
+      new TMethodEventJob<Server>(this, &Server::handleGrabInputEvent, client)
+  );
 
   // add to list
   m_clientSet.insert(client);
@@ -2017,6 +2103,7 @@ bool Server::removeClient(BaseClientProxy *client)
   m_events->removeHandler(m_events->forIScreen().shapeChanged(), client->getEventTarget());
   m_events->removeHandler(m_events->forClipboard().clipboardGrabbed(), client->getEventTarget());
   m_events->removeHandler(m_events->forClipboard().clipboardChanged(), client->getEventTarget());
+  m_events->removeHandler(m_events->forClientProxy().grabInput(), client->getEventTarget());
 
   // remove from list
   m_clients.erase(getName(client));

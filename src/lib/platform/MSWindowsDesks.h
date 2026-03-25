@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2004 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -29,6 +29,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+
+#include <unordered_map>
+#include <vector>
 
 class Event;
 class EventQueueTimer;
@@ -92,8 +95,11 @@ public:
   //! Notify of entering a desk
   /*!
   Prepares a desk for when the cursor enters it.
+  Pass isTouchEntry=true when the switch was triggered by a touch event so
+  that the previous foreground window is not restored (the touch click will
+  activate the intended window naturally).
   */
-  void enter();
+  void enter(bool isTouchEntry = false);
 
   //! Notify of leaving a desk
   /*!
@@ -187,6 +193,8 @@ public:
   */
   void fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
+  void fakeTouchClick(SInt32 x, SInt32 y) const;
+
   //@}
 
 private:
@@ -204,6 +212,14 @@ private:
   };
   typedef std::map<String, Desk *> Desks;
 
+  struct HidTouchDevice {
+    std::vector<BYTE> preparsedData;
+    USHORT linkCollection;
+    LONG logicalMaxX;
+    LONG logicalMaxY;
+    bool valid;
+  };
+
   // initialization and shutdown operations
   HCURSOR createBlankCursor() const;
   void destroyCursor(HCURSOR cursor) const;
@@ -214,8 +230,9 @@ private:
 
   // message handlers
   void deskMouseMove(SInt32 x, SInt32 y) const;
+  void deskFakeTouchClick(SInt32 x, SInt32 y) const;
   void deskMouseRelativeMove(SInt32 dx, SInt32 dy) const;
-  void deskEnter(Desk *desk);
+  void deskEnter(Desk *desk, bool isTouchEntry = false);
   void deskLeave(Desk *desk, HKL keyLayout);
   void deskThread(void *vdesk);
 
@@ -237,6 +254,11 @@ private:
   HDESK openInputDesktop();
   void closeDesktop(HDESK);
   String getDesktopName(HDESK);
+
+  HidTouchDevice initHidTouchDevice(HANDLE hDevice);
+  bool parseHidTouch(const RAWINPUT *raw, const HidTouchDevice &dev,
+                     SInt32 &outX, SInt32 &outY);
+  void registerTouchRawInput(HWND window, bool enable);
 
   // our desk window procs
   static LRESULT CALLBACK primaryDeskProc(HWND, UINT, WPARAM, LPARAM);
@@ -292,4 +314,21 @@ private:
 
   // true if program should stop on desk switch.
   bool m_stopOnDeskSwitch;
+
+  std::unordered_map<HANDLE, HidTouchDevice> m_hidTouchDevices;
+
+  bool m_pendingTouchUp = false;
+  bool m_touchLifted = false;
+  SInt32 m_pendingTouchX = 0;
+  SInt32 m_pendingTouchY = 0;
+
+  // WinEvent hook for detecting foreground window changes on primary in
+  // relay mode. Used as fallback touch detection for apps that suppress
+  // legacy mouse synthesis (Chrome, Edge).
+  HWINEVENTHOOK m_foregroundHook = NULL;
+  HWND m_deskWindow = NULL;  // cached for the callback
+  static MSWindowsDesks *s_instance;
+  static void CALLBACK foregroundHookCallback(
+      HWINEVENTHOOK hWinEventHook, DWORD event, HWND hwnd,
+      LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime);
 };

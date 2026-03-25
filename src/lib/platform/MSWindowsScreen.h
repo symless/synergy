@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2002 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include "base/Stopwatch.h"
 #include "base/String.h"
 #include "deskflow/ClientArgs.h"
 #include "deskflow/DragInformation.h"
@@ -136,6 +137,8 @@ public:
   virtual String &getDraggingFilename();
   virtual const String &getDropTarget() const;
   String getSecureInputApp() const override;
+  void activateWindowAt(SInt32 x, SInt32 y) override;
+  void fakeTouchClick(SInt32 x, SInt32 y) override;
 
 protected:
   // IPlatformScreen overrides
@@ -190,6 +193,8 @@ private: // HACK
   bool onScreensaver(bool activated);
   bool onDisplayChange();
   bool onClipboardChange();
+  bool onPointerInput(WPARAM wParam, LPARAM lParam);
+  bool isPointerTypeTouch(UINT32 pointerId) const;
 
   // warp cursor without discarding queued events
   void warpCursorNoFlush(SInt32 x, SInt32 y);
@@ -357,4 +362,12 @@ private:
 
   PrimaryKeyDownList m_primaryKeyDownList;
   MSWindowsPowerManager m_powerManager;
+
+  bool m_touchActivateScreen;
+  // set when a touch-triggered screen switch is pending, consumed in enter()
+  // so deskEnter skips restoring the old foreground window.
+  bool m_pendingTouchEntry = false;
+
+  Stopwatch m_touchDebounceTimer;
+  static constexpr double kTouchDebounceTime = 0.15;
 };

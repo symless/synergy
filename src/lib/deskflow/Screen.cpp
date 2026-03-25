@@ -249,6 +249,11 @@ void Screen::mouseWheel(SInt32 xDelta, SInt32 yDelta) const
   m_screen->fakeMouseWheel(xDelta, yDelta);
 }
 
+void Screen::fakeTouchClick(SInt32 x, SInt32 y)
+{
+  m_screen->fakeTouchClick(x, y);
+}
+
 void Screen::resetOptions()
 {
   // reset options
@@ -486,6 +491,11 @@ void Screen::leaveSecondary()
 {
   // release any keys we think are still down
   m_screen->fakeAllKeysUp();
+}
+
+void Screen::activateWindowAt(SInt32 x, SInt32 y)
+{
+  m_screen->activateWindowAt(x, y);
 }
 
 String Screen::getSecureInputApp() const

@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2012-2016 Symless Ltd.
+ * Copyright (C) 2012-2026 Symless Ltd.
  * Copyright (C) 2004 Chris Schoeneman
  *
  * This package is free software; you can redistribute it and/or
@@ -32,6 +32,13 @@
 #include "platform/dfwhook.h"
 
 #include <malloc.h>
+#include <windowsx.h>
+
+#ifndef _NTDEF_
+typedef LONG NTSTATUS;
+#endif
+#include <hidusage.h>
+#include <hidpi.h>
 
 // these are only defined when WINVER >= 0x0500
 #if !defined(SPI_GETMOUSESPEED)
@@ -86,6 +93,12 @@
 #define DESKFLOW_MSG_FAKE_REL_MOVE DESKFLOW_HOOK_LAST_MSG + 11
 // enable; <unused>
 #define DESKFLOW_MSG_FAKE_INPUT DESKFLOW_HOOK_LAST_MSG + 12
+// x; y
+#define DESKFLOW_MSG_FAKE_TOUCH DESKFLOW_HOOK_LAST_MSG + 13
+#define DESKFLOW_MSG_TOUCH_UPDATE DESKFLOW_HOOK_LAST_MSG + 14
+#define DESKFLOW_MSG_TOUCH_UP DESKFLOW_HOOK_LAST_MSG + 15
+
+MSWindowsDesks *MSWindowsDesks::s_instance = NULL;
 
 static void send_keyboard_input(WORD wVk, WORD wScan, DWORD dwFlags)
 {
@@ -142,6 +155,7 @@ MSWindowsDesks::MSWindowsDesks(
       m_stopOnDeskSwitch(stopOnDeskSwitch)
 {
 
+  s_instance = this;
   m_cursor = createBlankCursor();
   m_deskClass = createDeskWindowClass(m_isPrimary);
   m_keyLayout = AppUtilWindows::instance().getCurrentKeyboardLayout();
@@ -150,10 +164,15 @@ MSWindowsDesks::MSWindowsDesks(
 
 MSWindowsDesks::~MSWindowsDesks()
 {
+  if (m_foregroundHook != NULL) {
+    UnhookWinEvent(m_foregroundHook);
+    m_foregroundHook = NULL;
+  }
   disable();
   destroyClass(m_deskClass);
   destroyCursor(m_cursor);
   delete m_updateKeys;
+  s_instance = NULL;
 }
 
 void MSWindowsDesks::enable()
@@ -190,9 +209,9 @@ void MSWindowsDesks::disable()
   m_isOnScreen = m_isPrimary;
 }
 
-void MSWindowsDesks::enter()
+void MSWindowsDesks::enter(bool isTouchEntry)
 {
-  sendMessage(DESKFLOW_MSG_ENTER, 0, 0);
+  sendMessage(DESKFLOW_MSG_ENTER, isTouchEntry ? 1 : 0, 0);
 }
 
 void MSWindowsDesks::leave(HKL keyLayout)
@@ -316,6 +335,11 @@ void MSWindowsDesks::fakeMouseButton(ButtonID button, bool press)
   sendMessage(DESKFLOW_MSG_FAKE_BUTTON, flags, data);
 }
 
+void MSWindowsDesks::fakeTouchClick(SInt32 x, SInt32 y) const
+{
+  sendMessage(DESKFLOW_MSG_FAKE_TOUCH, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+}
+
 void MSWindowsDesks::fakeMouseMove(SInt32 x, SInt32 y) const
 {
   sendMessage(DESKFLOW_MSG_FAKE_MOVE, static_cast<WPARAM>(x), static_cast<LPARAM>(y));
@@ -409,25 +433,98 @@ void MSWindowsDesks::destroyWindow(HWND hwnd) const
 
 LRESULT CALLBACK MSWindowsDesks::primaryDeskProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+  switch (msg) {
+  case WM_SETCURSOR:
+    SetCursor(NULL);
+    return TRUE;
+  }
   return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
+void setCursorVisibility(bool visible);
+
 LRESULT CALLBACK MSWindowsDesks::secondaryDeskProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  // would like to detect any local user input and hide the hider
-  // window but for now we just detect mouse motion.
-  bool hide = false;
   switch (msg) {
-  case WM_MOUSEMOVE:
-    if (LOWORD(lParam) != 0 || HIWORD(lParam) != 0) {
-      hide = true;
+  case WM_SETCURSOR:
+    SetCursor(NULL);
+    return TRUE;
+
+  case WM_POINTERACTIVATE:
+    return PA_NOACTIVATE;
+
+  case WM_POINTERDOWN: {
+    MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
+        GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (self) {
+      UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+      DWORD pointerType = PT_POINTER;
+      BOOL gotType = GetPointerType(pointerId, &pointerType);
+      LOG((CLOG_DEBUG "secondary WM_POINTERDOWN: pointerId=%u gotType=%d pointerType=%u",
+           pointerId, gotType ? 1 : 0, pointerType));
+      if (pointerType == PT_TOUCH || pointerType == PT_PEN) {
+        SInt32 x = GET_X_LPARAM(lParam);
+        SInt32 y = GET_Y_LPARAM(lParam);
+        LOG((CLOG_DEBUG "secondary WM_POINTERDOWN touch at %d,%d", x, y));
+        self->m_pendingTouchUp = true;
+        self->m_pendingTouchX = x;
+        self->m_pendingTouchY = y;
+        PostThreadMessage(self->m_threadID, DESKFLOW_MSG_TOUCH,
+                          static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+        return 0;
+      }
     }
     break;
   }
 
-  if (hide && IsWindowVisible(hwnd)) {
-    ReleaseCapture();
-    SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+  case WM_POINTERUP: {
+    MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
+        GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (self && self->m_pendingTouchUp) {
+      SInt32 x = self->m_pendingTouchX;
+      SInt32 y = self->m_pendingTouchY;
+      if (self->m_isOnScreen) {
+        self->m_pendingTouchUp = false;
+        self->m_touchLifted = false;
+        SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+        LOG((CLOG_DEBUG "touch: finger up after enter, injecting at %d,%d", x, y));
+        PostThreadMessage(GetCurrentThreadId(), DESKFLOW_MSG_FAKE_TOUCH,
+                          static_cast<WPARAM>(x), static_cast<LPARAM>(y));
+      } else {
+        self->m_touchLifted = true;
+        LOG((CLOG_DEBUG "touch: finger up before enter, will fire on deskEnter at %d,%d", x, y));
+      }
+    }
+    return 0;
+  }
+
+  case WM_MOUSEMOVE: {
+    LPARAM extraInfo = GetMessageExtraInfo();
+    if ((extraInfo & TOUCH_SIGNATURE_MASK) == TOUCH_SIGNATURE) {
+      break;
+    }
+
+    MSWindowsDesks *self = reinterpret_cast<MSWindowsDesks *>(
+        GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    if (self && IsWindowVisible(hwnd)) {
+      // deskLeave centers the cursor; ignore moves at that position
+      // so only real local input dismisses the hider
+      POINT pt;
+      GetCursorPos(&pt);
+      if (pt.x == self->m_xCenter && pt.y == self->m_yCenter) {
+        break;
+      }
+      ReleaseCapture();
+      SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0,
+                   SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+      setCursorVisibility(true);
+      HCURSOR arrow = LoadCursor(NULL, IDC_ARROW);
+      SetClassLongPtr(hwnd, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(arrow));
+      SetCursor(arrow);
+    }
+    break;
+  }
   }
 
   return DefWindowProc(hwnd, msg, wParam, lParam);
@@ -444,6 +541,47 @@ void MSWindowsDesks::deskMouseMove(SInt32 x, SInt32 y) const
       MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE, (DWORD)((65535.0f * x) / (w - 1) + 0.5f),
       (DWORD)((65535.0f * y) / (h - 1) + 0.5f), 0
   );
+}
+
+void MSWindowsDesks::deskFakeTouchClick(SInt32 x, SInt32 y) const
+{
+  POINT pt = {x, y};
+  HWND target = WindowFromPoint(pt);
+  HWND fg = GetForegroundWindow();
+
+  LOG((CLOG_DEBUG "touch: injecting at %d,%d target=0x%08x fg=0x%08x",
+       x, y, target, fg));
+
+  if (target) {
+    HWND root = GetAncestor(target, GA_ROOT);
+    if (root && root != fg) {
+      LOG((CLOG_DEBUG "touch: target root=0x%08x != fg, activating", root));
+      DWORD targetThread = GetWindowThreadProcessId(root, NULL);
+      DWORD curThread = GetCurrentThreadId();
+
+      BOOL attached = FALSE;
+      if (targetThread != 0 && targetThread != curThread) {
+        attached = AttachThreadInput(targetThread, curThread, TRUE);
+      }
+
+      mouse_event(MOUSEEVENTF_MOVE, 0, 0, 0, 0);
+      SetForegroundWindow(root);
+      BringWindowToTop(root);
+
+      if (attached) {
+        AttachThreadInput(targetThread, curThread, FALSE);
+      }
+    }
+  }
+
+  // HACK: Win10 — use mouse events directly instead of InjectTouchInput.
+  // InjectTouchInput goes through Win10's gesture recognition pipeline, which
+  // adds a ~500ms delay before the click is delivered. Simple mouse events
+  // don't have this delay. On Win11, InjectTouchInput may be needed for apps
+  // that distinguish touch from mouse — test for regressions.
+  deskMouseMove(x, y);
+  send_mouse_input(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+  send_mouse_input(MOUSEEVENTF_LEFTUP, 0, 0, 0);
 }
 
 void MSWindowsDesks::deskMouseRelativeMove(SInt32 dx, SInt32 dy) const
@@ -515,15 +653,47 @@ void setCursorVisibility(bool visible)
   LOG_ERR("unable to set cursor visibility after %d attempts", attempts);
 }
 
-void MSWindowsDesks::deskEnter(Desk *desk)
+void MSWindowsDesks::deskEnter(Desk *desk, bool isTouchEntry)
 {
+  registerTouchRawInput(desk->m_window, false);
+
+  // Remove foreground-change hook (installed in deskLeave for primary)
+  if (m_foregroundHook != NULL) {
+    UnhookWinEvent(m_foregroundHook);
+    m_foregroundHook = NULL;
+    m_deskWindow = NULL;
+    LOG((CLOG_DEBUG "foreground hook removed"));
+  }
+
   if (!m_isPrimary) {
     ReleaseCapture();
+
+    LONG_PTR exStyle = GetWindowLongPtr(desk->m_window, GWL_EXSTYLE);
+    exStyle = (exStyle | WS_EX_TRANSPARENT) & ~WS_EX_LAYERED;
+    SetWindowLongPtr(desk->m_window, GWL_EXSTYLE, exStyle);
   }
+
+  bool touchEnter = false;
+  if (m_pendingTouchUp && m_touchLifted) {
+    // Finger already lifted — safe to inject now, no real touch conflict.
+    touchEnter = true;
+    m_pendingTouchUp = false;
+    m_touchLifted = false;
+  } else if (m_pendingTouchUp) {
+    // Finger still down — defer injection to WM_POINTERUP / HID lift.
+    // Leave m_pendingTouchUp set so secondaryDeskProc WM_POINTERUP
+    // (or HID tip-off) triggers injection after the real touch ends.
+    LOG((CLOG_DEBUG "touch: deskEnter, finger still down, deferring injection"));
+  }
+
+  SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
 
   setCursorVisibility(true);
 
-  SetWindowPos(desk->m_window, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+  HCURSOR arrow = LoadCursor(NULL, IDC_ARROW);
+  SetClassLongPtr(desk->m_window, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(arrow));
+  SetCursor(arrow);
 
   // restore the foreground window
   // XXX -- this raises the window to the top of the Z-order.  we
@@ -531,11 +701,25 @@ void MSWindowsDesks::deskEnter(Desk *desk)
   // (mouse over activation) but i've no idea how to do that.
   // the obvious workaround of using SetWindowPos() to move it back
   // after being raised doesn't work.
-  DWORD thisThread = GetWindowThreadProcessId(desk->m_window, NULL);
-  DWORD thatThread = GetWindowThreadProcessId(desk->m_foregroundWindow, NULL);
-  AttachThreadInput(thatThread, thisThread, TRUE);
-  SetForegroundWindow(desk->m_foregroundWindow);
-  AttachThreadInput(thatThread, thisThread, FALSE);
+  // HACK: Win10 — skip foreground restore on touch entry so the touch click
+  // activates the intended window naturally. On non-touch entry (normal cursor
+  // switch), restore as before. On Win11, touch may need this restore if
+  // WM_POINTER-based activation behaves differently — test for regressions.
+  if (desk->m_foregroundWindow && !isTouchEntry) {
+    DWORD thisThread = GetWindowThreadProcessId(desk->m_window, NULL);
+    DWORD thatThread = GetWindowThreadProcessId(desk->m_foregroundWindow, NULL);
+    AttachThreadInput(thatThread, thisThread, TRUE);
+    SetForegroundWindow(desk->m_foregroundWindow);
+    AttachThreadInput(thatThread, thisThread, FALSE);
+  }
+
+  if (touchEnter) {
+    LOG((CLOG_DEBUG "touch: deskEnter, injecting at %d,%d",
+         m_pendingTouchX, m_pendingTouchY));
+    PostThreadMessage(desk->m_threadID, DESKFLOW_MSG_FAKE_TOUCH,
+                      static_cast<WPARAM>(m_pendingTouchX),
+                      static_cast<LPARAM>(m_pendingTouchY));
+  }
   EnableWindow(desk->m_window, desk->m_lowLevel ? FALSE : TRUE);
   desk->m_foregroundWindow = NULL;
 }
@@ -550,8 +734,9 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
     // active window.
     int x, y, w, h;
     if (desk->m_lowLevel) {
-      // with a low level hook the cursor will never budge so
-      // just a 1x1 window is sufficient.
+      // LL hook keeps the cursor pinned at center, so 1x1 is enough.
+      // primaryDeskProc handles WM_SETCURSOR to force a blank cursor
+      // (ShowCursor(FALSE) is unreliable on touchscreen devices).
       x = m_xCenter;
       y = m_yCenter;
       w = 1;
@@ -566,6 +751,10 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
       h = m_h;
     }
     SetWindowPos(desk->m_window, HWND_TOP, x, y, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+
+    // WM_SETCURSOR won't fire until the cursor moves, so force the
+    // blank cursor immediately (LL hook pins cursor at center, no movement).
+    SetCursor(NULL);
 
     // switch to requested keyboard layout
     ActivateKeyboardLayout(keyLayout, 0);
@@ -599,28 +788,243 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
         AttachThreadInput(thatThread, thisThread, FALSE);
       }
     }
+
+    // HACK: Win10 — re-enable raw HID touch input on primary during relay
+    // mode. This detects touch on ALL apps (including UWP like Calculator)
+    // that don't generate TOUCH_SIGNATURE or change the foreground window.
+    // RIDEV_INPUTSINK causes ~80% of WM_POINTER to be dropped system-wide,
+    // but in relay mode the user isn't interacting with primary apps anyway.
+    // deskEnter removes the registration, restoring normal touch delivery.
+    // On Win11, this may interfere with WM_POINTER — test for regressions.
+    registerTouchRawInput(desk->m_window, true);
+
+    // HACK: Win10 — install a foreground-change hook to detect touch on apps
+    // that suppress legacy mouse synthesis (Chrome, Edge). When such an app
+    // gains foreground while in relay mode, it means the user touched it
+    // locally. The LL hook can't see these touches (no TOUCH_SIGNATURE), but
+    // the foreground change is detectable. On Win11, this hook is harmless
+    // but may cause double-detection if WM_POINTER also triggers — the
+    // debounce timer in DESKFLOW_MSG_TOUCH handling prevents double-switch.
+    m_deskWindow = desk->m_window;
+    if (m_foregroundHook == NULL) {
+      m_foregroundHook = SetWinEventHook(
+          EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
+          NULL, foregroundHookCallback, 0, 0,
+          WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+      LOG((CLOG_DEBUG "foreground hook installed: 0x%p", m_foregroundHook));
+    }
   } else {
-    // move hider window under the cursor center, raise, and show it
-    SetWindowPos(desk->m_window, HWND_TOP, m_xCenter, m_yCenter, 1, 1, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    desk->m_foregroundWindow = getForegroundWindow();
 
-    // watch for mouse motion.  if we see any then we hide the
-    // hider window so the user can use the physically attached
-    // mouse if desired.  we'd rather not capture the mouse but
-    // we aren't notified when the mouse leaves our window.
-    SetCapture(desk->m_window);
+    // HACK: Win10 — keep WS_EX_TRANSPARENT on the desk window so touch events
+    // pass through it naturally to apps underneath (even near screen center).
+    // On Win11, stripping WS_EX_TRANSPARENT was required for WM_POINTER delivery
+    // to secondaryDeskProc; removing this strip breaks that Win11 mechanism.
+    // Cursor is hidden via ShowCursor(FALSE) in setCursorVisibility, not WM_SETCURSOR.
 
-    // windows can take a while to hide the cursor, so wait a few milliseconds to ensure the cursor
-    // is hidden before centering. this doesn't seem to affect the fluidity of the transition.
-    // without this, the cursor appears to flicker in the center of the screen which is annoying.
-    // a slightly more elegant but complex solution could be to use a timed event.
-    // 30 ms seems to work well enough without making the transition feel janky; a lower number
-    // would be better but 10 ms doesn't seem to be quite long enough, as we get noticeable flicker.
-    // this is largely a balance and out of our control, since windows can be unpredictable...
-    // maybe another approach would be to repeatedly check the cursor visibility until it is hidden.
-    LOG_DEBUG1("centering cursor on leave: %+d,%+d", m_xCenter, m_yCenter);
+    SetWindowPos(
+        desk->m_window, HWND_TOPMOST, m_xCenter, m_yCenter, 1, 1,
+        SWP_NOACTIVATE | SWP_SHOWWINDOW
+    );
+
+    // HACK: Win10 — re-enable raw HID touch input so we can detect touch
+    // on apps that suppress legacy mouse synthesis (Chrome, Edge). These
+    // apps handle WM_POINTER/WM_TOUCH natively, so the LL mouse hook never
+    // sees TOUCH_SIGNATURE. Raw HID input detects touch independently.
+    // RIDEV_INPUTSINK causes ~80% of WM_POINTER events to be dropped
+    // system-wide, but that's OK here: the user isn't interacting with this
+    // screen (cursor is on the primary). deskEnter removes the registration.
+    // On Win11, WM_POINTER delivery to secondaryDeskProc handles detection;
+    // RIDEV_INPUTSINK may cause regressions there — test carefully.
+    registerTouchRawInput(desk->m_window, true);
+
     ARCH->sleep(0.03);
     deskMouseMove(m_xCenter, m_yCenter);
   }
+}
+
+MSWindowsDesks::HidTouchDevice MSWindowsDesks::initHidTouchDevice(HANDLE hDevice)
+{
+  HidTouchDevice dev = {};
+  dev.valid = false;
+
+  UINT ppSize = 0;
+  if (GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA, NULL, &ppSize) != 0 ||
+      ppSize == 0) {
+    return dev;
+  }
+
+  dev.preparsedData.resize(ppSize);
+  if (GetRawInputDeviceInfo(hDevice, RIDI_PREPARSEDDATA,
+                            dev.preparsedData.data(), &ppSize) == static_cast<UINT>(-1)) {
+    return dev;
+  }
+
+  auto pp = reinterpret_cast<PHIDP_PREPARSED_DATA>(dev.preparsedData.data());
+
+  HIDP_CAPS caps = {};
+  if (HidP_GetCaps(pp, &caps) != HIDP_STATUS_SUCCESS) {
+    return dev;
+  }
+
+  std::vector<HIDP_VALUE_CAPS> valCaps(caps.NumberInputValueCaps);
+  USHORT numValCaps = caps.NumberInputValueCaps;
+  if (numValCaps == 0 ||
+      HidP_GetValueCaps(HidP_Input, valCaps.data(), &numValCaps, pp) != HIDP_STATUS_SUCCESS) {
+    return dev;
+  }
+
+  // find a link collection that has both X and Y on the generic desktop page
+  struct CollectionInfo {
+    bool hasX = false;
+    bool hasY = false;
+    LONG maxX = 0;
+    LONG maxY = 0;
+  };
+  std::unordered_map<USHORT, CollectionInfo> collections;
+
+  for (USHORT i = 0; i < numValCaps; ++i) {
+    const auto &vc = valCaps[i];
+    if (vc.UsagePage != HID_USAGE_PAGE_GENERIC)
+      continue;
+
+    USAGE usage = vc.IsRange ? vc.Range.UsageMin : vc.NotRange.Usage;
+    auto &ci = collections[vc.LinkCollection];
+    if (usage == HID_USAGE_GENERIC_X) {
+      ci.hasX = true;
+      ci.maxX = vc.LogicalMax > 0 ? vc.LogicalMax : vc.PhysicalMax;
+    } else if (usage == HID_USAGE_GENERIC_Y) {
+      ci.hasY = true;
+      ci.maxY = vc.LogicalMax > 0 ? vc.LogicalMax : vc.PhysicalMax;
+    }
+  }
+
+  for (const auto &pair : collections) {
+    if (pair.second.hasX && pair.second.hasY &&
+        pair.second.maxX > 0 && pair.second.maxY > 0) {
+      dev.linkCollection = pair.first;
+      dev.logicalMaxX = pair.second.maxX;
+      dev.logicalMaxY = pair.second.maxY;
+      dev.valid = true;
+      LOG((CLOG_DEBUG "HID touch device: linkCollection=%d logicalMax X=%ld Y=%ld",
+           dev.linkCollection, dev.logicalMaxX, dev.logicalMaxY));
+      break;
+    }
+  }
+
+  return dev;
+}
+
+bool MSWindowsDesks::parseHidTouch(const RAWINPUT *raw, const HidTouchDevice &dev,
+                                   SInt32 &outX, SInt32 &outY)
+{
+  if (!dev.valid)
+    return false;
+
+  auto pp = reinterpret_cast<PHIDP_PREPARSED_DATA>(
+      const_cast<BYTE *>(dev.preparsedData.data()));
+  auto report = const_cast<PCHAR>(
+      reinterpret_cast<const char *>(raw->data.hid.bRawData));
+  ULONG reportLen = raw->data.hid.dwSizeHid;
+
+  // check Tip Switch (digitizer page 0x0D, usage 0x42)
+  USAGE usages[16] = {};
+  ULONG numUsages = 16;
+  if (HidP_GetUsages(HidP_Input, 0x0D, dev.linkCollection,
+                     usages, &numUsages, pp,
+                     report, reportLen) != HIDP_STATUS_SUCCESS) {
+    numUsages = 0;
+  }
+
+  bool tipDown = false;
+  for (ULONG i = 0; i < numUsages; ++i) {
+    if (usages[i] == 0x42) {
+      tipDown = true;
+      break;
+    }
+  }
+  if (!tipDown)
+    return false;
+
+  ULONG rawX = 0, rawY = 0;
+  if (HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC,
+                         dev.linkCollection, HID_USAGE_GENERIC_X,
+                         &rawX, pp, report, reportLen) != HIDP_STATUS_SUCCESS) {
+    return false;
+  }
+  if (HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC,
+                         dev.linkCollection, HID_USAGE_GENERIC_Y,
+                         &rawY, pp, report, reportLen) != HIDP_STATUS_SUCCESS) {
+    return false;
+  }
+
+  // Touch digitizer maps to the primary monitor, not the virtual desktop
+  SInt32 pw = GetSystemMetrics(SM_CXSCREEN);
+  SInt32 ph = GetSystemMetrics(SM_CYSCREEN);
+  outX = static_cast<SInt32>(rawX * pw / dev.logicalMaxX);
+  outY = static_cast<SInt32>(rawY * ph / dev.logicalMaxY);
+  LOG((CLOG_DEBUG1 "touch HID: raw=%lu,%lu logMax=%lu,%lu primary=%dx%d -> %d,%d",
+       rawX, rawY, dev.logicalMaxX, dev.logicalMaxY, pw, ph, outX, outY));
+  return true;
+}
+
+void MSWindowsDesks::registerTouchRawInput(HWND window, bool enable)
+{
+  RAWINPUTDEVICE rid = {};
+  rid.usUsagePage = 0x0D;
+  rid.usUsage = 0x04;
+  rid.dwFlags = enable ? RIDEV_INPUTSINK : RIDEV_REMOVE;
+  rid.hwndTarget = enable ? window : NULL;
+
+  RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE));
+
+  if (enable) {
+    UINT numDevices = 0;
+    if (GetRawInputDeviceList(NULL, &numDevices, sizeof(RAWINPUTDEVICELIST)) == 0 && numDevices > 0) {
+      RAWINPUTDEVICELIST *devices = new RAWINPUTDEVICELIST[numDevices];
+      if (GetRawInputDeviceList(devices, &numDevices, sizeof(RAWINPUTDEVICELIST)) != (UINT)-1) {
+        LOG((CLOG_DEBUG "raw input: %u device(s) connected", numDevices));
+        for (UINT i = 0; i < numDevices; ++i) {
+          if (devices[i].dwType == RIM_TYPEHID) {
+            RID_DEVICE_INFO info = {};
+            UINT infoSize = sizeof(info);
+            info.cbSize = sizeof(info);
+            GetRawInputDeviceInfo(devices[i].hDevice, RIDI_DEVICEINFO, &info, &infoSize);
+            LOG((CLOG_DEBUG "  HID: VID=0x%04x PID=0x%04x page=0x%02x usage=0x%02x",
+                 info.hid.dwVendorId, info.hid.dwProductId,
+                 info.hid.usUsagePage, info.hid.usUsage));
+          }
+        }
+      }
+      delete[] devices;
+    }
+  }
+}
+
+void CALLBACK MSWindowsDesks::foregroundHookCallback(
+    HWINEVENTHOOK /*hWinEventHook*/, DWORD /*event*/, HWND hwnd,
+    LONG idObject, LONG /*idChild*/, DWORD /*dwEventThread*/, DWORD /*dwmsEventTime*/)
+{
+  if (idObject != 0 || hwnd == NULL)  // 0 == OBJID_WINDOW
+    return;
+
+  MSWindowsDesks *self = s_instance;
+  if (!self || !self->m_deskWindow)
+    return;
+
+  // Ignore if the new foreground is our own desk window
+  if (hwnd == self->m_deskWindow)
+    return;
+
+  // A window other than the desk window gained foreground while in relay
+  // mode. On primary this means local interaction (touch on an app like
+  // Chrome that suppresses legacy mouse synthesis). Trigger screen switch.
+  POINT pt;
+  GetCursorPos(&pt);
+  LOG((CLOG_DEBUG "foreground hook: window 0x%08x gained foreground, "
+       "posting DESKFLOW_MSG_TOUCH at %d,%d", hwnd, pt.x, pt.y));
+  PostThreadMessage(self->m_threadID, DESKFLOW_MSG_TOUCH,
+                    static_cast<WPARAM>(pt.x), static_cast<LPARAM>(pt.y));
 }
 
 void MSWindowsDesks::deskThread(void *vdesk)
@@ -639,6 +1043,7 @@ void MSWindowsDesks::deskThread(void *vdesk)
     // create a window.  we use this window to hide the cursor.
     try {
       desk->m_window = createWindow(m_deskClass, DESKFLOW_APP_NAME "Desk");
+      SetWindowLongPtr(desk->m_window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
       LOG((CLOG_DEBUG "desk %s window is 0x%08x", desk->m_name.c_str(), desk->m_window));
     } catch (...) {
       // ignore
@@ -659,6 +1064,54 @@ void MSWindowsDesks::deskThread(void *vdesk)
       TranslateMessage(&msg);
       DispatchMessage(&msg);
       continue;
+
+    case WM_INPUT: {
+      UINT size = 0;
+      GetRawInputData(
+          reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT,
+          NULL, &size, sizeof(RAWINPUTHEADER));
+      if (size > 0 && size <= 1024) {
+        BYTE buffer[1024];
+        if (GetRawInputData(
+                reinterpret_cast<HRAWINPUT>(msg.lParam), RID_INPUT,
+                buffer, &size, sizeof(RAWINPUTHEADER)) != static_cast<UINT>(-1)) {
+          RAWINPUT *raw = reinterpret_cast<RAWINPUT *>(buffer);
+
+          LOG((CLOG_DEBUG "WM_INPUT: type=%s isPrimary=%d count=%u sizeHid=%u",
+               raw->header.dwType == RIM_TYPEHID    ? "HID"
+               : raw->header.dwType == RIM_TYPEMOUSE ? "mouse" : "other",
+               m_isPrimary ? 1 : 0,
+               raw->header.dwType == RIM_TYPEHID ? raw->data.hid.dwCount : 0,
+               raw->header.dwType == RIM_TYPEHID ? raw->data.hid.dwSizeHid : 0));
+
+          if (raw->header.dwType == RIM_TYPEHID &&
+              raw->data.hid.dwCount > 0 && raw->data.hid.dwSizeHid > 0) {
+            auto it = m_hidTouchDevices.find(raw->header.hDevice);
+            if (it == m_hidTouchDevices.end()) {
+              it = m_hidTouchDevices.emplace(
+                  raw->header.hDevice, initHidTouchDevice(raw->header.hDevice)).first;
+            }
+
+            SInt32 tx, ty;
+            if (it->second.valid && parseHidTouch(raw, it->second, tx, ty)) {
+              LOG((CLOG_DEBUG "WM_INPUT: parsed HID touch at %d,%d, posting DESKFLOW_MSG_TOUCH", tx, ty));
+              if (!m_isPrimary && !m_isOnScreen) {
+                m_pendingTouchUp = true;
+                m_pendingTouchX = tx;
+                m_pendingTouchY = ty;
+              }
+              PostThreadMessage(m_threadID, DESKFLOW_MSG_TOUCH,
+                                static_cast<WPARAM>(tx), static_cast<LPARAM>(ty));
+            } else if (!m_isPrimary && m_pendingTouchUp && it->second.valid) {
+              // tip switch went off on secondary; finger lifted
+              m_touchLifted = true;
+              LOG((CLOG_DEBUG "WM_INPUT: HID tip off, finger lifted"));
+            }
+          }
+        }
+      }
+      continue;
+    }
 
     case DESKFLOW_MSG_SWITCH:
       if (!m_noHooks) {
@@ -691,7 +1144,7 @@ void MSWindowsDesks::deskThread(void *vdesk)
 
     case DESKFLOW_MSG_ENTER:
       m_isOnScreen = true;
-      deskEnter(desk);
+      deskEnter(desk, msg.wParam != 0);
       break;
 
     case DESKFLOW_MSG_LEAVE:
@@ -718,6 +1171,57 @@ void MSWindowsDesks::deskThread(void *vdesk)
     case DESKFLOW_MSG_FAKE_REL_MOVE:
       deskMouseRelativeMove(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
       break;
+
+    case DESKFLOW_MSG_FAKE_TOUCH:
+      deskFakeTouchClick(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
+      break;
+
+    case DESKFLOW_MSG_TOUCH_UPDATE: {
+      POINTER_TOUCH_INFO contact = {};
+      contact.pointerInfo.pointerType = PT_TOUCH;
+      contact.pointerInfo.pointerId = 1;
+      contact.pointerInfo.ptPixelLocation.x = static_cast<SInt32>(msg.wParam);
+      contact.pointerInfo.ptPixelLocation.y = static_cast<SInt32>(msg.lParam);
+      contact.pointerInfo.pointerFlags =
+          POINTER_FLAG_UPDATE | POINTER_FLAG_INRANGE | POINTER_FLAG_INCONTACT;
+      contact.touchFlags = TOUCH_FLAG_NONE;
+      contact.touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION |
+                          TOUCH_MASK_PRESSURE;
+      contact.orientation = 90;
+      contact.pressure = 32000;
+      contact.rcContact.left = contact.pointerInfo.ptPixelLocation.x - 2;
+      contact.rcContact.right = contact.pointerInfo.ptPixelLocation.x + 2;
+      contact.rcContact.top = contact.pointerInfo.ptPixelLocation.y - 2;
+      contact.rcContact.bottom = contact.pointerInfo.ptPixelLocation.y + 2;
+      InjectTouchInput(1, &contact);
+      PostThreadMessage(GetCurrentThreadId(), DESKFLOW_MSG_TOUCH_UP,
+                        msg.wParam, msg.lParam);
+      break;
+    }
+
+    case DESKFLOW_MSG_TOUCH_UP: {
+      POINTER_TOUCH_INFO contact = {};
+      contact.pointerInfo.pointerType = PT_TOUCH;
+      contact.pointerInfo.pointerId = 1;
+      contact.pointerInfo.ptPixelLocation.x = static_cast<SInt32>(msg.wParam);
+      contact.pointerInfo.ptPixelLocation.y = static_cast<SInt32>(msg.lParam);
+      contact.pointerInfo.pointerFlags = POINTER_FLAG_UP;
+      contact.touchFlags = TOUCH_FLAG_NONE;
+      contact.touchMask = TOUCH_MASK_CONTACTAREA | TOUCH_MASK_ORIENTATION |
+                          TOUCH_MASK_PRESSURE;
+      contact.orientation = 90;
+      contact.pressure = 32000;
+      contact.rcContact.left = contact.pointerInfo.ptPixelLocation.x - 2;
+      contact.rcContact.right = contact.pointerInfo.ptPixelLocation.x + 2;
+      contact.rcContact.top = contact.pointerInfo.ptPixelLocation.y - 2;
+      contact.rcContact.bottom = contact.pointerInfo.ptPixelLocation.y + 2;
+      InjectTouchInput(1, &contact);
+
+      deskMouseMove(static_cast<SInt32>(msg.wParam), static_cast<SInt32>(msg.lParam));
+      send_mouse_input(MOUSEEVENTF_LEFTDOWN, 0, 0, 0);
+      send_mouse_input(MOUSEEVENTF_LEFTUP, 0, 0, 0);
+      break;
+    }
 
     case DESKFLOW_MSG_FAKE_WHEEL:
       // XXX -- add support for x-axis scrolling

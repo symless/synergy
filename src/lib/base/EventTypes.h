@@ -1,6 +1,6 @@
 /*
  * Deskflow -- mouse and keyboard sharing utility
- * Copyright (C) 2013-2016 Symless Ltd.
+ * Copyright (C) 2013-2026 Symless Ltd.
  *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -388,7 +388,7 @@ private:
 class ClientProxyEvents : public EventTypes
 {
 public:
-  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown)
+  ClientProxyEvents() : m_ready(Event::kUnknown), m_disconnected(Event::kUnknown), m_grabInput(Event::kUnknown)
   {
   }
 
@@ -410,11 +410,14 @@ public:
   */
   Event::Type disconnected();
 
+  Event::Type grabInput();
+
   //@}
 
 private:
   Event::Type m_ready;
   Event::Type m_disconnected;
+  Event::Type m_grabInput;
 };
 
 class ClientProxyUnknownEvents : public EventTypes
@@ -603,7 +606,8 @@ public:
         m_hotKeyDown(Event::kUnknown),
         m_hotKeyUp(Event::kUnknown),
         m_fakeInputBegin(Event::kUnknown),
-        m_fakeInputEnd(Event::kUnknown)
+        m_fakeInputEnd(Event::kUnknown),
+        m_touchActivatedPrimary(Event::kUnknown)
   {
   }
 
@@ -650,6 +654,8 @@ public:
   //!  end of fake input event type
   Event::Type fakeInputEnd();
 
+  Event::Type touchActivatedPrimary();
+
   //@}
 
 private:
@@ -664,6 +670,7 @@ private:
   Event::Type m_hotKeyUp;
   Event::Type m_fakeInputBegin;
   Event::Type m_fakeInputEnd;
+  Event::Type m_touchActivatedPrimary;
 };
 
 class IScreenEvents : public EventTypes
@@ -673,7 +680,8 @@ public:
       : m_error(Event::kUnknown),
         m_shapeChanged(Event::kUnknown),
         m_suspend(Event::kUnknown),
-        m_resume(Event::kUnknown)
+        m_resume(Event::kUnknown),
+        m_grabInput(Event::kUnknown)
   {
   }
 
@@ -708,6 +716,8 @@ public:
   */
   Event::Type resume();
 
+  Event::Type grabInput();
+
   //@}
 
 private:
@@ -715,6 +725,7 @@ private:
   Event::Type m_shapeChanged;
   Event::Type m_suspend;
   Event::Type m_resume;
+  Event::Type m_grabInput;
 };
 
 class ClipboardEvents : public EventTypes
