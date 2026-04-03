@@ -77,6 +77,7 @@ void Screen::loadSettings(QSettingsProxy &settings)
   readSettings(settings, fixes(), "fix", 0, static_cast<int>(NumFixes));
 
   setAnchoredKeys(settings.value("anchoredKeys").toString());
+  setAnchorMediaKeys(settings.value("anchorMediaKeys").toBool());
 }
 
 void Screen::saveSettings(QSettingsProxy &settings) const
@@ -94,6 +95,7 @@ void Screen::saveSettings(QSettingsProxy &settings) const
   writeSettings(settings, fixes(), "fix");
 
   settings.setValue("anchoredKeys", anchoredKeys());
+  settings.setValue("anchorMediaKeys", anchorMediaKeys());
 }
 
 QTextStream &Screen::writeScreensSection(QTextStream &outStream) const
@@ -117,9 +119,18 @@ QTextStream &Screen::writeScreensSection(QTextStream &outStream) const
   outStream << "\t\t"
             << "switchCornerSize = " << switchCornerSize() << Qt::endl;
 
-  if (!anchoredKeys().isEmpty())
-    outStream << "\t\t"
-              << "anchoredKeys = " << anchoredKeys() << Qt::endl;
+  {
+    QString keys = anchoredKeys();
+    if (anchorMediaKeys()) {
+      QString media = "MediaPlay, MediaStop, MediaNext, MediaPrev, VolumeMute, VolumeUp, VolumeDown";
+      if (!keys.isEmpty())
+        keys += ", " + media;
+      else
+        keys = media;
+    }
+    if (!keys.isEmpty())
+      outStream << "\t\t" << "anchoredKeys = " << keys << Qt::endl;
+  }
 
   return outStream;
 }
@@ -140,6 +151,7 @@ bool Screen::operator==(const Screen &screen) const
 {
   return m_Name == screen.m_Name && m_Aliases == screen.m_Aliases && m_Modifiers == screen.m_Modifiers &&
          m_SwitchCorners == screen.m_SwitchCorners && m_SwitchCornerSize == screen.m_SwitchCornerSize &&
-         m_Fixes == screen.m_Fixes && m_AnchoredKeys == screen.m_AnchoredKeys && m_Swapped == screen.m_Swapped &&
+         m_Fixes == screen.m_Fixes && m_AnchoredKeys == screen.m_AnchoredKeys &&
+         m_AnchorMediaKeys == screen.m_AnchorMediaKeys && m_Swapped == screen.m_Swapped &&
          m_isServer == screen.m_isServer;
 }

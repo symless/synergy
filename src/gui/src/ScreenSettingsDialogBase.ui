@@ -757,6 +757,13 @@ Comma-separated. Use + for combos (e.g. Alt+Tab, Ctrl+A).</string>
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="m_pCheckBoxAnchorMediaKeys">
+        <property name="text">
+         <string>Anchor media keys to server (play, stop, next, prev, volume)</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

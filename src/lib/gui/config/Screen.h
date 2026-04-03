@@ -180,6 +180,14 @@ protected:
   {
     m_AnchoredKeys = keys;
   }
+  bool anchorMediaKeys() const
+  {
+    return m_AnchorMediaKeys;
+  }
+  void setAnchorMediaKeys(bool on)
+  {
+    m_AnchorMediaKeys = on;
+  }
 
 private:
   QPixmap m_Pixmap = QPixmap(":res/icons/64x64/video-display.png");
@@ -190,6 +198,7 @@ private:
   int m_SwitchCornerSize;
   QList<bool> m_Fixes;
   QString m_AnchoredKeys;
+  bool m_AnchorMediaKeys = false;
   bool m_Swapped = false;
   bool m_isServer = false;
 };

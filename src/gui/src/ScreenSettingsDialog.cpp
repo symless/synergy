@@ -75,6 +75,7 @@ ScreenSettingsDialog::ScreenSettingsDialog(QWidget *parent, Screen *pScreen, con
   m_pCheckBoxXTest->setChecked(m_pScreen->fix(XTest));
 
   m_pLineEditAnchoredKeys->setText(m_pScreen->anchoredKeys());
+  m_pCheckBoxAnchorMediaKeys->setChecked(m_pScreen->anchorMediaKeys());
 }
 
 void ScreenSettingsDialog::accept()
@@ -125,6 +126,7 @@ void ScreenSettingsDialog::accept()
   m_pScreen->setFix(static_cast<int>(XTest), m_pCheckBoxXTest->isChecked());
 
   m_pScreen->setAnchoredKeys(m_pLineEditAnchoredKeys->text());
+  m_pScreen->setAnchorMediaKeys(m_pCheckBoxAnchorMediaKeys->isChecked());
 
   QDialog::accept();
 }
