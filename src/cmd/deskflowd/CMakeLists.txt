@@ -36,6 +36,4 @@ if(WIN32)
     app
     ${libs})
 
-  post_config()
-
 endif()

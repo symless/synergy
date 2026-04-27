@@ -3,20 +3,45 @@
   "tasks": [
     {
       "label": "build",
+      "type": "shell",
+      "dependsOn": ["build-cmake"],
+      "windows": {
+        "command": "robocopy ${workspaceFolder}/build/bin ${workspaceFolder}/build/bin-copy /R:0 /E /S /NJS /NJH /NFL /NDL; exit 0"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "build-cmake",
       "type": "cmake",
       "command": "build",
       "targets": ["all"],
       "preset": "${command:cmake.activeBuildPresetName}",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
+      "group": "build",
       "problemMatcher": {
         "base": "$gcc",
         "fileLocation": ["absolute"]
-      },
+      }
+    },
+    {
+      "label": "build-kill-core",
+      "dependsOn": ["kill-daemon", "kill-core", "build"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "build-kill-gui",
+      "dependsOn": ["kill-gui", "kill-core", "build"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "build-silent",
+      "type": "shell",
+      "dependsOn": ["build"],
+      "group": "build",
       "presentation": {
-        "revealProblems": "onProblem"
+        "reveal": "silent"
       }
     },
     {
@@ -65,47 +90,111 @@
       "problemMatcher": []
     },
     {
-      "label": "kill",
+      "label": "kill-all",
       "type": "shell",
-      "command": "killall deskflow; killall deskflow-client; killall deskflow-server || true",
+      "dependsOn": ["kill-gui", "kill-daemon", "kill-core"]
+    },
+    {
+      "label": "kill-gui",
+      "type": "shell",
+      "command": "killall -v -9 deskflow || true",
       "windows": {
-        "command": "taskkill /F /IM deskflow.exe /IM deskflow-client.exe /IM deskflow-client.exe; $true"
-      },
-      "presentation": {
-        "reveal": "silent"
+        "command": "taskkill /F /IM deskflow.exe; $true"
       }
     },
     {
-      "label": "kill-build",
-      "dependsOn": ["kill", "build"],
-      "problemMatcher": []
+      "label": "kill-daemon",
+      "type": "shell",
+      "command": "killall -v -9 deskflow-daemon || true",
+      "windows": {
+        "command": "taskkill /F /IM deskflow-daemon.exe; $true"
+      },
+      "dependsOn": ["daemon-stop"]
+    },
+    {
+      "label": "kill-core",
+      "type": "shell",
+      "command": "killall -v -9 deskflow-core deskflow-server deskflow-client || true",
+      "windows": {
+        "command": "taskkill /F /IM deskflow-core.exe; taskkill /F /IM deskflow-server.exe; taskkill /F /IM deskflow-client.exe; $true"
+      }
     },
     {
       "label": "gui",
       "type": "process",
       "command": "${workspaceFolder}/build/bin/deskflow",
-      "dependsOn": ["build", "kill"],
       "problemMatcher": [],
+      "dependsOn": ["build"],
       "windows": {
-        "command": "${workspaceFolder}/build/bin/deskflow.exe"
+        "dependsOn": ["build-kill-gui"],
+        "command": "${workspaceFolder}/build/bin-copy/deskflow.exe"
+      },
+      "osx": {
+        "command": "${workspaceFolder}/build/bin/Deskflow.app/Contents/MacOS/Deskflow"
       }
     },
     {
-      "label": "restart daemon",
-      "type": "shell",
-      "command": "python scripts/daemon.py --restart",
-      "dependsOn": ["build"]
+      "label": "daemon",
+      "type": "process",
+      "command": "echo noop > /dev/null",
+      "problemMatcher": [],
+      "dependsOn": ["daemon-stop", "build"],
+      "windows": {
+        "command": "${workspaceFolder}/build/bin-copy/deskflow-daemon.exe",
+        "args": ["-f"]
+      }
     },
     {
-      "label": "reinstall daemon",
+      "label": "daemon-stop",
       "type": "shell",
-      "command": "python scripts/daemon.py --reinstall",
-      "dependsOn": ["build"]
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "Stop-Service -Name 'Synergy' -Force; while ((Get-Service -Name 'Synergy').Status -ne 'Stopped') { Start-Sleep -Seconds 1 }"
+      }
     },
     {
-      "label": "stop daemon",
+      "label": "daemon-start",
       "type": "shell",
-      "command": "python scripts/daemon.py --stop"
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "Start-Service -Name 'Synergy'; while ((Get-Service -Name 'Synergy').Status -ne 'Running') { Start-Sleep -Seconds 1 }"
+      }
+    },
+    {
+      "label": "daemon-restart",
+      "type": "shell",
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "Restart-Service -Name 'Synergy'"
+      }
+    },
+    {
+      "label": "daemon-deploy",
+      "type": "shell",
+      "dependsOn": ["build-kill-core", "daemon-start"],
+      "dependsOrder": "sequence"
+    },
+    {
+      "label": "daemon-install",
+      "type": "shell",
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "sc.exe create Synergy binPath= \"${workspaceFolder}\\build\\bin-copy\\deskflow-daemon.exe\" start= auto DisplayName= Synergy"
+      }
+    },
+    {
+      "label": "daemon-uninstall",
+      "type": "shell",
+      "command": "echo noop > /dev/null",
+      "windows": {
+        "command": "sc.exe delete Synergy"
+      }
+    },
+    {
+      "label": "daemon-reinstall",
+      "type": "shell",
+      "dependsOn": ["build-kill-core", "daemon-stop", "daemon-uninstall", "daemon-install", "daemon-start"],
+      "dependsOrder": "sequence"
     },
     {
       "label": "unittests (current)",

@@ -36,5 +36,3 @@ configure_libs()
 configure_packaging()
 
 add_subdirectory(src)
-
-post_config_all()

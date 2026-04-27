@@ -23,7 +23,11 @@
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
-        "CMAKE_CXX_COMPILER": "cl.exe"
+        "CMAKE_CXX_COMPILER": "cl.exe",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "USE_TOMLPLUSPLUS": "OFF",
+        "USE_CLI11": "OFF",
+        "BUILD_TESTS": "OFF"
       },
       "architecture": {
         "value": "x64",

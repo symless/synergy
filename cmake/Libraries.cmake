@@ -498,7 +498,12 @@ macro(configure_windows_libs)
 endmacro()
 
 macro(configure_windows_openssl)
-  set(OPENSSL_ROOT_DIR ${PROJECT_SOURCE_DIR}/vcpkg_installed/x64-windows)
+  find_package(OpenSSL REQUIRED)
+  message(STATUS "OpenSSL version: ${OPENSSL_VERSION}")
+  message(STATUS "OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+
+  get_filename_component(OPENSSL_ROOT_DIR "${OPENSSL_INCLUDE_DIR}/.." ABSOLUTE)
+  message(STATUS "OpenSSL root dir: ${OPENSSL_ROOT_DIR}")
   set(OPENSSL_EXE_DIR ${OPENSSL_ROOT_DIR}/tools/openssl)
 
   if(EXISTS ${OPENSSL_EXE_DIR})

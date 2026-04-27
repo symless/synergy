@@ -7,7 +7,7 @@
       "cwd": "${workspaceRoot}",
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/deskflow",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build"
     },
     {
       "name": "unix - unittests",
@@ -30,9 +30,9 @@
       "type": "lldb",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/deskflows",
+      "program": "${workspaceFolder}/build/bin/deskflow-server",
       "args": ["--config-toml", "deskflow-config.toml"],
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build"
     },
     {
       "name": "unix - client",
@@ -41,7 +41,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/build/bin/deskflow-client",
       "args": ["--config-toml", "deskflow-config.toml"],
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build"
     },
     {
       "name": "unix - attach",
@@ -54,16 +54,16 @@
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/deskflow",
+      "program": "${workspaceFolder}/build/bin-copy/deskflow",
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-kill-gui"
     },
     {
       "name": "windows - unittests",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/unittests",
+      "program": "${workspaceFolder}/build/bin-copy/unittests",
       "internalConsoleOptions": "openOnSessionStart",
       "preLaunchTask": "build"
     },
@@ -72,7 +72,7 @@
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/integtests",
+      "program": "${workspaceFolder}/build/bin-copy/integtests",
       "internalConsoleOptions": "openOnSessionStart",
       "preLaunchTask": "build"
     },
@@ -81,30 +81,30 @@
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/deskflow-server",
+      "program": "${workspaceFolder}/build/bin-copy/deskflow-server",
       "args": ["--config-toml", "deskflow-config.toml"],
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-kill-core"
     },
     {
       "name": "windows - client",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/deskflow-client",
+      "program": "${workspaceFolder}/build/bin-copy/deskflow-client",
       "args": ["--config-toml", "deskflow-config.toml"],
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "kill-build"
+      "preLaunchTask": "build-kill-core"
     },
     {
       "name": "windows - daemon",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/deskflow-daemon",
+      "program": "${workspaceFolder}/build/bin-copy/deskflow-daemon",
       "args": ["-f"],
       "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "build"
+      "preLaunchTask": "build-kill-core"
     },
     {
       "name": "windows - attach",
