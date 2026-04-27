@@ -226,6 +226,17 @@ void DaemonApp::run(QThread &daemonThread)
     LOG_DEBUG("using last known mode: %s", m_mode.toUtf8().constData());
     applyWatchdogCommand();
   }
+
+  // Older daemons accepted `command=` IPC and persisted it here. Clearing
+  // stops a stashed payload from auto-running if the user reverts to one.
+  try {
+    if (!ARCH->setting("Command").empty()) {
+      LOG_DEBUG("clearing legacy Command setting");
+      ARCH->setting("Command", std::string());
+    }
+  } catch (XArch &e) {
+    LOG_ERR("failed to clear legacy Command setting: %s", e.what());
+  }
 #endif
 
   LOG_DEBUG("starting daemon thread");
