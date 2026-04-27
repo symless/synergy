@@ -32,7 +32,10 @@ public:
   bool connectToServer();
   void disconnectFromServer();
   bool sendLogLevel(const QString &logLevel);
-  bool sendStartProcess(const QString &command, ElevateMode elevateMode);
+  bool sendMode(const QString &mode);
+  bool sendArgs(const QString &args);
+  bool sendElevate(ElevateMode elevateMode);
+  bool sendStartProcess();
   bool sendStopProcess();
   bool sendClearSettings();
   QString requestLogPath();

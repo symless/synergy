@@ -64,8 +64,9 @@ private:
   int mainLoop();
   int daemonLoop();
   void saveLogLevel(const QString &logLevel) const;
+  void setMode(const QString &mode);
+  void setArgs(const QString &args);
   void setElevate(bool elevate);
-  void setCommand(const QString &command);
   void applyWatchdogCommand() const;
   void clearWatchdogCommand();
   void clearSettings() const;
@@ -79,7 +80,8 @@ private:
   IEventQueue &m_events;
   FileLogOutputter *m_pFileLogOutputter = nullptr;
   deskflow::core::ipc::DaemonIpcServer *m_ipcServer = nullptr;
-  std::string m_command = "";
+  QString m_mode;
+  QString m_args;
   bool m_elevate = false;
   bool m_foreground = false;
 };
