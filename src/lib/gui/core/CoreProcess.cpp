@@ -278,7 +278,7 @@ void CoreProcess::startForegroundProcess(const QString &app, const QStringList &
   }
 }
 
-void CoreProcess::startProcessFromDaemon(const QString & /*app*/, const QStringList &args)
+void CoreProcess::startProcessFromDaemon(const QStringList &args)
 {
   using enum ProcessState;
 
@@ -422,7 +422,7 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   if (processMode == ProcessMode::kDesktop) {
     startForegroundProcess(app, args);
   } else if (processMode == ProcessMode::kService) {
-    startProcessFromDaemon(app, args);
+    startProcessFromDaemon(args);
   }
 
   m_lastProcessMode = processMode;
