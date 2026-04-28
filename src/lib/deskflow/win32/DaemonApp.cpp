@@ -105,6 +105,7 @@ void DaemonApp::applyWatchdogCommand() const
   }
 
   const auto appDir = QCoreApplication::applicationDirPath();
+
 #ifdef BUILD_UNIFIED
   const auto binName = QStringLiteral(CORE_BINARY_NAME ".exe");
 #else
