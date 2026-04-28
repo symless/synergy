@@ -105,45 +105,26 @@ void DaemonApp::applyWatchdogCommand() const
   }
 
   const auto appDir = QCoreApplication::applicationDirPath();
-  const auto splitBinName = (m_mode == "server") //
-                                ? QStringLiteral(SERVER_BINARY_NAME ".exe")
-                                : QStringLiteral(CLIENT_BINARY_NAME ".exe");
-  const auto coreBinName = QStringLiteral(CORE_BINARY_NAME ".exe");
+#ifdef BUILD_UNIFIED
+  const auto binName = QStringLiteral(CORE_BINARY_NAME ".exe");
+#else
+  QString binName;
+  if (m_mode == "server") {
+    binName = QStringLiteral(SERVER_BINARY_NAME ".exe");
+  } else if (m_mode == "client") {
+    binName = QStringLiteral(CLIENT_BINARY_NAME ".exe");
+  }
+#endif
 
-  const auto splitBinPath = QStringLiteral("%1/%2").arg(appDir, splitBinName);
-  const auto coreBinPath = QStringLiteral("%1/%2").arg(appDir, coreBinName);
-
-  const bool splitExists = std::filesystem::exists(splitBinPath.toStdString());
-  const bool coreExists = std::filesystem::exists(coreBinPath.toStdString());
-
-  LOG_INFO("watchdog binary probe: appDir=%s", appDir.toUtf8().constData());
-  LOG_INFO(
-      "watchdog binary probe: split=%s exists=%s", splitBinPath.toUtf8().constData(), splitExists ? "yes" : "no"
-  );
-  LOG_INFO(
-      "watchdog binary probe: core=%s exists=%s", coreBinPath.toUtf8().constData(), coreExists ? "yes" : "no"
-  );
-
-  std::string command;
-  const char *chosen = nullptr;
-  if (splitExists) {
-    chosen = "split";
-    command = QStringLiteral("\"%1\" %2").arg(splitBinPath, m_args).toStdString();
-  } else if (coreExists) {
-    // Unified build (BUILD_UNIFIED): no separate server/client exe is produced, so dispatch
-    // through the core binary using its server|client subcommand.
-    chosen = "core";
-    command = QStringLiteral("\"%1\" %2 %3").arg(coreBinPath, m_mode, m_args).toStdString();
-  } else {
-    LOG_ERR(
-        "cannot apply watchdog command: neither %s nor %s found in %s", //
-        splitBinName.toUtf8().constData(), coreBinName.toUtf8().constData(), appDir.toUtf8().constData()
-    );
+  const auto binPath = QStringLiteral("%1/%2").arg(appDir, binName);
+  if (!std::filesystem::exists(binPath.toStdString())) {
+    LOG_ERR("cannot apply watchdog command: binary does not exist at path: %s", binPath.toUtf8().constData());
     return;
   }
 
-  LOG_INFO("watchdog binary chosen: %s", chosen);
-  LOG_INFO("watchdog command (elevate: %s): %s", m_elevate ? "yes" : "no", command.c_str());
+  const auto command = QStringLiteral("\"%1\" %2").arg(binPath, m_args).toStdString();
+
+  LOG_INFO("running command (%s): %s", m_elevate ? "elevated" : "non-elevated", command.c_str());
   m_pWatchdog->setProcessConfig(command, m_elevate);
 #else
   LOG_ERR("applying watchdog command not implemented on this platform");

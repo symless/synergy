@@ -17,6 +17,7 @@
 add_subdirectory(deskflow-daemon)
 
 if(BUILD_UNIFIED)
+  add_definitions(-DBUILD_UNIFIED)
   add_subdirectory(deskflow-core)
 else()
   add_subdirectory(deskflow-client)
