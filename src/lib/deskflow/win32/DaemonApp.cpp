@@ -123,7 +123,11 @@ void DaemonApp::applyWatchdogCommand() const
     return;
   }
 
+#ifdef BUILD_UNIFIED
+  const auto command = QStringLiteral("\"%1\" %2 %3").arg(binPath, m_mode, m_args).toStdString();
+#else
   const auto command = QStringLiteral("\"%1\" %2").arg(binPath, m_args).toStdString();
+#endif
 
   LOG_INFO("running command (%s): %s", m_elevate ? "elevated" : "non-elevated", command.c_str());
   m_pWatchdog->setProcessConfig(command, m_elevate);
