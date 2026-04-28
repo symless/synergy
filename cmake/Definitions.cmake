@@ -214,4 +214,8 @@ macro(configure_options)
   option(BUILD_UNIFIED "Build unified binary" ${DEFAULT_BUILD_UNIFIED})
   option(ENABLE_COVERAGE "Enable test coverage" ${DEFAULT_ENABLE_COVERAGE})
 
+  if(BUILD_UNIFIED)
+    add_compile_definitions(BUILD_UNIFIED)
+  endif()
+
 endmacro()
