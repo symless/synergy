@@ -1,5 +1,13 @@
 # Synergy — collaboration notes
 
+## Working style
+
+- **Never configure or build unless explicitly asked.** No `cmake`, `cmake --build`, `make`, `ninja`, etc. After code changes, stop at the edit and ask the user to build manually.
+
+## GitHub Actions
+
+- `matrix` context is NOT available in job-level `if` — the `if` runs before the matrix is expanded. Use step-level `if` conditions instead (e.g. set a `skip` output in a setup step and check it per-step).
+
 ## Code style
 
 - Default to **no comments**. Only add one when the WHY is non-obvious — hidden constraints, subtle invariants, workarounds for specific bugs, behavior that would surprise a reader. Never add comments that explain WHAT or HOW (well-named identifiers do that).
