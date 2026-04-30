@@ -278,7 +278,7 @@ void CoreProcess::startForegroundProcess(const QString &app, const QStringList &
   }
 }
 
-void CoreProcess::startProcessFromDaemon(const QString &app, const QStringList &args)
+void CoreProcess::startProcessFromDaemon(const QStringList &args)
 {
   using enum ProcessState;
 
@@ -286,12 +286,26 @@ void CoreProcess::startProcessFromDaemon(const QString &app, const QStringList &
     qFatal("core process must be in starting state");
   }
 
-  QString commandQuoted = makeQuotedArgs(app, args);
+  const QString modeStr = (mode() == Mode::Server) ? QStringLiteral("server") : QStringLiteral("client");
+  const QString argsQuoted = makeQuotedArgs(QString(), args).trimmed();
 
-  qInfo("running command: %s", qPrintable(commandQuoted));
+  qInfo("sending start to daemon (mode: %s)", qPrintable(modeStr));
+  qDebug("daemon args: %s", qPrintable(argsQuoted));
 
-  if (!m_daemonIpcClient->sendStartProcess(commandQuoted, m_appConfig.elevateMode())) {
-    qWarning("cannot start process, ipc command failed");
+  if (!m_daemonIpcClient->sendMode(modeStr)) {
+    qWarning("cannot start process, ipc sendMode failed");
+    return;
+  }
+  if (!m_daemonIpcClient->sendArgs(argsQuoted)) {
+    qWarning("cannot start process, ipc sendArgs failed");
+    return;
+  }
+  if (!m_daemonIpcClient->sendElevate(m_appConfig.elevateMode())) {
+    qWarning("cannot start process, ipc sendElevate failed");
+    return;
+  }
+  if (!m_daemonIpcClient->sendStartProcess()) {
+    qWarning("cannot start process, ipc start failed");
     return;
   }
 
@@ -408,7 +422,7 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   if (processMode == ProcessMode::kDesktop) {
     startForegroundProcess(app, args);
   } else if (processMode == ProcessMode::kService) {
-    startProcessFromDaemon(app, args);
+    startProcessFromDaemon(args);
   }
 
   m_lastProcessMode = processMode;

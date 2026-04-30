@@ -121,10 +121,12 @@ void DaemonIpcServer::processMessage(QLocalSocket *clientSocket, const QString &
     clientSocket->write(kAckMessage);
   } else if (command == "logLevel") {
     processLogLevel(clientSocket, parts);
+  } else if (command == "mode") {
+    processMode(clientSocket, parts);
+  } else if (command == "args") {
+    processArgs(clientSocket, message);
   } else if (command == "elevate") {
     processElevate(clientSocket, parts);
-  } else if (command == "command") {
-    processCommand(clientSocket, parts);
   } else if (command == "start") {
     LOG_DEBUG("ipc server got start message");
     Q_EMIT startProcessRequested();
@@ -167,6 +169,42 @@ void DaemonIpcServer::processLogLevel(QLocalSocket *&clientSocket, const QString
   clientSocket->write(kAckMessage);
 }
 
+void DaemonIpcServer::processMode(QLocalSocket *&clientSocket, const QStringList &messageParts)
+{
+  if (messageParts.size() < 2) {
+    LOG_ERR("ipc server got invalid mode message");
+    clientSocket->write(kErrorMessage);
+    return;
+  }
+
+  const auto &mode = messageParts[1];
+  if (mode != "server" && mode != "client") {
+    LOG_ERR("ipc server got invalid mode value: %s", mode.toUtf8().constData());
+    clientSocket->write(kErrorMessage);
+    return;
+  }
+
+  LOG_DEBUG("ipc server got new mode value: %s", mode.toUtf8().constData());
+  Q_EMIT modeChanged(mode);
+  clientSocket->write(kAckMessage);
+}
+
+void DaemonIpcServer::processArgs(QLocalSocket *&clientSocket, const QString &message)
+{
+  // Slice on first '=' (not split) so arg values like `--key=value` survive.
+  const auto eqIdx = message.indexOf('=');
+  if (eqIdx < 0) {
+    LOG_ERR("ipc server got invalid args message");
+    clientSocket->write(kErrorMessage);
+    return;
+  }
+
+  const auto args = message.mid(eqIdx + 1);
+  LOG_DEBUG("ipc server got new args");
+  Q_EMIT argsChanged(args);
+  clientSocket->write(kAckMessage);
+}
+
 void DaemonIpcServer::processElevate(QLocalSocket *&clientSocket, const QStringList &messageParts)
 {
   if (messageParts.size() < 2) {
@@ -184,26 +222,6 @@ void DaemonIpcServer::processElevate(QLocalSocket *&clientSocket, const QStringL
 
   LOG_DEBUG("ipc server got new elevate value: %s", elevate.toUtf8().constData());
   Q_EMIT elevateModeChanged(elevate == "yes");
-  clientSocket->write(kAckMessage);
-}
-
-void DaemonIpcServer::processCommand(QLocalSocket *&clientSocket, const QStringList &messageParts)
-{
-  if (messageParts.size() < 2) {
-    LOG_ERR("ipc server got invalid command message");
-    clientSocket->write(kErrorMessage);
-    return;
-  }
-
-  const auto &command = messageParts[1];
-  if (command.isEmpty()) {
-    LOG_ERR("ipc server got empty command");
-    clientSocket->write(kErrorMessage);
-    return;
-  }
-
-  LOG_DEBUG("ipc server got new command: %s", command.toUtf8().constData());
-  Q_EMIT commandChanged(command);
   clientSocket->write(kAckMessage);
 }
 

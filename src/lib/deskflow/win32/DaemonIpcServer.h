@@ -26,8 +26,9 @@ public:
 
 signals:
   void logLevelChanged(const QString &logLevel);
+  void modeChanged(const QString &mode);
+  void argsChanged(const QString &args);
   void elevateModeChanged(bool elevate);
-  void commandChanged(const QString &command);
   void startProcessRequested();
   void stopProcessRequested();
   void clearSettingsRequested();
@@ -35,8 +36,9 @@ signals:
 private:
   void processMessage(QLocalSocket *clientSocket, const QString &message);
   void processLogLevel(QLocalSocket *&clientSocket, const QStringList &messageParts);
+  void processMode(QLocalSocket *&clientSocket, const QStringList &messageParts);
+  void processArgs(QLocalSocket *&clientSocket, const QString &message);
   void processElevate(QLocalSocket *&clientSocket, const QStringList &messageParts);
-  void processCommand(QLocalSocket *&clientSocket, const QStringList &messageParts);
 
 private slots:
   void handleNewConnection();

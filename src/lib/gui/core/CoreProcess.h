@@ -141,7 +141,7 @@ private slots:
 
 private:
   void startForegroundProcess(const QString &app, const QStringList &args);
-  void startProcessFromDaemon(const QString &app, const QStringList &args);
+  void startProcessFromDaemon(const QStringList &args);
   void stopForegroundProcess() const;
   void stopProcessFromDaemon();
   bool addGenericArgs(QStringList &args, const ProcessMode processMode) const;

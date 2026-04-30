@@ -20,3 +20,6 @@ deskflow-config.toml
 /scripts/*.egg-info
 /*.user
 *.ui.autosave
+
+# AI
+.claude/settings.local.json

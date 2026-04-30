@@ -183,18 +183,34 @@ bool DaemonIpcClient::sendLogLevel(const QString &logLevel)
   return true;
 }
 
-bool DaemonIpcClient::sendStartProcess(const QString &command, ElevateMode elevateMode)
+bool DaemonIpcClient::sendMode(const QString &mode)
 {
   if (!keepAlive())
     return false;
 
-  if (!sendMessage("elevate=" + (elevateMode == ElevateMode::kAlways ? QStringLiteral("yes") : QStringLiteral("no")))) {
-    return false;
-  }
+  return sendMessage("mode=" + mode);
+}
 
-  if (!sendMessage("command=" + command)) {
+bool DaemonIpcClient::sendArgs(const QString &args)
+{
+  if (!keepAlive())
     return false;
-  }
+
+  return sendMessage("args=" + args);
+}
+
+bool DaemonIpcClient::sendElevate(ElevateMode elevateMode)
+{
+  if (!keepAlive())
+    return false;
+
+  return sendMessage("elevate=" + (elevateMode == ElevateMode::kAlways ? QStringLiteral("yes") : QStringLiteral("no")));
+}
+
+bool DaemonIpcClient::sendStartProcess()
+{
+  if (!keepAlive())
+    return false;
 
   return sendMessage("start");
 }

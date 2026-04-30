@@ -27,6 +27,8 @@
 #include <iostream>
 #include <string>
 
+#include <QCoreApplication>
+
 using namespace std;
 using namespace deskflow::core;
 
@@ -55,6 +57,32 @@ void DaemonApp::saveLogLevel(const QString &logLevel) const
   }
 }
 
+void DaemonApp::setMode(const QString &mode)
+{
+  LOG_DEBUG("mode changed: %s", mode.toUtf8().constData());
+  m_mode = mode;
+
+  try {
+    // saves setting for next time the daemon starts.
+    ARCH->setting("Mode", mode.toStdString());
+  } catch (XArch &e) {
+    LOG_ERR("failed to save mode setting: %s", e.what());
+  }
+}
+
+void DaemonApp::setArgs(const QString &args)
+{
+  LOG_DEBUG("args updated");
+  m_args = args;
+
+  try {
+    // saves setting for next time the daemon starts.
+    ARCH->setting("Args", args.toStdString());
+  } catch (XArch &e) {
+    LOG_ERR("failed to save args setting: %s", e.what());
+  }
+}
+
 void DaemonApp::setElevate(bool elevate)
 {
   LOG_DEBUG("elevate value changed: %s", elevate ? "yes" : "no");
@@ -68,25 +96,41 @@ void DaemonApp::setElevate(bool elevate)
   }
 }
 
-void DaemonApp::setCommand(const QString &command)
-{
-  LOG_DEBUG("service command updated");
-  m_command = command.toStdString();
-
-  try {
-    // saves setting for next time the daemon starts.
-    ARCH->setting("Command", command.toStdString());
-  } catch (XArch &e) {
-    LOG_ERR("failed to save command setting: %s", e.what());
-  }
-}
-
 void DaemonApp::applyWatchdogCommand() const
 {
-  LOG_DEBUG("applying watchdog command");
-
 #if SYSAPI_WIN32
-  m_pWatchdog->setProcessConfig(m_command, m_elevate);
+  if (m_mode != "server" && m_mode != "client") {
+    LOG_ERR("cannot apply watchdog command: invalid or unset mode: %s", m_mode.toUtf8().constData());
+    return;
+  }
+
+  const auto appDir = QCoreApplication::applicationDirPath();
+
+#ifdef BUILD_UNIFIED
+  const auto binName = QStringLiteral(CORE_BINARY_NAME ".exe");
+#else
+  QString binName;
+  if (m_mode == "server") {
+    binName = QStringLiteral(SERVER_BINARY_NAME ".exe");
+  } else if (m_mode == "client") {
+    binName = QStringLiteral(CLIENT_BINARY_NAME ".exe");
+  }
+#endif
+
+  const auto binPath = QStringLiteral("%1/%2").arg(appDir, binName);
+  if (!std::filesystem::exists(binPath.toStdString())) {
+    LOG_ERR("cannot apply watchdog command: binary does not exist at path: %s", binPath.toUtf8().constData());
+    return;
+  }
+
+#ifdef BUILD_UNIFIED
+  const auto command = QStringLiteral("\"%1\" %2 %3").arg(binPath, m_mode, m_args).toStdString();
+#else
+  const auto command = QStringLiteral("\"%1\" %2").arg(binPath, m_args).toStdString();
+#endif
+
+  LOG_INFO("running command (%s): %s", m_elevate ? "elevated" : "non-elevated", command.c_str());
+  m_pWatchdog->setProcessConfig(command, m_elevate);
 #else
   LOG_ERR("applying watchdog command not implemented on this platform");
 #endif
@@ -96,8 +140,16 @@ void DaemonApp::clearWatchdogCommand()
 {
   LOG_DEBUG("clearing watchdog command");
 
-  // Clear the setting to prevent it from being next time the daemon starts.
-  setCommand("");
+  m_mode.clear();
+  m_args.clear();
+  m_elevate = false;
+  try {
+    ARCH->setting("Mode", std::string());
+    ARCH->setting("Args", std::string());
+    ARCH->setting("Elevate", std::string("0"));
+  } catch (XArch &e) {
+    LOG_ERR("failed to clear watchdog settings: %s", e.what());
+  }
 
 #if SYSAPI_WIN32
   m_pWatchdog->setProcessConfig("", false);
@@ -121,11 +173,15 @@ void DaemonApp::connectIpcServer(const ipc::DaemonIpcServer *ipcServer) const
       Qt::DirectConnection
   );
   QObject::connect(
-      ipcServer, &ipc::DaemonIpcServer::elevateModeChanged, this, &DaemonApp::setElevate, //
+      ipcServer, &ipc::DaemonIpcServer::modeChanged, this, &DaemonApp::setMode, //
       Qt::DirectConnection
   );
   QObject::connect(
-      ipcServer, &ipc::DaemonIpcServer::commandChanged, this, &DaemonApp::setCommand, //
+      ipcServer, &ipc::DaemonIpcServer::argsChanged, this, &DaemonApp::setArgs, //
+      Qt::DirectConnection
+  );
+  QObject::connect(
+      ipcServer, &ipc::DaemonIpcServer::elevateModeChanged, this, &DaemonApp::setElevate, //
       Qt::DirectConnection
   );
   QObject::connect(
@@ -180,11 +236,23 @@ void DaemonApp::run(QThread &daemonThread)
 #if SYSAPI_WIN32
   m_pWatchdog = std::make_unique<MSWindowsWatchdog>(m_foreground, *m_pFileLogOutputter);
 
-  std::string command = ARCH->setting("Command");
-  bool elevate = ARCH->setting("Elevate") == "1";
-  if (!command.empty()) {
-    LOG_DEBUG("using last known command: %s", command.c_str());
-    m_pWatchdog->setProcessConfig(command, elevate);
+  m_mode = QString::fromStdString(ARCH->setting("Mode"));
+  m_args = QString::fromStdString(ARCH->setting("Args"));
+  m_elevate = ARCH->setting("Elevate") == "1";
+  if (!m_mode.isEmpty()) {
+    LOG_DEBUG("using last known mode: %s", m_mode.toUtf8().constData());
+    applyWatchdogCommand();
+  }
+
+  // Older daemons accepted `command=` IPC and persisted it here. Clearing
+  // stops a stashed payload from auto-running if the user reverts to one.
+  try {
+    if (!ARCH->setting("Command").empty()) {
+      LOG_DEBUG("clearing legacy Command setting");
+      ARCH->setting("Command", std::string());
+    }
+  } catch (XArch &e) {
+    LOG_ERR("failed to clear legacy Command setting: %s", e.what());
   }
 #endif
 
