@@ -24,6 +24,7 @@
 #include "base/Log.h"
 #include "base/String.h"
 #include "base/TMethodEventJob.h"
+#include "common/constants.h"
 #include "mt/Thread.h"
 #include "platform/MSWindowsDesks.h"
 
@@ -768,7 +769,7 @@ bool MSWindowsKeyState::fakeCtrlAltDel()
   // current thread must be on that desktop to do the broadcast
   // and we can't switch just any thread because some own windows
   // or hooks.  so start a new thread to do the real work.
-  HANDLE hEvtSendSas = OpenEvent(EVENT_MODIFY_STATE, FALSE, "Global\\SendSAS");
+  HANDLE hEvtSendSas = OpenEvent(EVENT_MODIFY_STATE, FALSE, kSendSasEventName);
   if (hEvtSendSas) {
     LOG((CLOG_DEBUG "found the SendSAS event - signaling my launcher to "
                     "simulate ctrl+alt+del"));
