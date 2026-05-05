@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include <QMutex>
 #include <QObject>
 
 #include "gui/config/ElevateMode.h"
@@ -59,6 +60,7 @@ private:
 
 private:
   QLocalSocket *m_socket;
+  QMutex m_mutex;
   State m_state{State::Unconnected};
 };
 
