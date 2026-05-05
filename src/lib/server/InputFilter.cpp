@@ -24,6 +24,7 @@
 #include "server/PrimaryClient.h"
 #include "server/Server.h"
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
