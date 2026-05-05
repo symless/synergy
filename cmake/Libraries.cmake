@@ -341,6 +341,10 @@ macro(check_libportal)
   check_symbol_exists(xdp_input_capture_session_connect_to_eis
                       "libportal/inputcapture.h" HAVE_LIBPORTAL_INPUTCAPTURE)
 
+  check_symbol_exists(
+    xdp_input_capture_session_get_restore_token "libportal/inputcapture.h"
+    HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE)
+
   # check_symbol_exists can’t check for enum values
   check_cxx_source_compiles(
     "#include <libportal/portal.h>

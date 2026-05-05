@@ -50,6 +50,8 @@ private:
   void glib_thread(void *);
   gboolean timeout_handler();
   gboolean init_input_capture_session();
+  void setup_input_capture_session(XdpInputCaptureSession *session);
+  void cb_start_input_capture_session(GObject *object, GAsyncResult *res);
   void cb_init_input_capture_session(GObject *object, GAsyncResult *res);
   void cb_set_pointer_barriers(GObject *object, GAsyncResult *res);
   void cb_session_closed(XdpSession *session);
@@ -87,6 +89,7 @@ private:
 private:
   EiScreen *screen_ = nullptr;
   IEventQueue *events_ = nullptr;
+  int portal_version_ = 0;
 
   Thread *glib_thread_;
   GMainLoop *glib_main_loop_ = nullptr;

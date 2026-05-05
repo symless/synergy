@@ -20,6 +20,7 @@
 
 #if HAVE_LIBPORTAL_INPUTCAPTURE
 
+#include "arch/Arch.h"
 #include "base/Event.h"
 #include "base/Log.h"
 #include "base/TMethodJob.h"
@@ -29,6 +30,10 @@
 #include <sys/un.h>     // for EIS fd hack, remove
 
 namespace deskflow {
+
+#ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
+static const char *kXdpRestoreTokenSetting = "xdpInputCaptureRestoreToken";
+#endif
 
 enum signals
 {
@@ -130,20 +135,9 @@ void PortalInputCapture::cb_session_closed(XdpSession *session)
   signals_[SESSION_CLOSED] = 0;
 }
 
-void PortalInputCapture::cb_init_input_capture_session(GObject *object, GAsyncResult *res)
+void PortalInputCapture::setup_input_capture_session(XdpInputCaptureSession *session)
 {
-  LOG_DEBUG("portal input capture session initialized");
   g_autoptr(GError) error = nullptr;
-
-  auto session = xdp_portal_create_input_capture_session_finish(XDP_PORTAL(object), res, &error);
-  if (!session) {
-    LOG_ERR("failed to initialize input capture session, quitting: %s", error->message);
-    g_main_loop_quit(glib_main_loop_);
-    events_->addEvent(Event::kQuit);
-    return;
-  }
-
-  session_ = session;
 
   auto fd = xdp_input_capture_session_connect_to_eis(session, &error);
   if (fd < 0) {
@@ -175,6 +169,50 @@ void PortalInputCapture::cb_init_input_capture_session(GObject *object, GAsyncRe
 
   cb_zones_changed(session_, nullptr);
 }
+
+void PortalInputCapture::cb_init_input_capture_session(GObject *object, GAsyncResult *res)
+{
+  LOG_DEBUG("portal input capture session initialized");
+  g_autoptr(GError) error = nullptr;
+
+  auto session = xdp_portal_create_input_capture_session_finish(XDP_PORTAL(object), res, &error);
+  if (!session) {
+    LOG_ERR("failed to initialize input capture session, quitting: %s", error->message);
+    g_main_loop_quit(glib_main_loop_);
+    events_->addEvent(Event::kQuit);
+    return;
+  }
+
+  session_ = session;
+
+  setup_input_capture_session(session);
+}
+
+#ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
+void PortalInputCapture::cb_start_input_capture_session(GObject *object, GAsyncResult *res)
+{
+  g_autoptr(GError) error = nullptr;
+
+  LOG_DEBUG("portal input capture session started");
+  if (!xdp_input_capture_session_start_finish(session_, res, &error)) {
+    LOG_ERR("failed to start input capture session, quitting: %s", error->message);
+    g_main_loop_quit(glib_main_loop_);
+    events_->addEvent(Event::kQuit);
+    return;
+  }
+
+  auto restore_token = xdp_input_capture_session_get_restore_token(session_);
+  if (restore_token) {
+    LOG_DEBUG("saving xdp input capture restore token");
+    ARCH->setting(kXdpRestoreTokenSetting, restore_token);
+  }
+  setup_input_capture_session(session_);
+}
+#else
+void PortalInputCapture::cb_start_input_capture_session(GObject *, GAsyncResult *)
+{
+}
+#endif
 
 void PortalInputCapture::cb_set_pointer_barriers(GObject *object, GAsyncResult *res)
 {
@@ -210,6 +248,65 @@ void PortalInputCapture::cb_set_pointer_barriers(GObject *object, GAsyncResult *
 gboolean PortalInputCapture::init_input_capture_session()
 {
   LOG_DEBUG("setting up input capture session");
+
+#ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
+  g_autoptr(GError) error = nullptr;
+
+  portal_version_ = xdp_portal_get_input_capture_version_sync(
+      portal_,
+      nullptr, // cancellable
+      nullptr
+  );
+  LOG_DEBUG("input capture version %d", portal_version_);
+
+  switch (portal_version_) {
+  case 0:
+    LOG_WARN("portal bug: input capture version is %d", portal_version_);
+    // fallthrough
+  case 1:
+    xdp_portal_create_input_capture_session(
+        portal_,
+        nullptr, // parent
+        static_cast<XdpInputCapability>(XDP_INPUT_CAPABILITY_KEYBOARD | XDP_INPUT_CAPABILITY_POINTER),
+        nullptr, // cancellable
+        [](GObject *obj, GAsyncResult *res, gpointer data) {
+          reinterpret_cast<PortalInputCapture *>(data)->cb_init_input_capture_session(obj, res);
+        },
+        this
+    );
+    break;
+  default: {
+    auto session = xdp_portal_create_input_capture_session2_sync(
+        portal_,
+        nullptr, // cancellable
+        &error
+    );
+    if (!session) {
+      LOG_ERR("failed to initialize input capture session, quitting: %s", error->message);
+      g_main_loop_quit(glib_main_loop_);
+      events_->addEvent(Event::kQuit);
+      return false;
+    }
+    session_ = session;
+    xdp_input_capture_session_set_session_persistence(session, XDP_INPUT_CAPTURE_SESSION_PERSISTENCE_PERSISTENT);
+    if (auto session_token = ARCH->setting(kXdpRestoreTokenSetting); !session_token.empty()) {
+      LOG_DEBUG("restoring xdp input capture session with stored token");
+      xdp_input_capture_session_set_restore_token(session, strdup(session_token.c_str()));
+    }
+    xdp_input_capture_session_start(
+        session_,
+        nullptr, // parent
+        static_cast<XdpInputCapability>(XDP_INPUT_CAPABILITY_KEYBOARD | XDP_INPUT_CAPABILITY_POINTER),
+        nullptr, // cancellable
+        [](GObject *obj, GAsyncResult *res, gpointer data) {
+          reinterpret_cast<PortalInputCapture *>(data)->cb_start_input_capture_session(obj, res);
+        },
+        this
+    );
+    break;
+  }
+  }
+#else
   xdp_portal_create_input_capture_session(
       portal_,
       nullptr, // parent
@@ -220,6 +317,7 @@ gboolean PortalInputCapture::init_input_capture_session()
       },
       this
   );
+#endif
 
   return false;
 }

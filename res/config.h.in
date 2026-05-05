@@ -194,4 +194,7 @@
 /* Define if libportal has input capture support */
 #cmakedefine HAVE_LIBPORTAL_INPUTCAPTURE ${HAVE_LIBPORTAL_INPUTCAPTURE}
 
+/* Define if libportal has input capture session persistence support */
+#cmakedefine HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE ${HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE}
+
 // clang-format on
