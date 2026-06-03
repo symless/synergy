@@ -33,6 +33,7 @@
 #include <mach/mach_interface.h>
 #include <mach/mach_port.h>
 #include <memory>
+#include <thread>
 
 extern "C"
 {
@@ -327,6 +328,8 @@ private:
   // Quartz input event support
   CFMachPortRef m_eventTapPort;
   CFRunLoopSourceRef m_eventTapRLSR;
+  std::thread m_eventTapThread;
+  CFRunLoopRef m_eventTapRunLoop = nullptr;
 
   // for double click coalescing.
   double m_lastClickTime;
