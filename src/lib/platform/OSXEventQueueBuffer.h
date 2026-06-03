@@ -20,7 +20,10 @@
 
 #include "base/IEventQueueBuffer.h"
 
-#include <Carbon/Carbon.h>
+#include <condition_variable>
+#include <dispatch/dispatch.h>
+#include <mutex>
+#include <queue>
 
 class IEventQueue;
 
@@ -32,16 +35,18 @@ public:
   virtual ~OSXEventQueueBuffer();
 
   // IEventQueueBuffer overrides
-  virtual void init();
-  virtual void waitForEvent(double timeout);
-  virtual Type getEvent(Event &event, UInt32 &dataID);
-  virtual bool addEvent(UInt32 dataID);
-  virtual bool isEmpty() const;
-  virtual EventQueueTimer *newTimer(double duration, bool oneShot) const;
-  virtual void deleteTimer(EventQueueTimer *) const;
+  virtual void init() override;
+  virtual void waitForEvent(double timeout) override;
+  virtual Type getEvent(Event &event, UInt32 &dataID) override;
+  virtual bool addEvent(UInt32 dataID) override;
+  virtual bool isEmpty() const override;
+  virtual EventQueueTimer *newTimer(double duration, bool oneShot) const override;
+  virtual void deleteTimer(EventQueueTimer *timer) const override;
 
 private:
-  EventRef m_event;
   IEventQueue *m_eventQueue;
-  EventQueueRef m_carbonEventQueue;
+
+  mutable std::mutex m_mutex;
+  std::condition_variable m_cond;
+  std::queue<UInt32> m_dataQueue;
 };
