@@ -165,6 +165,7 @@ void SettingsDialog::accept()
   m_appConfig.setInvertConnection(m_pCheckBoxInvertConnection->isChecked());
   m_appConfig.setEnableDragAndDrop(m_pCheckBoxDragAndDrop->isChecked());
   m_appConfig.setEnableLibei(m_pCheckBoxUseLibei->isChecked());
+  m_appConfig.setUpdateTrack(m_pComboUpdateTrack->currentIndex() == 1 ? "beta" : "stable");
 
   QDialog::accept();
 }
@@ -186,6 +187,7 @@ void SettingsDialog::loadFromConfig()
   m_pComboElevate->setCurrentIndex(static_cast<int>(m_appConfig.elevateMode()));
   m_pCheckBoxDragAndDrop->setChecked(m_appConfig.enableDragAndDrop());
   m_pCheckBoxUseLibei->setChecked(m_appConfig.enableLibei());
+  m_pComboUpdateTrack->setCurrentIndex(m_appConfig.updateTrack() == "beta" ? 1 : 0);
 
   // Toggle handler is not meant for programmatic changes.
   m_pRadioSystemScope->blockSignals(true);
@@ -343,6 +345,8 @@ void SettingsDialog::updateControls()
   m_pCheckBoxInvertConnection->setEnabled(writable);
   m_pCheckBoxDragAndDrop->setEnabled(writable);
   m_pCheckBoxUseLibei->setEnabled(writable);
+
+  m_pComboUpdateTrack->setEnabled(writable);
 
 #ifdef Q_OS_LINUX
   m_pCheckBoxDragAndDrop->setEnabled(false);

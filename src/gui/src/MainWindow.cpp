@@ -1137,7 +1137,7 @@ void MainWindow::checkForUpdates()
   if (!fakeVersion.isEmpty()) {
     m_VersionChecker.fakeCheck(fakeVersion);
   } else {
-    m_VersionChecker.checkLatest();
+    m_VersionChecker.checkLatest(m_AppConfig.updateTrack());
   }
 }
 

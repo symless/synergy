@@ -39,7 +39,7 @@ class VersionChecker : public QObject
 
 public:
   explicit VersionChecker(std::shared_ptr<QNetworkAccessManagerProxy> network = nullptr);
-  void checkLatest() const;
+  void checkLatest(const QString &track = "stable") const;
   void fakeCheck(const QString &fakeVersion);
 public slots:
   void replyFinished(QNetworkReply *reply);

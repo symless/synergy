@@ -95,6 +95,7 @@ const char *const AppConfig::m_SettingsName[] = {
     "enableUpdateCheck",
     "enableDragAndDrop",
     "enableLibei",
+    "updateTrack",
 };
 
 AppConfig::AppConfig(deskflow::gui::ISettings &settings, std::shared_ptr<Deps> deps)
@@ -144,6 +145,7 @@ void AppConfig::recall()
   m_ShowDevThanks = get(kShowDevThanks, m_ShowDevThanks).toBool();
   m_ShowCloseReminder = get(kShowCloseReminder, m_ShowCloseReminder).toBool();
   m_EnableUpdateCheck = get<bool>(kEnableUpdateCheck, [](const QVariant &v) { return v.toBool(); });
+  m_UpdateTrack = get(kUpdateTrack, m_UpdateTrack).toString();
   m_EnableDragAndDrop = get(kEnableDragAndDrop, m_EnableDragAndDrop).toBool();
   m_EnableLibei = get(kEnableLibei, m_EnableLibei).toBool();
 
@@ -218,6 +220,7 @@ void AppConfig::commit()
     set(kShowCloseReminder, m_ShowCloseReminder);
     set(kEnableDragAndDrop, m_EnableDragAndDrop);
     set(kEnableLibei, m_EnableLibei);
+    set(kUpdateTrack, m_UpdateTrack);
   }
 
   if (m_TlsChanged) {
@@ -481,6 +484,11 @@ std::optional<bool> AppConfig::enableUpdateCheck() const
   return m_EnableUpdateCheck;
 }
 
+QString AppConfig::updateTrack() const
+{
+  return m_UpdateTrack;
+}
+
 bool AppConfig::enableDragAndDrop() const
 {
   return m_EnableDragAndDrop;
@@ -673,6 +681,11 @@ void AppConfig::setShowCloseReminder(bool value)
 void AppConfig::setEnableUpdateCheck(bool value)
 {
   m_EnableUpdateCheck = value;
+}
+
+void AppConfig::setUpdateTrack(const QString &value)
+{
+  m_UpdateTrack = value;
 }
 
 void AppConfig::setEnableDragAndDrop(bool value)

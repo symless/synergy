@@ -122,6 +122,7 @@ private:
     kEnableUpdateCheck = 43,
     kEnableDragAndDrop = 44,
     kEnableLibei = 45,
+    kUpdateTrack = 46,
   };
 
 public:
@@ -177,6 +178,7 @@ public:
   bool clientGroupChecked() const override;
   bool enableDragAndDrop() const override;
   bool enableLibei() const override;
+  QString updateTrack() const override;
 
   //
   // Getters (new methods)
@@ -236,6 +238,7 @@ public:
   void setShowDevThanks(bool show);
   void setShowCloseReminder(bool show);
   void setEnableUpdateCheck(bool value);
+  void setUpdateTrack(const QString &value) override;
 
   /// @brief Sets the user preference to load from SystemScope.
   /// @param [in] value
@@ -311,6 +314,7 @@ private:
   bool m_IsSystemScope = false;
   bool m_ShowCloseReminder = true;
   std::optional<bool> m_EnableUpdateCheck;
+  QString m_UpdateTrack = "stable";
   bool m_EnableDragAndDrop = false;
   bool m_EnableLibei = deskflow::gui::kDefaultEnableLibei;
 

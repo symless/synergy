@@ -74,6 +74,7 @@ public:
   virtual bool clientGroupChecked() const = 0;
   virtual bool enableDragAndDrop() const = 0;
   virtual bool enableLibei() const = 0;
+  virtual QString updateTrack() const = 0;
 
   //
   // Setters
@@ -99,6 +100,7 @@ public:
   virtual void setInvertConnection(bool invertConnection) = 0;
   virtual void setEnableDragAndDrop(bool enableDragAndDrop) = 0;
   virtual void setEnableLibei(bool enableLibei) = 0;
+  virtual void setUpdateTrack(const QString &updateTrack) = 0;
 };
 
 } // namespace deskflow::gui

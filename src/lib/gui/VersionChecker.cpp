@@ -53,13 +53,18 @@ void VersionChecker::fakeCheck(const QString &fakeVersion)
   }
 }
 
-void VersionChecker::checkLatest() const
+void VersionChecker::checkLatest(const QString &track) const
 {
   QString url = deskflow::gui::env_vars::versionUrl();
 
 #ifdef DESKFLOW_GUI_HOOK_VERSION
   DESKFLOW_GUI_HOOK_VERSION
 #endif
+
+  if (track != "stable") {
+    url += QLatin1Char(url.contains('?') ? '&' : '?');
+    url += QStringLiteral("track=") + track;
+  }
 
   qDebug("checking for updates at: %s", qPrintable(url));
   auto request = QNetworkRequest(url);

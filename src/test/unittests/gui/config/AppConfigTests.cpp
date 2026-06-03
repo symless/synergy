@@ -74,6 +74,19 @@ TEST_F(AppConfigTests, ctor_byDefault_getsFromScope)
   ASSERT_EQ(appConfig.screenName().toStdString(), "test screen");
 }
 
+TEST_F(AppConfigTests, ctor_byDefault_updateTrackIsStable)
+{
+  NiceMock<SettingsMock> settings;
+  auto deps = DepsMock::makeNice();
+  ON_CALL(settings, get(_, _)).WillByDefault([](const QString &, const QVariant &defaultValue) {
+    return defaultValue;
+  });
+
+  AppConfig appConfig(settings, deps);
+
+  ASSERT_EQ(appConfig.updateTrack().toStdString(), "stable");
+}
+
 TEST_F(AppConfigTests, commit_byDefault_setsToScope)
 {
   NiceMock<SettingsMock> settings;

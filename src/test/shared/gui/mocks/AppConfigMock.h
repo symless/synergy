@@ -76,6 +76,7 @@ public:
   MOCK_METHOD(bool, clientGroupChecked, (), (const, override));
   MOCK_METHOD(bool, enableDragAndDrop, (), (const, override));
   MOCK_METHOD(bool, enableLibei, (), (const, override));
+  MOCK_METHOD(QString, updateTrack, (), (const, override));
 
   //
   // Setters
@@ -101,6 +102,7 @@ public:
   MOCK_METHOD(void, setInvertConnection, (bool invertConnection), (override));
   MOCK_METHOD(void, setEnableDragAndDrop, (bool enableDragAndDrop), (override));
   MOCK_METHOD(void, setEnableLibei, (bool enableLibei), (override));
+  MOCK_METHOD(void, setUpdateTrack, (const QString &updateTrack), (override));
 
 private:
   const QString m_stub = "stub";

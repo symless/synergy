@@ -51,6 +51,34 @@ TEST_F(VersionCheckerTests, checkLatest_callsNetworkGet)
   checker.checkLatest();
 }
 
+TEST_F(VersionCheckerTests, checkLatest_stableTrack_omitsTrackParam)
+{
+  TestQtCoreApp app;
+  const auto network = std::make_shared<NiceMock<MockNetworkAccessManager>>();
+  const VersionChecker checker(network);
+
+  QNetworkRequest request;
+  EXPECT_CALL(*network, get(testing::_)).WillOnce(testing::SaveArg<0>(&request));
+
+  checker.checkLatest("stable");
+
+  EXPECT_FALSE(request.url().toString().contains("track="));
+}
+
+TEST_F(VersionCheckerTests, checkLatest_betaTrack_appendsTrackParam)
+{
+  TestQtCoreApp app;
+  const auto network = std::make_shared<NiceMock<MockNetworkAccessManager>>();
+  const VersionChecker checker(network);
+
+  QNetworkRequest request;
+  EXPECT_CALL(*network, get(testing::_)).WillOnce(testing::SaveArg<0>(&request));
+
+  checker.checkLatest("beta");
+
+  EXPECT_TRUE(request.url().toString().contains("track=beta"));
+}
+
 TEST_F(VersionCheckerTests, compareVersions_major_isValid)
 {
   EXPECT_EQ(compareVersions("1.0.0", "2.0.0"), 1);
