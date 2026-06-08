@@ -109,7 +109,6 @@ CoreProcess::CoreProcess(const ServerConfig &serverConfig)
   m_appPath = QStringLiteral("%1/%2").arg(QCoreApplication::applicationDirPath(), kCoreBinName);
   if (!QFile::exists(m_appPath)) {
     qCritical("core server binary does not exist");
-    return;
   }
 
   connect(m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, &CoreProcess::daemonIpcClientConnected);
@@ -219,7 +218,7 @@ void CoreProcess::startForegroundProcess(const QStringList &args)
   using enum ProcessState;
 
   if (m_processState != Starting) {
-    qCritical("core process must be in starting state");
+    qCritical("not starting core desktop process, unexpected process state");
     return;
   }
 
@@ -251,7 +250,7 @@ void CoreProcess::startForegroundProcess(const QStringList &args)
 void CoreProcess::startProcessFromDaemon()
 {
   if (m_processState != ProcessState::Starting) {
-    qCritical("core process must be in starting state");
+    qCritical("not starting core process from daemon, unexpected process state");
     return;
   }
 
@@ -289,12 +288,12 @@ void CoreProcess::startProcessFromDaemon()
 void CoreProcess::stopForegroundProcess()
 {
   if (m_processState != ProcessState::Stopping) {
-    qCritical("core process must be in stopping state");
+    qCritical("not stopping core desktop process, unexpected process state");
     return;
   }
 
   if (!m_process) {
-    qCritical("process not set, cannot stop");
+    qCritical("not stopping core desktop process, no process to stop");
     return;
   }
 
@@ -336,7 +335,7 @@ void CoreProcess::stopForegroundProcess()
 void CoreProcess::stopProcessFromDaemon()
 {
   if (m_processState != ProcessState::Stopping) {
-    qCritical("core process must be in stopping state");
+    qCritical("not stopping core process from daemon, unexpected process state");
     return;
   }
 
@@ -405,12 +404,12 @@ void CoreProcess::handleLogLines(const QString &text)
 void CoreProcess::start(std::optional<ProcessMode> processModeOption)
 {
   if (m_processState == ProcessState::Started) {
-    qCritical("core process already started");
+    qCritical("not starting core process, already started");
     return;
   }
 
   if (m_mode == Settings::CoreMode::None) {
-    qCritical("core mode is not set, skipping core start");
+    qCritical("not starting core process, no core mode set");
     return;
   }
 
@@ -458,7 +457,10 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   if (m_mode == Settings::CoreMode::Server) {
     const auto [hasNeededPermissions, configFilename] = persistServerConfig();
     if (configFilename.isEmpty()) {
-      qCritical("config file name empty for server args");
+      qCritical("not starting core process, no server config file");
+      setProcessState(ProcessState::Stopped);
+      setConnectionState(ConnectionState::Disconnected);
+      Q_EMIT error(Error::StartFailed);
       return;
     }
     if (!hasNeededPermissions) {
@@ -767,7 +769,7 @@ void CoreProcess::clearSettings()
   }
 
   if (processMode != ProcessMode::Service) {
-    qCritical("invalid process mode");
+    qCritical("not clearing core settings, unexpected process mode");
     return;
   }
 
