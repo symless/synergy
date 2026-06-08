@@ -39,6 +39,22 @@ target:
     runs-on: ubuntu-24.04-8-core-arm64
     container: ubuntu:22.04
 
+  - name: fedora-44-arm64
+    runs-on: ubuntu-24.04-8-core-arm64
+    container: fedora:44
+
+  - name: fedora-44-x86_64
+    runs-on: ubuntu-latest
+    container: fedora:44
+
+  - name: fedora-43-arm64
+    runs-on: ubuntu-24.04-8-core-arm64
+    container: fedora:43
+
+  - name: fedora-43-x86_64
+    runs-on: ubuntu-latest
+    container: fedora:43
+
   - name: fedora-42-arm64
     runs-on: ubuntu-24.04-8-core-arm64
     container: fedora:42
