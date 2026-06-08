@@ -50,8 +50,8 @@ QString processModeToString(ProcessMode mode)
   case kService:
     return "service";
   default:
-    qFatal("invalid process mode");
-    abort();
+    qWarning("invalid process mode");
+    return "unknown";
   }
 }
 
@@ -71,8 +71,8 @@ QString processStateToString(CoreProcess::ProcessState state)
   case RetryPending:
     return "retry pending";
   default:
-    qFatal("invalid process state");
-    abort();
+    qWarning("invalid process state");
+    return "unknown";
   }
 }
 
@@ -146,7 +146,7 @@ QString CoreProcess::Deps::getProfileRoot() const
 
   // the core expects the profile root dir, not the app-specific profile dir.
   if (!appDir.cdUp()) {
-    qFatal("failed to cd up to profile root dir");
+    qWarning("failed to cd up to profile root dir");
   }
 
   return appDir.absolutePath();
@@ -375,6 +375,11 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
 
   QMutexLocker locker(&m_processMutex);
 
+  if (m_mode == Mode::None) {
+    qWarning("cannot start core process, no mode selected");
+    return;
+  }
+
   const auto processMode = processModeOption.value_or(m_appConfig.processMode());
 
   qInfo("starting core %s process (%s mode)", qPrintable(modeString()), qPrintable(processModeToString(processMode)));
@@ -554,7 +559,7 @@ bool CoreProcess::addServerArgs(QStringList &args, QString &app)
   app = m_pDeps->appPath(m_appConfig.coreServerName());
 
   if (!m_pDeps->fileExists(app)) {
-    qFatal("core server binary does not exist");
+    qCritical("core server binary does not exist");
     return false;
   }
 
@@ -566,7 +571,7 @@ bool CoreProcess::addServerArgs(QStringList &args, QString &app)
 
   QString configFilename = persistServerConfig();
   if (configFilename.isEmpty()) {
-    qFatal("config file name empty for server args");
+    qCritical("config file name empty for server args");
     return false;
   }
 
@@ -608,7 +613,7 @@ bool CoreProcess::addClientArgs(QStringList &args, QString &app)
   app = m_pDeps->appPath(m_appConfig.coreClientName());
 
   if (!m_pDeps->fileExists(app)) {
-    qFatal("core client binary does not exist");
+    qCritical("core client binary does not exist");
     return false;
   }
 
@@ -663,7 +668,8 @@ QString CoreProcess::persistServerConfig() const
 
   QFile configFile(configDirPath + "/" + kServerConfigFilename);
   if (!configFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-    qFatal("failed to open core config file for write: %s", qPrintable(configFile.fileName()));
+    qCritical("failed to open core config file for write: %s", qPrintable(configFile.fileName()));
+    return QString();
   }
 
   m_serverConfig.save(configFile);
@@ -681,8 +687,8 @@ QString CoreProcess::modeString() const
   case Client:
     return "client";
   default:
-    qFatal("invalid core mode");
-    return "";
+    qWarning("invalid core mode");
+    return "unknown";
   }
 }
 
@@ -806,7 +812,8 @@ void CoreProcess::clearSettings()
   }
 
   if (m_appConfig.processMode() != ProcessMode::kService) {
-    qFatal("invalid process mode");
+    qWarning("invalid process mode, cannot clear core settings");
+    return;
   }
 
   qInfo("clearing core settings through daemon");

@@ -118,7 +118,7 @@ void TlsFingerprint::persistDirectory() const
   QDir dir(directoryPath());
   if (!dir.exists()) {
     if (!dir.mkpath(".")) {
-      qFatal("failed to create fingerprint dir: %s", qPrintable(dir.absolutePath()));
+      qCritical("failed to create fingerprint dir: %s", qPrintable(dir.absolutePath()));
     }
   }
 }
@@ -127,7 +127,7 @@ QString TlsFingerprint::directoryPath() const
 {
   QDir dir = m_isSystemScope ? paths::systemConfigDir() : paths::userConfigDir();
   if (!dir.exists()) {
-    qFatal("config dir does not exist: %s", qPrintable(dir.absolutePath()));
+    qCritical("config dir does not exist: %s", qPrintable(dir.absolutePath()));
   }
   return dir.filePath(kDirName);
 }

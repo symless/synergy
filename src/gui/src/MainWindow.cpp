@@ -1011,7 +1011,7 @@ void MainWindow::updateLocalFingerprint()
     fingerprintExists = TlsFingerprint::local(m_AppConfig.isSystemScope()).fileExists();
   } catch (const std::exception &e) {
     qDebug() << e.what();
-    qFatal("failed to check if fingerprint exists");
+    qCritical("failed to check if fingerprint exists");
   }
 
   m_pLabelFingerprint->setVisible(m_AppConfig.tlsEnabled() && fingerprintExists && m_pRadioGroupServer->isChecked());

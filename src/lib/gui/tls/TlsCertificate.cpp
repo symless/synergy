@@ -55,7 +55,7 @@ QString openSslWindowsDir()
 
   // if the path still isn't found, something is seriously wrong.
   if (!openSslDir.exists()) {
-    qFatal() << "openssl dir not found: " << openSslDir;
+    qCritical() << "openssl dir not found: " << openSslDir;
   }
 
   return QDir::cleanPath(openSslDir.absolutePath());
@@ -75,7 +75,7 @@ QString openSslWindowsBinary()
 
   // if the path still isn't found, something is seriously wrong.
   if (!QFile::exists(path)) {
-    qFatal() << "openssl binary not found: " << path;
+    qCritical() << "openssl binary not found: " << path;
   }
 
   return path;
@@ -239,7 +239,7 @@ int TlsCertificate::getCertKeyLength(const QString &path)
   arguments.append("-noout");
 
   if (!runTool(arguments)) {
-    qFatal("failed to get key length from certificate");
+    qCritical("failed to get key length from certificate");
     return 0;
   }
 

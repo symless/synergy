@@ -265,7 +265,8 @@ void SettingsDialog::updateKeyLengthOnFile(const QString &path)
 {
   TlsCertificate ssl;
   if (!QFile(path).exists()) {
-    qFatal("tls certificate file not found: %s", qUtf8Printable(path));
+    qWarning("tls certificate file not found: %s", qUtf8Printable(path));
+    return;
   }
 
   auto length = ssl.getCertKeyLength(path);
