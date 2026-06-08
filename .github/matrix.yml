@@ -67,14 +67,6 @@ target:
     runs-on: ubuntu-latest
     container: fedora:42
 
-  - name: fedora-41-x86_64
-    runs-on: ubuntu-latest
-    container: fedora:41
-
-  - name: fedora-40-x86_84
-    runs-on: ubuntu-latest
-    container: fedora:40
-
   - name: opensuse-tumbleweed-x86_64
     runs-on: ubuntu-latest
     container: opensuse/tumbleweed:latest
