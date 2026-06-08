@@ -253,10 +253,10 @@ jobs:
         uses: ./.github/actions/release-windows
         with:
           should-sign: ${{ env.SYNERGY_VERSION_RELEASE }}
-          ssl-username: ${{ secrets.SSL_USERNAME }}
-          ssl-password: ${{ secrets.SSL_PASSWORD }}
-          ssl-credential-id: ${{ secrets.SSL_CREDENTIAL_ID }}
-          ssl-totp-secret: ${{ secrets.SSL_TOTP_SECRET }}
+          ssl-username: ${{ secrets.WINDOWS_SSL_USERNAME }}
+          ssl-password: ${{ secrets.WINDOWS_SSL_PASSWORD }}
+          ssl-credential-id: ${{ secrets.WINDOWS_SSL_CREDENTIAL_ID }}
+          ssl-totp-secret: ${{ secrets.WINDOWS_SSL_TOTP_SECRET }}
 
       - name: Package (macOS)
         if: ${{ !steps.vars.outputs.skip-package && runner.os == 'macOS' }}
