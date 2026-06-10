@@ -3,16 +3,16 @@ description: Batch-sign the built Synergy binaries with SSL.com eSigner.
 
 inputs:
   ssl-username:
-    description: "SSL.com eSigner username (secrets.SSL_USERNAME)"
+    description: "SSL.com eSigner username (secrets.WINDOWS_SSL_USERNAME)"
     required: true
   ssl-password:
-    description: "SSL.com eSigner password (secrets.SSL_PASSWORD)"
+    description: "SSL.com eSigner password (secrets.WINDOWS_SSL_PASSWORD)"
     required: true
   ssl-credential-id:
-    description: "SSL.com credential ID (secrets.SSL_CREDENTIAL_ID)"
+    description: "SSL.com credential ID (secrets.WINDOWS_SSL_CREDENTIAL_ID)"
     required: true
   ssl-totp-secret:
-    description: "SSL.com TOTP secret (secrets.SSL_TOTP_SECRET)"
+    description: "SSL.com TOTP secret (secrets.WINDOWS_SSL_TOTP_SECRET)"
     required: true
   bin-dir:
     description: "Directory holding the built binaries to sign"
