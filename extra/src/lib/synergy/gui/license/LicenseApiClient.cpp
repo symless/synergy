@@ -89,9 +89,19 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     }
   };
 
+  // A transport failure is not a license verdict; activation tolerates it and retries
+  // later, while the check path owns the grace period.
+  const auto emitUnreachable = [this, kind](const QString &message) {
+    if (kind == RequestKind::kActivate) {
+      Q_EMIT activationUnreachable();
+    } else {
+      Q_EMIT checkFailed(message);
+    }
+  };
+
   if (!reply) {
     qWarning("no license api reply");
-    emitFailed("License request failed, empty network reply.");
+    emitUnreachable("License request failed, empty network reply.");
     return;
   }
 
@@ -101,7 +111,7 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     const auto kLimit = 200;
     const auto responseSliced = response.length() > kLimit ? response.sliced(0, kLimit) + "..." : response;
     qWarning().noquote() << "license api error:" << reply->error() << reply->errorString() << responseSliced;
-    emitFailed("License request failed, there was a network error.");
+    emitUnreachable("License request failed, there was a network error.");
     reply->deleteLater();
     return;
   }
@@ -110,7 +120,7 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
   const auto jsonDoc = QJsonDocument::fromJson(response);
   if (response.isNull()) {
     qWarning("empty license api response");
-    emitFailed("License request failed, the server sent an empty response.");
+    emitUnreachable("License request failed, the server sent an empty response.");
     reply->deleteLater();
     return;
   }
@@ -132,10 +142,11 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
       qWarning("license api message was empty");
     }
 
-    if (status == "disabled") {
-      Q_EMIT licenseDisabled(message.isEmpty() ? QStringLiteral("License has been disabled.") : message);
-    } else if (!message.isEmpty()) {
+    // An explicit disable gets the grace window like any other failure, not an abrupt cutoff.
+    if (!message.isEmpty()) {
       emitFailed(message);
+    } else if (status == "disabled") {
+      emitFailed("License has been disabled.");
     } else {
       emitFailed("License request failed, unknown error.");
     }

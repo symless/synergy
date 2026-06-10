@@ -91,9 +91,21 @@ LicenseHandler::LicenseHandler()
     m_pCoreProcess->start();
   });
 
+  connect(&m_apiClient, &LicenseApiClient::activationUnreachable, this, [this] {
+    if (isGracePeriodExpired()) {
+      qWarning("license activation server unreachable and grace period expired, not starting core");
+      return;
+    }
+
+    qWarning("license activation server unreachable, continuing without activation");
+
+    if (m_pCoreProcess != nullptr && !m_pCoreProcess->isStarted()) {
+      m_pCoreProcess->start();
+    }
+  });
+
   connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleRemoteCheckSucceeded);
   connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleRemoteCheckFailed);
-  connect(&m_apiClient, &LicenseApiClient::licenseDisabled, this, &LicenseHandler::disableLicenseRemotely);
 }
 
 void LicenseHandler::handleMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
@@ -504,8 +516,8 @@ LicenseApiClient::Data LicenseHandler::buildApiData() const
 
 void LicenseHandler::runRemoteCheck()
 {
-  if (!m_settings.activated() || !m_license.isValid() || m_license.serialKey().isOffline) {
-    qDebug("license not activated or offline, skipping remote check");
+  if (!m_license.isValid() || m_license.serialKey().isOffline) {
+    qDebug("license invalid or offline, skipping remote check");
     return;
   }
 
@@ -544,13 +556,15 @@ void LicenseHandler::handleRemoteCheckFailed(const QString &message)
   }
 
   if (isGracePeriodExpired()) {
-    disableLicenseRemotely(message);
+    disableLicenseAfterGrace(message);
     return;
   }
 
   if (!m_warnedAboutGrace && m_pMainWindow != nullptr) {
     m_warnedAboutGrace = true;
-    const auto graceDays = static_cast<int>(kLicenseGracePeriod.count());
+    const auto now = QDateTime::currentSecsSinceEpoch();
+    const auto elapsed = seconds{now - m_settings.graceStartEpochSecs()};
+    const auto daysRemaining = ceil<days>(kLicenseGracePeriod - elapsed).count();
     QMessageBox::warning(
         m_pMainWindow, "License check failed",
         tr("<p>We could not verify your license:</p>"
@@ -560,14 +574,14 @@ void LicenseHandler::handleRemoteCheckFailed(const QString &message)
            "</p>")
             .arg(message.toHtmlEscaped())
             .arg(productName())
-            .arg(graceDays)
+            .arg(daysRemaining)
             .arg(kUrlContact)
             .arg(kColorSecondary)
     );
   }
 }
 
-void LicenseHandler::disableLicenseRemotely(const QString &reason)
+void LicenseHandler::disableLicenseAfterGrace(const QString &reason)
 {
   qWarning().noquote() << "license grace period expired, disabling:" << reason;
 
@@ -578,8 +592,8 @@ void LicenseHandler::disableLicenseRemotely(const QString &reason)
 
   // Keep the serial key + in-memory license so the next activation attempt can succeed
   // automatically if the server re-enables the license (e.g. after the customer pays).
+  // Keep the grace clock too, so a restart stays disabled instead of granting a fresh grace.
   m_settings.setActivated(false);
-  m_settings.setGraceStartEpochSecs(0);
   m_settings.sync();
   m_warnedAboutGrace = false;
 

@@ -87,7 +87,7 @@ private:
   void handleRemoteCheckFailed(const QString &message);
   bool isInGracePeriod() const;
   bool isGracePeriodExpired() const;
-  void disableLicenseRemotely(const QString &reason);
+  void disableLicenseAfterGrace(const QString &reason);
   synergy::gui::license::LicenseApiClient::Data buildApiData() const;
 
   bool m_enabled = true;

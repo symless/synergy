@@ -53,9 +53,9 @@ public:
 Q_SIGNALS:
   void activationFailed(const QString &message);
   void activationSucceeded();
+  void activationUnreachable();
   void checkFailed(const QString &message);
   void checkSucceeded();
-  void licenseDisabled(const QString &message);
 
 private Q_SLOTS:
   void handleResponse(QNetworkReply *reply);
