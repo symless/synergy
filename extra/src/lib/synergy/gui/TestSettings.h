@@ -21,13 +21,14 @@
 
 namespace synergy::gui {
 
-// QA/test overrides for Synergy. Lives at `${UserDir}/${kAppName}.test.conf`,
+// QA/test overrides for Synergy. The config file is `${kAppName}.test.conf`,
+// found by walking up from the application binary's directory: a git-ignored
+// copy at the repo root covers any build dir inside the tree and survives
+// wipes of the app settings dir. When nothing is found above the binary
+// (e.g. installed builds), falls back to `${UserDir}/${kAppName}.test.conf`,
 // sibling to the main Synergy.conf settings file. Sourcing values from a file
 // (rather than env vars) sidesteps the pain of getting env vars into GUI
 // launches on macOS / Windows / VS Code F5.
-//
-// All accessors fall back to the corresponding SYNERGY_TEST_* env var when
-// the env var is set, so existing CI/automation flows are unchanged.
 class TestSettings
 {
 public:
@@ -48,15 +49,25 @@ public:
     return m_enabled && m_licensing;
   }
 
-  // Test overrides. Each accessor returns the env var when set, otherwise
-  // the file value when isEnabled(), otherwise empty / 0.
-  QString serialKey() const;
-  QString apiUrlActivate() const;
-  QString apiUrlCheck() const;
-  qint64 startTimeEpochSecs() const;
+  // Test overrides; empty / 0 unless isEnabled().
+  QString serialKey() const
+  {
+    return m_serialKey;
+  }
+  QString apiUrlActivate() const
+  {
+    return m_apiUrlActivate;
+  }
+  QString apiUrlCheck() const
+  {
+    return m_apiUrlCheck;
+  }
+  qint64 startTimeEpochSecs() const
+  {
+    return m_startTimeEpochSecs;
+  }
 
-  // Feature toggles read from the [features] section. File-only, no env
-  // var fallback for these (no precedent).
+  // Feature toggles read from the [features] section.
   bool verbose() const
   {
     return m_verbose;

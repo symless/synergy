@@ -17,6 +17,7 @@ Brewfile.lock.json
 
 # typical developer-created files
 deskflow-config.toml
+/Synergy.test.conf
 .vscode
 .DS_Store
 *.code-workspace

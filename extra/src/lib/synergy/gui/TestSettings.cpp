@@ -20,7 +20,9 @@
 #include "common/Constants.h"
 #include "common/Settings.h"
 
+#include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QSettings>
 
@@ -28,13 +30,23 @@ namespace synergy::gui {
 
 namespace {
 
-QString envOrFile(const char *envName, const QString &fileValue, bool fileEnabled)
+QString resolveFileName()
 {
-  const auto env = qEnvironmentVariable(envName);
-  if (!env.isEmpty()) {
-    return env;
+  const auto name = QStringLiteral("%1.test.conf").arg(kAppName);
+  const auto fallback = QStringLiteral("%1/%2").arg(Settings::UserDir, name);
+
+  // applicationDirPath() warns if called before the app object exists
+  if (QCoreApplication::instance() == nullptr) {
+    return fallback;
   }
-  return fileEnabled ? fileValue : QString();
+
+  QDir dir(QCoreApplication::applicationDirPath());
+  do {
+    if (dir.exists(name)) {
+      return dir.filePath(name);
+    }
+  } while (dir.cdUp());
+  return fallback;
 }
 
 } // namespace
@@ -46,13 +58,13 @@ TestSettings &TestSettings::instance()
 }
 
 TestSettings::TestSettings()
-    : m_fileName(QStringLiteral("%1/%2.test.conf").arg(Settings::UserDir, kAppName))
 {
   load();
 }
 
 void TestSettings::load()
 {
+  m_fileName = resolveFileName();
   m_enabled = false;
   m_licensing = false;
   m_serialKey.clear();
@@ -90,30 +102,6 @@ void TestSettings::load()
 void TestSettings::reload()
 {
   load();
-}
-
-QString TestSettings::serialKey() const
-{
-  return envOrFile("SYNERGY_TEST_SERIAL_KEY", m_serialKey, m_enabled);
-}
-
-QString TestSettings::apiUrlActivate() const
-{
-  return envOrFile("SYNERGY_TEST_API_URL_ACTIVATE", m_apiUrlActivate, m_enabled);
-}
-
-QString TestSettings::apiUrlCheck() const
-{
-  return envOrFile("SYNERGY_TEST_API_URL_CHECK", m_apiUrlCheck, m_enabled);
-}
-
-qint64 TestSettings::startTimeEpochSecs() const
-{
-  const auto env = qEnvironmentVariable("SYNERGY_TEST_START_TIME");
-  if (!env.isEmpty()) {
-    return env.toLongLong();
-  }
-  return m_enabled ? m_startTimeEpochSecs : 0;
 }
 
 } // namespace synergy::gui

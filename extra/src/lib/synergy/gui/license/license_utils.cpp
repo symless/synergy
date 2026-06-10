@@ -31,24 +31,9 @@ const bool kEnableActivation = true;
 const bool kEnableActivation = false;
 #endif // SYNERGY_ENABLE_ACTIVATION
 
-namespace {
-// Inlined from upstream's removed gui/string_utils.h. Trivial helper kept
-// local to avoid taking a new dependency just for this one call site.
-bool strToTrue(const QString &str)
-{
-  return str.toLower() == "true" || str == "1";
-}
-} // namespace
-
 bool isActivationEnabled()
 {
-  if (strToTrue(qEnvironmentVariable("SYNERGY_ENABLE_ACTIVATION"))) {
-    return true;
-  }
-  if (synergy::gui::TestSettings::instance().isLicensingEnabled()) {
-    return true;
-  }
-  return kEnableActivation;
+  return synergy::gui::TestSettings::instance().isLicensingEnabled() || kEnableActivation;
 }
 
 synergy::license::SerialKey parseSerialKey(const QString &hexString)
