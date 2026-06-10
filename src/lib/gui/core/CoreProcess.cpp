@@ -353,7 +353,7 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   }
 
   if (m_mode == Settings::CoreMode::None) {
-    qFatal("set core mode before starting");
+    qCritical("core mode is not set, skipping core start");
     return;
   }
 

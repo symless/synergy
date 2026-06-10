@@ -663,6 +663,10 @@ void MainWindow::open()
   }
 
   if (Settings::value(Settings::Gui::AutoStartCore).toBool()) {
+    if (m_coreProcess.mode() == CoreMode::None) {
+      qWarning() << "skipping core auto start, mode is not set";
+      return;
+    }
     if (ui->rbModeClient->isChecked() && ui->lineHostname->text().isEmpty())
       return;
     startCore();
