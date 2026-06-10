@@ -130,7 +130,8 @@ SerialKey parseV3(const std::string &hexString, const Parts &parts)
   }
   // e.g.: {v3;offline;trial;basic;name;seats;email;company;1398297600;1398384000}
   SerialKey serialKey(hexString);
-  serialKey.isOffline = (parts.at(1) == "offline");
+  const auto &mode = parts.at(1);
+  serialKey.isOffline = (mode == "offline");
   serialKey.type = SerialKeyType(parts.at(2));
   serialKey.product = Product(parts.at(3));
   serialKey.name = parts.at(4);

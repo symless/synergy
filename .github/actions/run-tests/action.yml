@@ -15,11 +15,12 @@ runs:
       env:
         QT_QPA_PLATFORM: offscreen
       run: |
-        ctest --test-dir  "build/src/unittests" --output-on-failure
-        result=$?
+        ctest --test-dir "build/src/unittests" --output-on-failure || result=1
+        ctest --test-dir "build/extra/src/unittests" --output-on-failure || result=1
 
-        if [ $result -ne 0 ]; then
-          echo "Unit tests failed with code: $result" >> $GITHUB_STEP_SUMMARY
+        if [ "${result:-0}" -ne 0 ]; then
+          echo "Unit tests failed" >> $GITHUB_STEP_SUMMARY
+          exit 1
         fi
       shell: bash
       continue-on-error: true

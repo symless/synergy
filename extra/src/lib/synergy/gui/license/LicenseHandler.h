@@ -73,6 +73,13 @@ public:
   void clampFeatures();
   void disable();
 
+  /// @brief Challenge code for offline activation, formatted for display.
+  QString offlineActivationChallenge() const;
+
+  /// @brief Verifies an offline activation response code and persists it if valid.
+  /// @return False if the response does not verify for this machine and serial key.
+  bool applyOfflineActivationResponse(const QString &responseCode);
+
   bool isEnabled() const
   {
     return m_enabled;
@@ -81,6 +88,8 @@ public:
 private:
   void updateWindowTitle() const;
   bool showSerialKeyDialog();
+  bool showOfflineActivationDialog();
+  bool isOfflineActivated() const;
   bool check();
   void runRemoteCheck();
   void handleRemoteCheckSucceeded();

@@ -13,7 +13,43 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-config_test()
-set(target ${UNIT_TESTS_BIN})
-add_executable(${target} ${sources})
-target_link_libraries(${target} ${test_libs})
+enable_testing()
+find_package(Qt6 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Test)
+
+# legacytests provisions googletest, but when that is satisfied by find_package
+# the imported targets are scoped to its own directory, so resolve them here too.
+if(NOT TARGET GTest::gtest_main)
+  find_package(GTest REQUIRED)
+endif()
+
+create_test(
+  NAME LicenseTests
+  DEPENDS license
+  LIBS GTest::gtest_main
+  SOURCE license/LicenseTests.cpp
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+create_test(
+  NAME ProductTests
+  DEPENDS license
+  LIBS GTest::gtest_main
+  SOURCE license/ProductTests.cpp
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+create_test(
+  NAME SerialKeyTypeTests
+  DEPENDS license
+  LIBS GTest::gtest_main
+  SOURCE license/SerialKeyTypeTests.cpp
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+create_test(
+  NAME OfflineActivationTests
+  DEPENDS license
+  LIBS GTest::gtest_main
+  SOURCE license/OfflineActivationTests.cpp
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

@@ -411,14 +411,15 @@ void MainWindow::startCore()
     m_serverStartSuggestedIP = m_serverStartIPs.isEmpty() ? "" : m_serverStartIPs.first();
   }
 
-  m_actionStartCore->setVisible(false);
-  m_actionRestartCore->setVisible(true);
-
 #ifdef SYNERGY_EXTRA_HEADER
   if (!synergy::hooks::onCoreStart()) {
     return;
   }
 #endif
+
+  m_actionStartCore->setVisible(false);
+  m_actionRestartCore->setVisible(true);
+
   m_coreProcess.start();
 }
 

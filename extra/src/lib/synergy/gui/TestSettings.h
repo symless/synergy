@@ -62,6 +62,10 @@ public:
   {
     return m_apiUrlCheck;
   }
+  QString machineId() const
+  {
+    return m_machineId;
+  }
   qint64 startTimeEpochSecs() const
   {
     return m_startTimeEpochSecs;
@@ -103,6 +107,7 @@ private:
   QString m_serialKey;
   QString m_apiUrlActivate;
   QString m_apiUrlCheck;
+  QString m_machineId;
   qint64 m_startTimeEpochSecs = 0;
   bool m_verbose = false;
   bool m_skipRemoteCheck = false;

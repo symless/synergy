@@ -52,7 +52,7 @@ TEST(ProductTests, setEdition_invalidType_throws)
 {
   Product product;
 
-  EXPECT_THROW(product.setEdition("test"), Product::InvalidType);
+  EXPECT_THROW(product.setEdition("test"), Product::InvalidProductEdition);
 }
 
 TEST(ProductTests, setEdition_pro_isValid)

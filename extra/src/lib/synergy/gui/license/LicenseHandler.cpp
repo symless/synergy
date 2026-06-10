@@ -18,14 +18,16 @@
 #include "LicenseHandler.h"
 
 #include "ActivationDialog.h"
+#include "OfflineActivationDialog.h"
 #include "common/Settings.h"
 #include "common/VersionInfo.h"
-#include "dialogs/UpgradeDialog.h"
 #include "gui/core/CoreProcess.h"
+#include "synergy/gui/TestSettings.h"
 #include "synergy/gui/constants.h"
 #include "synergy/gui/dev_mode.h"
 #include "synergy/gui/license/license_utils.h"
 #include "synergy/gui/styles.h"
+#include "synergy/license/OfflineActivation.h"
 #include "synergy/license/Product.h"
 
 #include <QAction>
@@ -54,6 +56,16 @@ using namespace std::chrono;
 using namespace synergy::gui::license;
 using namespace synergy::gui;
 using namespace deskflow::gui;
+
+namespace {
+
+std::string offlineMachineId()
+{
+  const auto testId = TestSettings::instance().machineId();
+  return testId.isEmpty() ? QSysInfo::machineUniqueId().toStdString() : testId.toStdString();
+}
+
+} // namespace
 using License = synergy::license::License;
 
 LicenseHandler::LicenseHandler()
@@ -87,8 +99,10 @@ LicenseHandler::LicenseHandler()
       qFatal("core process not set");
     }
 
-    qDebug("resuming core process after activation");
-    m_pCoreProcess->start();
+    if (m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
+      qDebug("resuming core process after activation");
+      m_pCoreProcess->start();
+    }
   });
 
   connect(&m_apiClient, &LicenseApiClient::activationUnreachable, this, [this] {
@@ -99,7 +113,7 @@ LicenseHandler::LicenseHandler()
 
     qWarning("license activation server unreachable, continuing without activation");
 
-    if (m_pCoreProcess != nullptr && !m_pCoreProcess->isStarted()) {
+    if (m_pCoreProcess != nullptr && m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
       m_pCoreProcess->start();
     }
   });
@@ -263,14 +277,18 @@ bool LicenseHandler::handleCoreStart()
     qFatal("core process not set");
   }
 
-  if (m_settings.activated()) {
+  if (m_settings.activated() && !m_license.serialKey().isOffline) {
     qDebug("license is activated, starting core");
     return true;
   }
 
   if (m_license.serialKey().isOffline) {
-    qDebug("offline serial key, starting core");
-    return true;
+    if (isOfflineActivated()) {
+      qDebug("offline activation verified, starting core");
+      return true;
+    }
+    qInfo("offline serial key not activated, showing offline activation dialog");
+    return showOfflineActivationDialog();
   }
 
   if (!m_license.isValid()) {
@@ -334,6 +352,7 @@ bool LicenseHandler::showSerialKeyDialog()
     qDebug("serial key changed, updating settings");
     m_settings.setActivated(false);
     m_settings.setGraceStartEpochSecs(0);
+    m_settings.setOfflineActivationResponse({});
     m_warnedAboutGrace = false;
     m_settings.sync();
   }
@@ -342,9 +361,23 @@ bool LicenseHandler::showSerialKeyDialog()
   updateWindowTitle();
   clampFeatures();
 
+  bool offlineActivationDeclined = false;
+  if (m_license.serialKey().isOffline && !isOfflineActivated()) {
+    qInfo("serial key requires offline activation");
+    offlineActivationDeclined = !showOfflineActivationDialog();
+  }
+
   if (dialog.serialKeyChanged() && m_pCoreProcess->isStarted()) {
-    qDebug("restarting core on serial key change");
-    m_pCoreProcess->restart();
+    if (offlineActivationDeclined) {
+      qDebug("stopping core, offline activation declined");
+      m_pCoreProcess->stop();
+    } else {
+      qDebug("restarting core on serial key change");
+      m_pCoreProcess->restart();
+    }
+  } else if (m_license.serialKey().isOffline && isOfflineActivated() && !m_pCoreProcess->isStarted()) {
+    qDebug("starting core after offline activation");
+    m_pCoreProcess->start();
   }
 
   // If the user accepted the dialog while not activated (e.g. recovering from a
@@ -356,6 +389,67 @@ bool LicenseHandler::showSerialKeyDialog()
   }
 
   qDebug("license serial key dialog accepted");
+  return true;
+}
+
+bool LicenseHandler::showOfflineActivationDialog()
+{
+  if (!m_settings.isWritable()) {
+    QMessageBox::warning(
+        m_pMainWindow, "Write access required",
+        tr("<p>The settings file is not writable:</p>"
+           "<p><code>%1</code></p>"
+           "<p>Please check the file permissions and try again.</p>")
+            .arg(m_settings.fileName())
+    );
+    return false;
+  }
+
+  if (offlineActivationChallenge().isEmpty()) {
+    QMessageBox::critical(
+        m_pMainWindow, tr("Offline activation"),
+        tr("<p>A unique ID for this computer could not be determined, "
+           "so an activation code cannot be generated.</p>"
+           R"(<p>Please <a href="%1" style="color: %2">contact us</a> for help.</p>)")
+            .arg(kUrlContact)
+            .arg(kColorSecondary)
+    );
+    return false;
+  }
+
+  OfflineActivationDialog dialog(m_pMainWindow, *this);
+  return dialog.exec() == QDialog::Accepted;
+}
+
+QString LicenseHandler::offlineActivationChallenge() const
+{
+  const auto machineId = offlineMachineId();
+  const auto challenge = synergy::license::buildOfflineChallenge(machineId, m_license.serialKey().hexString);
+  return QString::fromStdString(synergy::license::formatOfflineCode(challenge, 4));
+}
+
+bool LicenseHandler::isOfflineActivated() const
+{
+  const auto response = m_settings.offlineActivationResponse();
+  if (response.isEmpty()) {
+    return false;
+  }
+  const auto machineId = offlineMachineId();
+  return synergy::license::verifyOfflineResponse(machineId, m_license.serialKey().hexString, response.toStdString());
+}
+
+bool LicenseHandler::applyOfflineActivationResponse(const QString &responseCode)
+{
+  const auto response = responseCode.simplified();
+  const auto machineId = offlineMachineId();
+  if (!synergy::license::verifyOfflineResponse(machineId, m_license.serialKey().hexString, response.toStdString())) {
+    qWarning("offline activation response not valid for this machine");
+    return false;
+  }
+
+  qInfo("offline activation response verified");
+  m_settings.setOfflineActivationResponse(response);
+  m_settings.sync();
   return true;
 }
 

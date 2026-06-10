@@ -58,6 +58,15 @@ public:
     m_graceStartEpochSecs = epochSecs;
   }
 
+  QString offlineActivationResponse() const
+  {
+    return m_offlineActivationResponse;
+  }
+  void setOfflineActivationResponse(const QString &response)
+  {
+    m_offlineActivationResponse = response;
+  }
+
   QString fileName() const;
   bool isWritable() const;
 
@@ -65,6 +74,7 @@ private:
   QString m_serialKey;
   bool m_activated = false;
   qint64 m_graceStartEpochSecs = 0;
+  QString m_offlineActivationResponse;
 };
 
 } // namespace synergy::gui

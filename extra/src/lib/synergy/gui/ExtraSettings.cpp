@@ -40,6 +40,7 @@ QString settingsFile()
 const auto kSerialKey = QStringLiteral("serialKey");
 const auto kActivated = QStringLiteral("activated");
 const auto kGraceStart = QStringLiteral("graceStartEpochSecs");
+const auto kOfflineActivationResponse = QStringLiteral("offlineActivationResponse");
 
 } // namespace
 
@@ -49,6 +50,7 @@ void ExtraSettings::load()
   m_serialKey = ini.value(kSerialKey).toString();
   m_activated = ini.value(kActivated).toBool();
   m_graceStartEpochSecs = ini.value(kGraceStart).toLongLong();
+  m_offlineActivationResponse = ini.value(kOfflineActivationResponse).toString();
 }
 
 void ExtraSettings::sync()
@@ -61,6 +63,7 @@ void ExtraSettings::sync()
   ini.setValue(kSerialKey, m_serialKey);
   ini.setValue(kActivated, m_activated);
   ini.setValue(kGraceStart, m_graceStartEpochSecs);
+  ini.setValue(kOfflineActivationResponse, m_offlineActivationResponse);
   ini.sync();
 }
 

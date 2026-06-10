@@ -20,6 +20,8 @@ if(ADD_HEADERS_TO_SOURCES)
   list(APPEND sources ${headers})
 endif()
 
+find_package(OpenSSL ${REQUIRED_OPENSSL_VERSION} REQUIRED COMPONENTS Crypto)
+
 add_library(license STATIC ${sources})
 
-target_link_libraries(license arch base)
+target_link_libraries(license arch base OpenSSL::Crypto)
