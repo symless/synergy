@@ -723,13 +723,15 @@ void LicenseHandler::askServerQuestion()
     question = tr("<p>All of the server activations for your team's license are currently in use.</p>"
                   "<p>If you need to add more seats to your team's license, please "
                   R"(<a href="%1">contact us</a> today.</p>)"
-                  "<p>Do you want to reassign a server activation to this computer?</p>")
+                  "<p>Do you want to reassign a server activation to this computer?</p>"
+                  "<p>The activation will be taken away from another computer on this license.</p>")
                    .arg(kUrlContact);
   } else {
     question = tr("<p>Another computer is currently the server for your license.</p>"
                   "<p>If you need more than one server running at the same time, please "
                   R"(<a href="%1">contact us</a> today.</p>)"
-                  "<p>Do you want to reassign the server activation to this computer?</p>")
+                  "<p>Do you want to reassign the server activation to this computer?</p>"
+                  "<p>The activation will be taken away from the other computer.</p>")
                    .arg(kUrlContact);
   }
   const auto reply = QMessageBox::question(m_pMainWindow, "License limit reached", question);

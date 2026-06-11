@@ -25,7 +25,7 @@ namespace synergy::gui {
 
 const auto kUrlApi = "https://symless.com/synergy/api";
 const auto kUrlWebsite = QStringLiteral("https://synergyapp.io");
-const auto kUrlSourceQuery = "source=gui";
+const auto kUrlSourceQuery = "utm_source=gui-s1";
 
 const auto kUrlGpl = QStringLiteral("https://www.gnu.org/licenses/old-licenses/gpl-2.0.html");
 const auto kUrlEula = QString("%1/eula").arg(kUrlWebsite);

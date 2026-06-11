@@ -15,7 +15,7 @@
 // notation (rdn), e.g. org.deskflow
 const auto kOrgDomain = QString::fromUtf8(kAppDomain);
 
-const auto kUrlSourceQuery = QStringLiteral("source=gui");
+const auto kUrlSourceQuery = QStringLiteral("utm_source=gui-s1");
 const auto kUrlApp = QStringLiteral("https://%1").arg(kOrgDomain);
 const auto kUrlHelp = QStringLiteral("%1/help?%2").arg(kUrlApp, kUrlSourceQuery);
 const auto kUrlDownload = QStringLiteral("%1/download?%2").arg(kUrlApp, kUrlSourceQuery);

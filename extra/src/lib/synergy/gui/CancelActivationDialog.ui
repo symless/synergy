@@ -17,7 +17,7 @@
    <item alignment="Qt::AlignmentFlag::AlignTop">
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You'll need to purchase a license to use Synergy.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://synergyapp.io/contact?source=gui&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;Contact us&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p&gt;The application will now exit.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;You'll need to purchase a license to use Synergy.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://synergyapp.io/contact?utm_source=gui-s1&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#007af4;&quot;&gt;Contact us&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;p&gt;The application will now exit.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
