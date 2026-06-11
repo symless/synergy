@@ -26,7 +26,6 @@
 #include "synergy/gui/constants.h"
 #include "synergy/gui/dev_mode.h"
 #include "synergy/gui/license/license_utils.h"
-#include "synergy/gui/styles.h"
 #include "synergy/license/OfflineActivation.h"
 #include "synergy/license/Product.h"
 
@@ -59,7 +58,7 @@ using namespace deskflow::gui;
 
 namespace {
 
-std::string offlineMachineId()
+std::string licenseMachineId()
 {
   const auto testId = TestSettings::instance().machineId();
   return testId.isEmpty() ? QSysInfo::machineUniqueId().toStdString() : testId.toStdString();
@@ -265,12 +264,15 @@ void LicenseHandler::handleVersionCheck(QString &versionUrl)
 
 bool LicenseHandler::handleCoreStart()
 {
-  // HACK: For some reason, the core start trigger gets called twice when clicking the 'start' button.
-  // If the activator is called twice in quick succession, the core is started twice.
-  if (m_apiClient.isBusy()) {
-    qDebug("activator is busy, skipping core start handler");
+  // HACK: For some reason, the core start trigger gets called twice when clicking the 'start'
+  // button. Absorb the duplicate by time rather than by network state, or an unanswered
+  // license request blocks core starts entirely.
+  const auto now = QDateTime::currentMSecsSinceEpoch();
+  if (now - m_lastCoreStartMs < 500) {
+    qDebug("duplicate core start trigger, skipping");
     return false;
   }
+  m_lastCoreStartMs = now;
 
   if (!m_enabled) {
     qDebug("license handler disabled, skipping core start handler");
@@ -287,6 +289,10 @@ bool LicenseHandler::handleCoreStart()
 
   // The role is only reliably known at core start; start optimistically, a deactivated verdict stops the core.
   if (m_settings.activated() && !m_license.serialKey().isOffline) {
+    if (m_apiClient.isBusy()) {
+      qInfo("license api busy, starting core without refreshing activation");
+      return true;
+    }
     qDebug("license is activated, refreshing activation on core start");
     m_coreStartActivation = true;
     m_apiClient.activate(buildApiData());
@@ -310,6 +316,11 @@ bool LicenseHandler::handleCoreStart()
 
   if (!m_license.isValid()) {
     qWarning("no valid license, skipping core start");
+    return false;
+  }
+
+  if (m_apiClient.isBusy()) {
+    qWarning("license api busy, cannot activate for core start, try again shortly");
     return false;
   }
 
@@ -424,7 +435,7 @@ bool LicenseHandler::showOfflineActivationDialog()
 
 QString LicenseHandler::offlineActivationChallenge() const
 {
-  const auto machineId = offlineMachineId();
+  const auto machineId = licenseMachineId();
   const auto challenge = synergy::license::buildOfflineChallenge(machineId, m_license.serialKey().hexString);
   return QString::fromStdString(synergy::license::formatOfflineCode(challenge, 4));
 }
@@ -435,14 +446,14 @@ bool LicenseHandler::isOfflineActivated() const
   if (response.isEmpty()) {
     return false;
   }
-  const auto machineId = offlineMachineId();
+  const auto machineId = licenseMachineId();
   return synergy::license::verifyOfflineResponse(machineId, m_license.serialKey().hexString, response.toStdString());
 }
 
 bool LicenseHandler::applyOfflineActivationResponse(const QString &responseCode)
 {
   const auto response = responseCode.simplified();
-  const auto machineId = offlineMachineId();
+  const auto machineId = licenseMachineId();
   if (!synergy::license::verifyOfflineResponse(machineId, m_license.serialKey().hexString, response.toStdString())) {
     qWarning("offline activation response not valid for this machine");
     return false;
@@ -591,7 +602,7 @@ bool LicenseHandler::isGracePeriodExpired() const
 
 LicenseApiClient::Data LicenseHandler::buildApiData() const
 {
-  const auto machineId = QSysInfo::machineUniqueId();
+  const auto machineId = QByteArray::fromStdString(licenseMachineId());
   const auto hostname = QHostInfo::localHostName();
 
   // Anonymise so a leak doesn't reveal which customer machine the data belongs to.
@@ -733,12 +744,10 @@ void LicenseHandler::askServerQuestion()
     return;
   }
 
-  qInfo("server question declined, clearing core mode");
-  m_settings.setActivated(false);
-  m_settings.sync();
-
-  Settings::setValue(Settings::Core::CoreMode, Settings::CoreMode::None);
-  Settings::save();
+  // Decline changes nothing: the core is already stopped, and writing the mode setting here
+  // would desync it from the mode radios and the core process, which only the main window owns.
+  // Starting again simply asks again.
+  qInfo("server question declined, leaving core stopped");
 }
 
 void LicenseHandler::handleCheckDeactivated(const QString &message)

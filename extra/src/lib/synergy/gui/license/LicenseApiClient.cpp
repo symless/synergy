@@ -40,6 +40,10 @@ QString checkUrl()
 
 LicenseApiClient::LicenseApiClient()
 {
+  // Without a timeout, a request that connects but never completes leaves the client busy
+  // forever, and busy gates core start.
+  m_manager.setTransferTimeout();
+
   connect(&m_manager, &QNetworkAccessManager::finished, this, &LicenseApiClient::handleResponse);
 }
 

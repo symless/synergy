@@ -109,6 +109,7 @@ private:
   synergy::gui::license::LicenseApiClient m_apiClient;
   bool m_warnedAboutGrace = false;
   bool m_coreStartActivation = false;
+  qint64 m_lastCoreStartMs = 0;
   QMainWindow *m_pMainWindow = nullptr;
   deskflow::gui::CoreProcess *m_pCoreProcess = nullptr;
 };
