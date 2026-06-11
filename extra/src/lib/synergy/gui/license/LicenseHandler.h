@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include "common/Settings.h"
 #include "synergy/gui/AppTime.h"
 #include "synergy/gui/ExtraSettings.h"
 #include "synergy/gui/license/LicenseApiClient.h"
@@ -92,13 +93,15 @@ private:
   bool isOfflineActivated() const;
   bool check();
   void runRemoteCheck();
-  void handleRemoteCheckSucceeded();
-  void handleRemoteCheckFailed(const QString &message);
+  void handleLicenseVerified();
+  void handleLicenseUnverified(const QString &message);
   void handleActivationDeactivated(const QString &message);
   void handleCheckDeactivated(const QString &message);
   void askServerQuestion();
   bool isInGracePeriod() const;
   bool isGracePeriodExpired() const;
+  void resetGracePeriod();
+  Settings::CoreMode liveCoreMode() const;
   void disableLicenseAfterGrace(const QString &reason);
   synergy::gui::license::LicenseApiClient::Data buildApiData() const;
 

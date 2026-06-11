@@ -1,6 +1,6 @@
 /*
  * Synergy -- mouse and keyboard sharing utility
- * Copyright (C) 2015 Synergy App Ltd
+ * Copyright (C) 2015 - 2026 Synergy App Ltd
  *
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -64,6 +64,11 @@ std::string licenseMachineId()
   return testId.isEmpty() ? QSysInfo::machineUniqueId().toStdString() : testId.toStdString();
 }
 
+QByteArray anonymousSignature(const QByteArray &value)
+{
+  return QCryptographicHash::hash(value, QCryptographicHash::Sha256).toHex();
+}
+
 } // namespace
 using License = synergy::license::License;
 
@@ -72,13 +77,8 @@ LicenseHandler::LicenseHandler()
   m_enabled = synergy::gui::license::isActivationEnabled();
 
   connect(&m_apiClient, &LicenseApiClient::activationFailed, this, [this](const QString &message) {
-    // A rejected activation is an unverified license, the same as a failed check: the grace
-    // period starts (or continues), the customer sees how many days remain, and the grace
-    // expiry disables the license.
-    handleRemoteCheckFailed(message);
+    handleLicenseUnverified(message);
 
-    // Mid key entry, reopen the dialog so the customer can correct the key; a failure during
-    // a core start refresh is served by the grace warning alone.
     if (!m_coreStartActivation) {
       qWarning("activation failed at key entry, showing serial key dialog");
       showSerialKeyDialog();
@@ -88,16 +88,13 @@ LicenseHandler::LicenseHandler()
   connect(&m_apiClient, &LicenseApiClient::activationSucceeded, this, [this] {
     qDebug("license activation succeeded, saving settings");
     m_settings.setActivated(true);
-    m_settings.setGraceStartEpochSecs(0);
-    m_settings.sync();
-    m_warnedAboutGrace = false;
+    resetGracePeriod();
 
     if (m_pCoreProcess == nullptr) {
       qFatal("core process not set");
     }
 
-    // Only an activation that a core start is waiting on may start the core; an activation
-    // from serial key entry must not, the customer has not chosen to start anything yet.
+    // Key entry activations must never start the core; the customer chose nothing yet.
     if (m_coreStartActivation && m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
       qDebug("resuming core process after activation");
       m_pCoreProcess->start();
@@ -119,8 +116,8 @@ LicenseHandler::LicenseHandler()
   });
 
   connect(&m_apiClient, &LicenseApiClient::activationDeactivated, this, &LicenseHandler::handleActivationDeactivated);
-  connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleRemoteCheckSucceeded);
-  connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleRemoteCheckFailed);
+  connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleLicenseVerified);
+  connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleLicenseUnverified);
   connect(&m_apiClient, &LicenseApiClient::checkDeactivated, this, &LicenseHandler::handleCheckDeactivated);
 }
 
@@ -299,8 +296,7 @@ bool LicenseHandler::handleCoreStart()
   }
 
   if (m_license.serialKey().isOffline) {
-    // The saved mode setting lags the UI at core start, so prefer the live core process mode.
-    if (m_pCoreProcess->mode() != Settings::Server) {
+    if (liveCoreMode() != Settings::Server) {
       qDebug("offline license in client mode, starting core without activation");
       return true;
     }
@@ -599,26 +595,34 @@ bool LicenseHandler::isGracePeriodExpired() const
   return elapsed >= duration_cast<seconds>(kLicenseGracePeriod);
 }
 
+void LicenseHandler::resetGracePeriod()
+{
+  m_settings.setGraceStartEpochSecs(0);
+  m_settings.sync();
+  m_warnedAboutGrace = false;
+}
+
+Settings::CoreMode LicenseHandler::liveCoreMode() const
+{
+  // The saved mode setting lags the UI at core start.
+  if (m_pCoreProcess != nullptr) {
+    return m_pCoreProcess->mode();
+  }
+  return static_cast<Settings::CoreMode>(Settings::value(Settings::Core::CoreMode).toInt());
+}
+
 LicenseApiClient::Data LicenseHandler::buildApiData() const
 {
-  const auto machineId = QByteArray::fromStdString(licenseMachineId());
-  const auto hostname = QHostInfo::localHostName();
+  const auto machineSignature = anonymousSignature(QByteArray::fromStdString(licenseMachineId()));
+  const auto hostnameSignature = anonymousSignature(QHostInfo::localHostName().toUtf8());
 
-  // Anonymise so a leak doesn't reveal which customer machine the data belongs to.
-  const auto machineSignature = QCryptographicHash::hash(machineId, QCryptographicHash::Sha256).toHex();
-  const auto hostnameSignature = QCryptographicHash::hash(hostname.toUtf8(), QCryptographicHash::Sha256).toHex();
-
-  // The saved mode setting lags the UI at core start, so prefer the live core process mode.
-  const auto coreMode = m_pCoreProcess != nullptr
-                            ? m_pCoreProcess->mode()
-                            : static_cast<Settings::CoreMode>(Settings::value(Settings::Core::CoreMode).toInt());
   return {
       machineSignature,
       hostnameSignature,
       QString::fromStdString(m_license.serialKey().hexString),
       kVersion,
       QSysInfo::prettyProductName(),
-      coreMode == Settings::Server
+      liveCoreMode() == Settings::Server
   };
 }
 
@@ -638,14 +642,12 @@ void LicenseHandler::runRemoteCheck()
   m_apiClient.check(buildApiData());
 }
 
-void LicenseHandler::handleRemoteCheckSucceeded()
+void LicenseHandler::handleLicenseVerified()
 {
   qInfo("remote license check succeeded");
 
   const bool wasInGrace = isInGracePeriod();
-  m_settings.setGraceStartEpochSecs(0);
-  m_settings.sync();
-  m_warnedAboutGrace = false;
+  resetGracePeriod();
 
   if (wasInGrace && m_pMainWindow != nullptr) {
     QMessageBox::information(
@@ -654,9 +656,9 @@ void LicenseHandler::handleRemoteCheckSucceeded()
   }
 }
 
-void LicenseHandler::handleRemoteCheckFailed(const QString &message)
+void LicenseHandler::handleLicenseUnverified(const QString &message)
 {
-  qWarning().noquote() << "remote license check failed:" << message;
+  qWarning().noquote() << "license could not be verified:" << message;
 
   if (!isInGracePeriod()) {
     m_settings.setGraceStartEpochSecs(QDateTime::currentSecsSinceEpoch());
@@ -692,10 +694,7 @@ void LicenseHandler::handleActivationDeactivated(const QString &message)
 {
   qWarning().noquote() << "server activation held by another computer:" << message;
 
-  // The license itself is valid and the server was reachable, so the grace clock resets.
-  m_settings.setGraceStartEpochSecs(0);
-  m_settings.sync();
-  m_warnedAboutGrace = false;
+  resetGracePeriod();
 
   // The role is only reliably known at core start; an activation sent from anywhere else
   // (e.g. serial key entry) must not ask or stop anything, the next core start will.
@@ -743,9 +742,8 @@ void LicenseHandler::askServerQuestion()
     return;
   }
 
-  // Decline changes nothing: the core is already stopped, and writing the mode setting here
-  // would desync it from the mode radios and the core process, which only the main window owns.
-  // Starting again simply asks again.
+  // Decline changes nothing; writing the mode setting here would desync it from the main
+  // window's mode controls and the core process, which only the main window owns.
   qInfo("server question declined, leaving core stopped");
 }
 
@@ -753,12 +751,9 @@ void LicenseHandler::handleCheckDeactivated(const QString &message)
 {
   qWarning().noquote() << "server activation taken over by another computer:" << message;
 
-  // The license itself is valid and the server was reachable, so the grace clock resets.
-  m_settings.setGraceStartEpochSecs(0);
-  m_settings.sync();
-  m_warnedAboutGrace = false;
+  resetGracePeriod();
 
-  if (m_pCoreProcess == nullptr || !m_pCoreProcess->isStarted() || m_pCoreProcess->mode() != Settings::Server) {
+  if (m_pCoreProcess == nullptr || !m_pCoreProcess->isStarted() || liveCoreMode() != Settings::Server) {
     qDebug("not running as server, ignoring deactivated check");
     return;
   }
