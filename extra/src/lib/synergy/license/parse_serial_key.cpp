@@ -40,6 +40,20 @@ std::string trim(const std::string &s)
   const auto last = s.find_last_not_of(" \t\n\r\f\v");
   return s.substr(first, last - first + 1);
 }
+
+int parseSeats(const std::string &value)
+{
+  const auto clean = trim(value);
+  if (clean.empty()) {
+    return 1;
+  }
+  try {
+    const auto seats = std::stoi(clean);
+    return seats > 0 ? seats : 1;
+  } catch (const std::exception &) {
+    return 1;
+  }
+}
 } // namespace
 
 namespace synergy::license {
@@ -97,6 +111,7 @@ SerialKey parseV1(const std::string &hexString, const Parts &parts)
   SerialKey serialKey(hexString);
   serialKey.product = Product(parts.at(1));
   serialKey.name = parts.at(2);
+  serialKey.seats = parseSeats(parts.at(3));
   serialKey.email = parts.at(4);
   serialKey.company = parts.at(5);
   serialKey.warnTime = parseDate(parts.at(6));
@@ -115,6 +130,7 @@ SerialKey parseV2(const std::string &hexString, const Parts &parts)
   serialKey.type = SerialKeyType(parts.at(1));
   serialKey.product = Product(parts.at(2));
   serialKey.name = parts.at(3);
+  serialKey.seats = parseSeats(parts.at(4));
   serialKey.email = parts.at(5);
   serialKey.company = parts.at(6);
   serialKey.warnTime = parseDate(parts.at(7));
@@ -135,6 +151,7 @@ SerialKey parseV3(const std::string &hexString, const Parts &parts)
   serialKey.type = SerialKeyType(parts.at(2));
   serialKey.product = Product(parts.at(3));
   serialKey.name = parts.at(4);
+  serialKey.seats = parseSeats(parts.at(5));
   serialKey.email = parts.at(6);
   serialKey.company = parts.at(7);
   serialKey.warnTime = parseDate(parts.at(8));

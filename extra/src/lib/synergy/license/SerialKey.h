@@ -21,7 +21,6 @@
 #include "SerialKeyType.h"
 
 #include <chrono>
-#include <ctime>
 #include <optional>
 #include <string>
 
@@ -58,6 +57,7 @@ struct SerialKey
   std::optional<time_point> warnTime = std::nullopt;
   std::optional<time_point> expireTime = std::nullopt;
   bool isOffline = false;
+  int seats = 1;
   std::string name = "";
   std::string email = "";
   std::string company = "";

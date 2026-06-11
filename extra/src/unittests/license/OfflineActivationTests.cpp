@@ -138,4 +138,14 @@ TEST(OfflineActivationTests, parseSerialKey_offlineMode_isOffline)
 
   EXPECT_TRUE(serialKey.isValid);
   EXPECT_TRUE(serialKey.isOffline);
+  EXPECT_EQ(serialKey.seats, 1);
+}
+
+TEST(OfflineActivationTests, parseSerialKey_multiSeatKey_parsesSeatCount)
+{
+  // {v3;offline;;business;Bob;2;bob@example.com;Acme;;}
+  const auto serialKey = parseSerialKey("7b76333b6f66666c696e653b3b627573696e6573733b426f623b323b626f6240657"
+                                        "8616d706c652e636f6d3b41636d653b3b7d");
+
+  EXPECT_EQ(serialKey.seats, 2);
 }

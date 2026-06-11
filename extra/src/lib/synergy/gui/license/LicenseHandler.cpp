@@ -220,7 +220,12 @@ void LicenseHandler::handleAbout(QDialog *parent) const
   const auto refresh = [registrantLabel, keyField] {
     const auto &k = LicenseHandler::instance().license().serialKey();
     const auto name = QString::fromStdString(k.name);
-    const auto company = QString::fromStdString(k.company);
+    auto company = QString::fromStdString(k.company);
+    if (!company.isEmpty()) {
+      const auto seats =
+          k.seats == 1 ? QObject::tr("1 seat") : QObject::tr("%1 seats").arg(k.seats);
+      company = QStringLiteral("%1 (%2)").arg(company, seats);
+    }
     QString registrant = name;
     if (!company.isEmpty()) {
       registrant = name.isEmpty() ? company : QStringLiteral("%1, %2").arg(name, company);
