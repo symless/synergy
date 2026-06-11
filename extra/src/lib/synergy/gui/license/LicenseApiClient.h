@@ -56,6 +56,7 @@ Q_SIGNALS:
   void activationUnreachable();
   void checkFailed(const QString &message);
   void checkSucceeded();
+  void checkDeactivated(const QString &message);
 
 private Q_SLOTS:
   void handleResponse(QNetworkReply *reply);

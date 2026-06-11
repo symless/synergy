@@ -120,6 +120,7 @@ LicenseHandler::LicenseHandler()
 
   connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleRemoteCheckSucceeded);
   connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleRemoteCheckFailed);
+  connect(&m_apiClient, &LicenseApiClient::checkDeactivated, this, &LicenseHandler::handleRemoteCheckDeactivated);
 }
 
 void LicenseHandler::handleMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
@@ -283,7 +284,8 @@ bool LicenseHandler::handleCoreStart()
   }
 
   if (m_settings.activated() && !m_license.serialKey().isOffline) {
-    qDebug("license is activated, starting core");
+    qDebug("license is activated, starting core and checking remotely");
+    runRemoteCheck();
     return true;
   }
 
@@ -676,6 +678,46 @@ void LicenseHandler::handleRemoteCheckFailed(const QString &message)
             .arg(daysRemaining)
             .arg(kUrlContact)
             .arg(kColorSecondary)
+    );
+  }
+}
+
+void LicenseHandler::handleRemoteCheckDeactivated(const QString &message)
+{
+  qWarning().noquote() << "license check found this machine deactivated:" << message;
+
+  // The license itself is valid and the server was reachable, so the grace clock resets.
+  m_settings.setGraceStartEpochSecs(0);
+  m_warnedAboutGrace = false;
+
+  // Only server activations are ever deactivated. If this machine has since become a
+  // client, reactivating as a client restores it without bothering the customer.
+  const auto coreMode = Settings::value(Settings::Core::CoreMode).toInt();
+  if (coreMode == Settings::Client) {
+    qInfo("machine is now a client, reactivating");
+    m_settings.sync();
+    m_apiClient.activate(buildApiData());
+    return;
+  }
+
+  m_settings.setActivated(false);
+  m_settings.sync();
+
+  Settings::setValue(Settings::Core::CoreMode, Settings::CoreMode::None);
+  Settings::save();
+
+  if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
+    qDebug("stopping core process after deactivation");
+    m_pCoreProcess->stop();
+  }
+
+  if (m_pMainWindow != nullptr) {
+    QMessageBox::warning(
+        m_pMainWindow, "Server changed",
+        tr("<p>Another computer has been activated as the server for your license.</p>"
+           "<p>To keep using this computer as the server, choose the server option and "
+           "start %1 again.</p>")
+            .arg(productName())
     );
   }
 }

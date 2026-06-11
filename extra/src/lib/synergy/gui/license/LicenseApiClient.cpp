@@ -155,6 +155,15 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     return;
   }
 
+  // The deactivated flag rides on a success status; the license is valid but another
+  // computer has taken over this machine's server activation.
+  if (kind == RequestKind::kCheck && json["deactivated"].toBool()) {
+    qWarning("license api check found this machine deactivated");
+    Q_EMIT checkDeactivated(json["message"].toString());
+    reply->deleteLater();
+    return;
+  }
+
   qInfo().noquote() << "license api request successful";
   emitSucceeded();
   reply->deleteLater();
