@@ -94,7 +94,7 @@ private:
   void runRemoteCheck();
   void handleRemoteCheckSucceeded();
   void handleRemoteCheckFailed(const QString &message);
-  void handleRemoteCheckDeactivated(const QString &message);
+  void handleActivationDeactivated(const QString &message);
   bool isInGracePeriod() const;
   bool isGracePeriodExpired() const;
   void disableLicenseAfterGrace(const QString &reason);

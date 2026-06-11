@@ -45,9 +45,9 @@ LicenseApiClient::LicenseApiClient()
   connect(&m_manager, &QNetworkAccessManager::finished, this, &LicenseApiClient::handleResponse);
 }
 
-void LicenseApiClient::activate(Data data)
+void LicenseApiClient::activate(Data data, bool takeover)
 {
-  post(RequestKind::kActivate, QUrl(activateUrl()), data);
+  post(RequestKind::kActivate, QUrl(activateUrl()), data, takeover);
 }
 
 void LicenseApiClient::check(Data data)
@@ -55,7 +55,7 @@ void LicenseApiClient::check(Data data)
   post(RequestKind::kCheck, QUrl(checkUrl()), data);
 }
 
-void LicenseApiClient::post(RequestKind kind, const QUrl &url, const Data &data)
+void LicenseApiClient::post(RequestKind kind, const QUrl &url, const Data &data, std::optional<bool> takeover)
 {
   m_isBusy = true;
   m_pendingKind = kind;
@@ -65,7 +65,7 @@ void LicenseApiClient::post(RequestKind kind, const QUrl &url, const Data &data)
   auto request = QNetworkRequest(url);
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-  m_manager.post(request, getRequestData(data));
+  m_manager.post(request, getRequestData(data, takeover));
 }
 
 void LicenseApiClient::handleResponse(QNetworkReply *reply)
@@ -130,6 +130,15 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     const auto status = json["status"].toString();
     const auto message = json["message"].toString();
 
+    // The license is valid but another computer holds the server activation; the caller
+    // prompts the customer before taking it over, so this is not a failure.
+    if (kind == RequestKind::kActivate && status == "deactivated") {
+      qWarning("license api found this machine deactivated");
+      Q_EMIT activationDeactivated(message);
+      reply->deleteLater();
+      return;
+    }
+
     if (!status.isEmpty()) {
       qWarning().noquote() << "license api status:" << status;
     } else {
@@ -155,21 +164,12 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     return;
   }
 
-  // The deactivated flag rides on a success status; the license is valid but another
-  // computer has taken over this machine's server activation.
-  if (kind == RequestKind::kCheck && json["deactivated"].toBool()) {
-    qWarning("license api check found this machine deactivated");
-    Q_EMIT checkDeactivated(json["message"].toString());
-    reply->deleteLater();
-    return;
-  }
-
   qInfo().noquote() << "license api request successful";
   emitSucceeded();
   reply->deleteLater();
 }
 
-QByteArray LicenseApiClient::getRequestData(const Data &data) const
+QByteArray LicenseApiClient::getRequestData(const Data &data, std::optional<bool> takeover) const
 {
   if (data.machineSignature.isEmpty()) {
     qFatal("cannot create license request, no machine id");
@@ -198,6 +198,9 @@ QByteArray LicenseApiClient::getRequestData(const Data &data) const
   requestData["appVersion"] = data.appVersion;
   requestData["osName"] = data.osName;
   requestData["isServer"] = data.isServer;
+  if (takeover.has_value()) {
+    requestData["takeover"] = takeover.value();
+  }
 
   return QJsonDocument(requestData).toJson();
 }

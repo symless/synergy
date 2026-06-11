@@ -21,6 +21,8 @@
 #include <QObject>
 #include <QTimer>
 
+#include <optional>
+
 class QNetworkReply;
 
 namespace synergy::gui::license {
@@ -42,7 +44,7 @@ public:
 
   explicit LicenseApiClient();
 
-  void activate(Data data);
+  void activate(Data data, bool takeover = false);
   void check(Data data);
 
   bool isBusy()
@@ -54,9 +56,9 @@ Q_SIGNALS:
   void activationFailed(const QString &message);
   void activationSucceeded();
   void activationUnreachable();
+  void activationDeactivated(const QString &message);
   void checkFailed(const QString &message);
   void checkSucceeded();
-  void checkDeactivated(const QString &message);
 
 private Q_SLOTS:
   void handleResponse(QNetworkReply *reply);
@@ -68,8 +70,8 @@ private:
     kCheck
   };
 
-  void post(RequestKind kind, const QUrl &url, const Data &data);
-  QByteArray getRequestData(const Data &data) const;
+  void post(RequestKind kind, const QUrl &url, const Data &data, std::optional<bool> takeover = std::nullopt);
+  QByteArray getRequestData(const Data &data, std::optional<bool> takeover) const;
 
   QNetworkAccessManager m_manager;
   bool m_isBusy = false;

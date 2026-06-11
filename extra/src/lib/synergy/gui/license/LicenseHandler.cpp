@@ -118,9 +118,11 @@ LicenseHandler::LicenseHandler()
     }
   });
 
+  connect(
+      &m_apiClient, &LicenseApiClient::activationDeactivated, this, &LicenseHandler::handleActivationDeactivated
+  );
   connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleRemoteCheckSucceeded);
   connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleRemoteCheckFailed);
-  connect(&m_apiClient, &LicenseApiClient::checkDeactivated, this, &LicenseHandler::handleRemoteCheckDeactivated);
 }
 
 void LicenseHandler::handleMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
@@ -283,18 +285,29 @@ bool LicenseHandler::handleCoreStart()
     qFatal("core process not set");
   }
 
+  // Re-activate on every core start: the role is only reliably known here, the server slot
+  // follows whichever computer starts as the server, and clients verify the license this way.
+  // The core starts optimistically; a deactivated verdict stops it and prompts the customer.
   if (m_settings.activated() && !m_license.serialKey().isOffline) {
-    qDebug("license is activated, starting core and checking remotely");
-    runRemoteCheck();
+    qDebug("license is activated, refreshing activation on core start");
+    m_apiClient.activate(buildApiData());
     return true;
   }
 
   if (m_license.serialKey().isOffline) {
+    // Offline activation is required only to run as the server. Clients are free and
+    // unlimited, like online clients, so an air-gapped setup only spends activations
+    // on the machines that ever host the server.
+    if (Settings::value(Settings::Core::CoreMode).toInt() != Settings::Server) {
+      qDebug("offline license in client mode, starting core without activation");
+      return true;
+    }
+
     if (isOfflineActivated()) {
       qDebug("offline activation verified, starting core");
       return true;
     }
-    qInfo("offline serial key not activated, showing offline activation dialog");
+    qInfo("offline serial key not activated as server, showing offline activation dialog");
     return showOfflineActivationDialog();
   }
 
@@ -368,9 +381,12 @@ bool LicenseHandler::showSerialKeyDialog()
   updateWindowTitle();
   clampFeatures();
 
+  // Offline activation is only needed to run as the server; clients are free and unlimited.
+  const auto serverMode = Settings::value(Settings::Core::CoreMode).toInt() == Settings::Server;
+
   bool offlineActivationDeclined = false;
-  if (m_license.serialKey().isOffline && !isOfflineActivated()) {
-    qInfo("serial key requires offline activation");
+  if (m_license.serialKey().isOffline && serverMode && !isOfflineActivated()) {
+    qInfo("serial key requires offline activation for server mode");
     offlineActivationDeclined = !showOfflineActivationDialog();
   }
 
@@ -382,8 +398,8 @@ bool LicenseHandler::showSerialKeyDialog()
       qDebug("restarting core on serial key change");
       m_pCoreProcess->restart();
     }
-  } else if (m_license.serialKey().isOffline && isOfflineActivated() && !m_pCoreProcess->isStarted()) {
-    qDebug("starting core after offline activation");
+  } else if (m_license.serialKey().isOffline && (isOfflineActivated() || !serverMode) && !m_pCoreProcess->isStarted()) {
+    qDebug("starting core after offline serial key accepted");
     m_pCoreProcess->start();
   }
 
@@ -682,44 +698,38 @@ void LicenseHandler::handleRemoteCheckFailed(const QString &message)
   }
 }
 
-void LicenseHandler::handleRemoteCheckDeactivated(const QString &message)
+void LicenseHandler::handleActivationDeactivated(const QString &message)
 {
-  qWarning().noquote() << "license check found this machine deactivated:" << message;
+  qWarning().noquote() << "server activation held by another computer:" << message;
 
   // The license itself is valid and the server was reachable, so the grace clock resets.
   m_settings.setGraceStartEpochSecs(0);
+  m_settings.sync();
   m_warnedAboutGrace = false;
 
-  // Only server activations are ever deactivated. If this machine has since become a
-  // client, reactivating as a client restores it without bothering the customer.
-  const auto coreMode = Settings::value(Settings::Core::CoreMode).toInt();
-  if (coreMode == Settings::Client) {
-    qInfo("machine is now a client, reactivating");
-    m_settings.sync();
-    m_apiClient.activate(buildApiData());
+  if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
+    qDebug("stopping core process while the server takeover is unconfirmed");
+    m_pCoreProcess->stop();
+  }
+
+  const auto reply = QMessageBox::question(
+      m_pMainWindow, "Server changed",
+      tr("<p>Another computer has been activated as the server for your license.</p>"
+         "<p>Do you want to use this computer as the server instead? "
+         "The other computer will stop working as the server.</p>")
+  );
+  if (reply == QMessageBox::Yes) {
+    qInfo("server takeover confirmed, reactivating");
+    m_apiClient.activate(buildApiData(), true);
     return;
   }
 
+  qInfo("server takeover declined, clearing core mode");
   m_settings.setActivated(false);
   m_settings.sync();
 
   Settings::setValue(Settings::Core::CoreMode, Settings::CoreMode::None);
   Settings::save();
-
-  if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
-    qDebug("stopping core process after deactivation");
-    m_pCoreProcess->stop();
-  }
-
-  if (m_pMainWindow != nullptr) {
-    QMessageBox::warning(
-        m_pMainWindow, "Server changed",
-        tr("<p>Another computer has been activated as the server for your license.</p>"
-           "<p>To keep using this computer as the server, choose the server option and "
-           "start %1 again.</p>")
-            .arg(productName())
-    );
-  }
 }
 
 void LicenseHandler::disableLicenseAfterGrace(const QString &reason)
