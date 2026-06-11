@@ -32,6 +32,7 @@
 #include <QScreen>
 #include <QStyle>
 #include <QThread>
+#include <QTimer>
 
 using namespace deskflow::gui;
 using namespace synergy::gui;
