@@ -14,7 +14,6 @@
 #include "common/Constants.h"
 #include "common/LogLevel.h"
 #include "deskflow/App.h"
-#include "mt/Thread.h"
 #include "platform/MSWindowsHandle.h"
 
 #include <Shellapi.h>
@@ -90,16 +89,18 @@ void MSWindowsWatchdog::stop()
 
   m_running = false;
 
-  const auto waitForThread = [](const std::unique_ptr<Thread> &thread, const char *name) {
-    if (thread != nullptr && !thread->wait(kThreadWaitSeconds)) {
-      LOG_WARN("%s thread is slow to stop, waiting", name);
-      thread->wait();
-    }
-  };
-
-  waitForThread(m_mainThread, "main");
-  waitForThread(m_outputThread, "output");
-  waitForThread(m_sasThread, "sas");
+  if (m_mainThread != nullptr && !m_mainThread->wait(kThreadWaitSeconds)) {
+    LOG_WARN("main thread is slow to stop, waiting");
+    m_mainThread->wait();
+  }
+  if (m_outputThread != nullptr && !m_outputThread->wait(kThreadWaitSeconds)) {
+    LOG_WARN("output thread is slow to stop, waiting");
+    m_outputThread->wait();
+  }
+  if (m_sasThread != nullptr && !m_sasThread->wait(kThreadWaitSeconds)) {
+    LOG_WARN("sas thread is slow to stop, waiting");
+    m_sasThread->wait();
+  }
 }
 
 HANDLE
