@@ -295,7 +295,8 @@ bool LicenseHandler::handleCoreStart()
   }
 
   if (m_license.serialKey().isOffline) {
-    if (Settings::value(Settings::Core::CoreMode).toInt() != Settings::Server) {
+    // The saved mode setting lags the UI at core start, so prefer the live core process mode.
+    if (m_pCoreProcess->mode() != Settings::Server) {
       qDebug("offline license in client mode, starting core without activation");
       return true;
     }
@@ -379,24 +380,8 @@ bool LicenseHandler::showSerialKeyDialog()
   updateWindowTitle();
   clampFeatures();
 
-  const auto serverMode = Settings::value(Settings::Core::CoreMode).toInt() == Settings::Server;
-
-  bool offlineActivationDeclined = false;
-  if (m_license.serialKey().isOffline && serverMode && !isOfflineActivated()) {
-    qInfo("serial key requires offline activation for server mode");
-    offlineActivationDeclined = !showOfflineActivationDialog();
-  }
-
-  if (dialog.serialKeyChanged() && m_pCoreProcess->isStarted()) {
-    if (offlineActivationDeclined) {
-      qDebug("stopping core, offline activation declined");
-      m_pCoreProcess->stop();
-    } else {
-      qDebug("restarting core on serial key change");
-      m_pCoreProcess->restart();
-    }
-  }
-
+  // Key entry never touches the core process; everything a new key implies (activation, the
+  // offline challenge, feature clamps) is applied at the next core start.
   // If the user accepted the dialog while not activated (e.g. recovering from a
   // remote disable), retry activation so something visible happens regardless of
   // whether the serial key changed.
