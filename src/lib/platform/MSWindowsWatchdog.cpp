@@ -72,6 +72,11 @@ MSWindowsWatchdog::MSWindowsWatchdog(bool foreground, FileLogOutputter &fileLogO
   initOutputReadPipe();
 }
 
+MSWindowsWatchdog::~MSWindowsWatchdog()
+{
+  stop();
+}
+
 void MSWindowsWatchdog::startAsync()
 {
   m_mainThread = std::make_unique<Thread>(new TMethodJob(this, &MSWindowsWatchdog::mainLoop, nullptr));
@@ -81,21 +86,20 @@ void MSWindowsWatchdog::startAsync()
 
 void MSWindowsWatchdog::stop()
 {
-  const auto kThreadWaitSeconds = 5;
+  static constexpr double kThreadWaitSeconds = 5;
 
   m_running = false;
 
-  if (!m_mainThread->wait(kThreadWaitSeconds)) {
-    LOG_WARN("could not stop main thread");
-  }
+  const auto waitForThread = [](const std::unique_ptr<Thread> &thread, const char *name) {
+    if (thread != nullptr && !thread->wait(kThreadWaitSeconds)) {
+      LOG_WARN("%s thread is slow to stop, waiting", name);
+      thread->wait();
+    }
+  };
 
-  if (!m_outputThread->wait(kThreadWaitSeconds)) {
-    LOG_WARN("could not stop output thread");
-  }
-
-  if (!m_sasThread->wait(kThreadWaitSeconds)) {
-    LOG_WARN("could not stop sas thread");
-  }
+  waitForThread(m_mainThread, "main");
+  waitForThread(m_outputThread, "output");
+  waitForThread(m_sasThread, "sas");
 }
 
 HANDLE
