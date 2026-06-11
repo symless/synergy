@@ -72,18 +72,17 @@ LicenseHandler::LicenseHandler()
   m_enabled = synergy::gui::license::isActivationEnabled();
 
   connect(&m_apiClient, &LicenseApiClient::activationFailed, this, [this](const QString &message) {
-    QString fullMessage = QString(
-                              "<p>There was a problem activating your license.</p>"
-                              "%2"
-                              R"(<p>Please <a href="%1">contact us</a> )"
-                              "if there is anything we can do to help.</p>"
-    )
-                              .arg(kUrlContact)
-                              .arg(message);
-    QMessageBox::warning(m_pMainWindow, "Activation failed", fullMessage);
+    // A rejected activation is an unverified license, the same as a failed check: the grace
+    // period starts (or continues), the customer sees how many days remain, and the grace
+    // expiry disables the license.
+    handleRemoteCheckFailed(message);
 
-    qWarning("activation failed, showing serial key dialog");
-    return showSerialKeyDialog();
+    // Mid key entry, reopen the dialog so the customer can correct the key; a failure during
+    // a core start refresh is served by the grace warning alone.
+    if (!m_coreStartActivation) {
+      qWarning("activation failed at key entry, showing serial key dialog");
+      showSerialKeyDialog();
+    }
   });
 
   connect(&m_apiClient, &LicenseApiClient::activationSucceeded, this, [this] {
@@ -723,14 +722,14 @@ void LicenseHandler::askServerQuestion()
   QString question;
   if (m_license.serialKey().seats > 1) {
     question = tr("<p>All of the server activations for your team's license are currently in use.</p>"
-                  "<p>Need to add more seats to your team's license? "
-                  R"(<a href="%1">Contact us</a>.</p>)"
+                  "<p>If you need to add more seats to your team's license, please "
+                  R"(<a href="%1">contact us</a> today.</p>)"
                   "<p>Do you want to reassign a server activation to this computer?</p>")
                    .arg(kUrlContact);
   } else {
     question = tr("<p>Another computer is currently the server for your license.</p>"
-                  "<p>Need more than one server running at the same time? "
-                  R"(<a href="%1">Contact us</a>.</p>)"
+                  "<p>If you need more than one server running at the same time, please "
+                  R"(<a href="%1">contact us</a> today.</p>)"
                   "<p>Do you want to reassign the server activation to this computer?</p>")
                    .arg(kUrlContact);
   }
