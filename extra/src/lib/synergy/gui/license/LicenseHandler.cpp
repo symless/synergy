@@ -46,9 +46,9 @@
 #include <QObject>
 #include <QProcessEnvironment>
 #include <QPushButton>
-#include <QVBoxLayout>
 #include <QSysInfo>
 #include <QTimer>
+#include <QVBoxLayout>
 #include <QtCore>
 #include <chrono>
 
@@ -118,11 +118,10 @@ LicenseHandler::LicenseHandler()
     }
   });
 
-  connect(
-      &m_apiClient, &LicenseApiClient::activationDeactivated, this, &LicenseHandler::handleActivationDeactivated
-  );
+  connect(&m_apiClient, &LicenseApiClient::activationDeactivated, this, &LicenseHandler::handleActivationDeactivated);
   connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleRemoteCheckSucceeded);
   connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleRemoteCheckFailed);
+  connect(&m_apiClient, &LicenseApiClient::checkDeactivated, this, &LicenseHandler::handleCheckDeactivated);
 }
 
 void LicenseHandler::handleMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
@@ -225,8 +224,7 @@ void LicenseHandler::handleAbout(QDialog *parent) const
     const auto name = QString::fromStdString(k.name);
     auto company = QString::fromStdString(k.company);
     if (!company.isEmpty()) {
-      const auto seats =
-          k.seats == 1 ? QObject::tr("1 seat") : QObject::tr("%1 seats").arg(k.seats);
+      const auto seats = k.seats == 1 ? QObject::tr("1 seat") : QObject::tr("%1 seats").arg(k.seats);
       company = QStringLiteral("%1 (%2)").arg(company, seats);
     }
     QString registrant = name;
@@ -285,9 +283,7 @@ bool LicenseHandler::handleCoreStart()
     qFatal("core process not set");
   }
 
-  // Re-activate on every core start: the role is only reliably known here, the server slot
-  // follows whichever computer starts as the server, and clients verify the license this way.
-  // The core starts optimistically; a deactivated verdict stops it and prompts the customer.
+  // The role is only reliably known at core start; start optimistically, a deactivated verdict stops the core.
   if (m_settings.activated() && !m_license.serialKey().isOffline) {
     qDebug("license is activated, refreshing activation on core start");
     m_apiClient.activate(buildApiData());
@@ -295,9 +291,6 @@ bool LicenseHandler::handleCoreStart()
   }
 
   if (m_license.serialKey().isOffline) {
-    // Offline activation is required only to run as the server. Clients are free and
-    // unlimited, like online clients, so an air-gapped setup only spends activations
-    // on the machines that ever host the server.
     if (Settings::value(Settings::Core::CoreMode).toInt() != Settings::Server) {
       qDebug("offline license in client mode, starting core without activation");
       return true;
@@ -381,7 +374,6 @@ bool LicenseHandler::showSerialKeyDialog()
   updateWindowTitle();
   clampFeatures();
 
-  // Offline activation is only needed to run as the server; clients are free and unlimited.
   const auto serverMode = Settings::value(Settings::Core::CoreMode).toInt() == Settings::Server;
 
   bool offlineActivationDeclined = false;
@@ -620,14 +612,17 @@ LicenseApiClient::Data LicenseHandler::buildApiData() const
   const auto machineSignature = QCryptographicHash::hash(machineId, QCryptographicHash::Sha256).toHex();
   const auto hostnameSignature = QCryptographicHash::hash(hostname.toUtf8(), QCryptographicHash::Sha256).toHex();
 
-  const auto isServer = (Settings::value(Settings::Core::CoreMode).toInt() == Settings::Server);
+  // The saved mode setting lags the UI at core start, so prefer the live core process mode.
+  const auto coreMode = m_pCoreProcess != nullptr
+                            ? m_pCoreProcess->mode()
+                            : static_cast<Settings::CoreMode>(Settings::value(Settings::Core::CoreMode).toInt());
   return {
       machineSignature,
       hostnameSignature,
       QString::fromStdString(m_license.serialKey().hexString),
       kVersion,
       QSysInfo::prettyProductName(),
-      isServer
+      coreMode == Settings::Server
   };
 }
 
@@ -712,11 +707,16 @@ void LicenseHandler::handleActivationDeactivated(const QString &message)
     m_pCoreProcess->stop();
   }
 
+  // The license allows one server at a time, but we never block the customer standing at this
+  // machine; they are almost always the rightful user (switching desks, replacing a machine).
+  // Asking first keeps use of one license fair and deliberate, and the other computer is
+  // notified rather than cut off. Switching the old server to client mode releases the server
+  // slot, so the normal switching flow never sees this question.
   const auto reply = QMessageBox::question(
-      m_pMainWindow, "Server changed",
-      tr("<p>Another computer has been activated as the server for your license.</p>"
-         "<p>Do you want to use this computer as the server instead? "
-         "The other computer will stop working as the server.</p>")
+      m_pMainWindow, "Server in use",
+      tr("<p>Another computer is currently the server for your license. "
+         "Your license allows one computer to act as the server at a time.</p>"
+         "<p>Do you want to make this computer the server?</p>")
   );
   if (reply == QMessageBox::Yes) {
     qInfo("server takeover confirmed, reactivating");
@@ -730,6 +730,37 @@ void LicenseHandler::handleActivationDeactivated(const QString &message)
 
   Settings::setValue(Settings::Core::CoreMode, Settings::CoreMode::None);
   Settings::save();
+}
+
+void LicenseHandler::handleCheckDeactivated(const QString &message)
+{
+  qWarning().noquote() << "server activation taken over by another computer:" << message;
+
+  // The license itself is valid and the server was reachable, so the grace clock resets.
+  m_settings.setGraceStartEpochSecs(0);
+  m_settings.sync();
+  m_warnedAboutGrace = false;
+
+  if (m_pCoreProcess == nullptr || !m_pCoreProcess->isStarted() || m_pCoreProcess->mode() != Settings::Server) {
+    qDebug("not running as server, ignoring deactivated check");
+    return;
+  }
+
+  qInfo("stopping core, another computer took over as server");
+  m_pCoreProcess->stop();
+
+  // A notice rather than a question: starting the server again is the answer, and that flow
+  // asks before taking the slot back. Nothing restarts the core here; reclaiming the slot
+  // must stay a human decision, or two machines could silently ping-pong the activation.
+  if (m_pMainWindow != nullptr) {
+    QMessageBox::information(
+        m_pMainWindow, "Server changed",
+        tr("<p>Another computer is now the server for your license, so sharing from "
+           "this computer has stopped. Your license allows one computer to act as "
+           "the server at a time.</p>"
+           "<p>To make this computer the server again, press Start.</p>")
+    );
+  }
 }
 
 void LicenseHandler::disableLicenseAfterGrace(const QString &reason)

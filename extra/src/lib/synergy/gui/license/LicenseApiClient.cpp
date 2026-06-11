@@ -130,11 +130,14 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     const auto status = json["status"].toString();
     const auto message = json["message"].toString();
 
-    // The license is valid but another computer holds the server activation; the caller
-    // prompts the customer before taking it over, so this is not a failure.
-    if (kind == RequestKind::kActivate && status == "deactivated") {
+    // Not a failure: the license is valid, another computer just holds the server activation.
+    if (status == "deactivated") {
       qWarning("license api found this machine deactivated");
-      Q_EMIT activationDeactivated(message);
+      if (kind == RequestKind::kActivate) {
+        Q_EMIT activationDeactivated(message);
+      } else {
+        Q_EMIT checkDeactivated(message);
+      }
       reply->deleteLater();
       return;
     }
