@@ -19,7 +19,6 @@
 
 #include "synergy/gui/constants.h"
 #include "synergy/gui/license/LicenseHandler.h"
-#include "synergy/gui/styles.h"
 
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -42,9 +41,8 @@ OfflineActivationDialog::OfflineActivationDialog(QWidget *parent, LicenseHandler
 
   const auto infoLabel = new QLabel(
       tr(R"(On a device with internet access, enter the activation code at )"
-         R"(<a href="%1" style="color: %2">your account page</a> to get a response code.)")
-          .arg(kUrlAccount)
-          .arg(kColorSecondary),
+         R"(<a href="%1">your account page</a> to get a response code.)")
+          .arg(kUrlAccount),
       this
   );
   infoLabel->setWordWrap(true);
@@ -86,9 +84,8 @@ void OfflineActivationDialog::accept()
         tr("<p>That response code is not valid for this computer.</p>"
            "<p>Please check that you typed the whole response code correctly, and that "
            "the activation code was generated on this computer. "
-           R"(If the problem persists, please <a href="%1" style="color: %2">contact us</a>.</p>)")
+           R"(If the problem persists, please <a href="%1">contact us</a>.</p>)")
             .arg(kUrlContact)
-            .arg(kColorSecondary)
     );
     return;
   }

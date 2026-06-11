@@ -75,12 +75,11 @@ LicenseHandler::LicenseHandler()
   connect(&m_apiClient, &LicenseApiClient::activationFailed, this, [this](const QString &message) {
     QString fullMessage = QString(
                               "<p>There was a problem activating your license.</p>"
-                              "%3"
-                              R"(<p>Please <a href="%1" style="color: %2">contact us</a> )"
+                              "%2"
+                              R"(<p>Please <a href="%1">contact us</a> )"
                               "if there is anything we can do to help.</p>"
     )
                               .arg(kUrlContact)
-                              .arg(kColorSecondary)
                               .arg(message);
     QMessageBox::warning(m_pMainWindow, "Activation failed", fullMessage);
 
@@ -413,9 +412,8 @@ bool LicenseHandler::showOfflineActivationDialog()
         m_pMainWindow, tr("Offline activation"),
         tr("<p>A unique ID for this computer could not be determined, "
            "so an activation code cannot be generated.</p>"
-           R"(<p>Please <a href="%1" style="color: %2">contact us</a> for help.</p>)")
+           R"(<p>Please <a href="%1">contact us</a> for help.</p>)")
             .arg(kUrlContact)
-            .arg(kColorSecondary)
     );
     return false;
   }
@@ -670,13 +668,12 @@ void LicenseHandler::handleRemoteCheckFailed(const QString &message)
         tr("<p>We could not verify your license:</p>"
            "<p><i>%1</i></p>"
            "<p>%2 will keep working for %3 days. "
-           R"(If the problem persists, please <a href="%4" style="color: %5">contact us</a>.)"
+           R"(If the problem persists, please <a href="%4">contact us</a>.)"
            "</p>")
             .arg(message.toHtmlEscaped())
             .arg(productName())
             .arg(daysRemaining)
             .arg(kUrlContact)
-            .arg(kColorSecondary)
     );
   }
 }
@@ -714,15 +711,19 @@ void LicenseHandler::askServerQuestion()
   // releases the server slot, so the normal switching flow never sees this question.
   QString question;
   if (m_license.serialKey().seats > 1) {
-    question =
-        tr("<p>All of the server activations for your team's license are currently in use.</p>"
-           "<p>Do you want to reassign a server activation to this computer?</p>");
+    question = tr("<p>All of the server activations for your team's license are currently in use.</p>"
+                  "<p>Need to add more seats to your team's license? "
+                  R"(<a href="%1">Contact us</a>.</p>)"
+                  "<p>Do you want to reassign a server activation to this computer?</p>")
+                   .arg(kUrlContact);
   } else {
-    question =
-        tr("<p>Another computer is currently the server for your license.</p>"
-           "<p>Do you want to reassign the server activation to this computer?</p>");
+    question = tr("<p>Another computer is currently the server for your license.</p>"
+                  "<p>Need more than one server running at the same time? "
+                  R"(<a href="%1">Contact us</a>.</p>)"
+                  "<p>Do you want to reassign the server activation to this computer?</p>")
+                   .arg(kUrlContact);
   }
-  const auto reply = QMessageBox::question(m_pMainWindow, "Server in use", question);
+  const auto reply = QMessageBox::question(m_pMainWindow, "License limit reached", question);
   if (reply == QMessageBox::Yes) {
     qInfo("server question accepted, reactivating");
 
@@ -781,11 +782,10 @@ void LicenseHandler::disableLicenseAfterGrace(const QString &reason)
         m_pMainWindow, "License disabled",
         tr("<p>Your license has been disabled and could not be verified within the grace period:</p>"
            "<p><i>%1</i></p>"
-           R"(<p>Please <a href="%2" style="color: %3">contact us</a> to restore access. )"
+           R"(<p>Please <a href="%2">contact us</a> to restore access. )"
            "Once your license is reinstated, the app will resume automatically.</p>")
             .arg(reason.toHtmlEscaped())
             .arg(kUrlContact)
-            .arg(kColorSecondary)
     );
   }
 }

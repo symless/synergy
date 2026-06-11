@@ -26,9 +26,14 @@
 #include "synergy/gui/dev_mode.h"
 #include "synergy/gui/license/LicenseHandler.h"
 
+#include "synergy/gui/styles.h"
+
+#include <QColor>
 #include <QDialog>
+#include <QGuiApplication>
 #include <QIcon>
 #include <QMainWindow>
+#include <QPalette>
 #include <QSize>
 
 namespace deskflow::gui {
@@ -56,6 +61,12 @@ inline void onPreInit()
 
 inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
 {
+  // Qt's default link color is unreadable on the dark theme; setting the palette link role
+  // once colors every anchor, so dialog copy never needs inline link styles.
+  auto palette = QGuiApplication::palette();
+  palette.setColor(QPalette::Link, QColor(kColorSecondary));
+  QGuiApplication::setPalette(palette);
+
   LicenseHandler::instance().handleMainWindow(mainWindow, coreProcess);
   FeatureHandler::instance().handleMainWindow(mainWindow);
   synergy::gui::migration::showNoticeIfPending(mainWindow);
