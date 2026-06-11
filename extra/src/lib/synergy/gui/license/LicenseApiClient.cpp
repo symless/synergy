@@ -23,8 +23,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QSysInfo>
-#include <QTimer>
 
 namespace synergy::gui::license {
 

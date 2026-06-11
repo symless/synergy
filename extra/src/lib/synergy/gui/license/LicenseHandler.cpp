@@ -286,6 +286,7 @@ bool LicenseHandler::handleCoreStart()
   // The role is only reliably known at core start; start optimistically, a deactivated verdict stops the core.
   if (m_settings.activated() && !m_license.serialKey().isOffline) {
     qDebug("license is activated, refreshing activation on core start");
+    m_coreStartActivation = true;
     m_apiClient.activate(buildApiData());
     return true;
   }
@@ -310,6 +311,7 @@ bool LicenseHandler::handleCoreStart()
   }
 
   qInfo("activating license");
+  m_coreStartActivation = true;
   m_apiClient.activate(buildApiData());
 
   return false;
@@ -400,6 +402,7 @@ bool LicenseHandler::showSerialKeyDialog()
   // whether the serial key changed.
   if (!m_settings.activated() && m_license.isValid() && !m_license.serialKey().isOffline && !m_apiClient.isBusy()) {
     qInfo("retrying activation after dialog accept");
+    m_coreStartActivation = false;
     m_apiClient.activate(buildApiData());
   }
 
@@ -702,29 +705,46 @@ void LicenseHandler::handleActivationDeactivated(const QString &message)
   m_settings.sync();
   m_warnedAboutGrace = false;
 
+  // The role is only reliably known at core start; an activation sent from anywhere else
+  // (e.g. serial key entry) must not ask or stop anything, the next core start will.
+  if (!m_coreStartActivation) {
+    qInfo("not a core start activation, leaving the server question for the next core start");
+    return;
+  }
+
   if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
-    qDebug("stopping core process while the server takeover is unconfirmed");
+    qDebug("stopping core process while the server question is unanswered");
     m_pCoreProcess->stop();
   }
 
-  // The license allows one server at a time, but we never block the customer standing at this
+  askServerQuestion();
+}
+
+void LicenseHandler::askServerQuestion()
+{
+  // The license allows one server per seat, but we never block the customer standing at this
   // machine; they are almost always the rightful user (switching desks, replacing a machine).
   // Asking first keeps use of one license fair and deliberate, and the other computer is
-  // notified rather than cut off. Switching the old server to client mode releases the server
-  // slot, so the normal switching flow never sees this question.
-  const auto reply = QMessageBox::question(
-      m_pMainWindow, "Server in use",
-      tr("<p>Another computer is currently the server for your license. "
-         "Your license allows one computer to act as the server at a time.</p>"
-         "<p>Do you want to make this computer the server?</p>")
-  );
+  // asked the same question rather than cut off. Switching the old server to client mode
+  // releases the server slot, so the normal switching flow never sees this question.
+  QString question;
+  if (m_license.serialKey().seats > 1) {
+    question =
+        tr("<p>All of the server activations for your team's license are currently in use.</p>"
+           "<p>Do you want to reassign a server activation to this computer?</p>");
+  } else {
+    question =
+        tr("<p>Another computer is currently the server for your license.</p>"
+           "<p>Do you want to reassign the server activation to this computer?</p>");
+  }
+  const auto reply = QMessageBox::question(m_pMainWindow, "Server in use", question);
   if (reply == QMessageBox::Yes) {
-    qInfo("server takeover confirmed, reactivating");
+    qInfo("server question accepted, reactivating");
     m_apiClient.activate(buildApiData(), true);
     return;
   }
 
-  qInfo("server takeover declined, clearing core mode");
+  qInfo("server question declined, clearing core mode");
   m_settings.setActivated(false);
   m_settings.sync();
 
@@ -749,18 +769,7 @@ void LicenseHandler::handleCheckDeactivated(const QString &message)
   qInfo("stopping core, another computer took over as server");
   m_pCoreProcess->stop();
 
-  // A notice rather than a question: starting the server again is the answer, and that flow
-  // asks before taking the slot back. Nothing restarts the core here; reclaiming the slot
-  // must stay a human decision, or two machines could silently ping-pong the activation.
-  if (m_pMainWindow != nullptr) {
-    QMessageBox::information(
-        m_pMainWindow, "Server changed",
-        tr("<p>Another computer is now the server for your license, so sharing from "
-           "this computer has stopped. Your license allows one computer to act as "
-           "the server at a time.</p>"
-           "<p>To make this computer the server again, press Start.</p>")
-    );
-  }
+  askServerQuestion();
 }
 
 void LicenseHandler::disableLicenseAfterGrace(const QString &reason)

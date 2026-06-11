@@ -19,7 +19,6 @@
 
 #include <QNetworkAccessManager>
 #include <QObject>
-#include <QTimer>
 
 #include <optional>
 

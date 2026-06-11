@@ -96,6 +96,7 @@ private:
   void handleRemoteCheckFailed(const QString &message);
   void handleActivationDeactivated(const QString &message);
   void handleCheckDeactivated(const QString &message);
+  void askServerQuestion();
   bool isInGracePeriod() const;
   bool isGracePeriodExpired() const;
   void disableLicenseAfterGrace(const QString &reason);
@@ -107,6 +108,7 @@ private:
   synergy::gui::ExtraSettings m_settings;
   synergy::gui::license::LicenseApiClient m_apiClient;
   bool m_warnedAboutGrace = false;
+  bool m_coreStartActivation = false;
   QMainWindow *m_pMainWindow = nullptr;
   deskflow::gui::CoreProcess *m_pCoreProcess = nullptr;
 };
