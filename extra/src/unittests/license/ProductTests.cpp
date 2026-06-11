@@ -63,7 +63,7 @@ TEST(ProductTests, setEdition_pro_isValid)
 
   EXPECT_EQ(kPro, product.edition());
   EXPECT_EQ(Product::SerialKeyEditionID::Pro, product.serialKeyId());
-  EXPECT_EQ("Deskflow Pro", product.name());
+  EXPECT_EQ("Synergy 1 Pro", product.name());
   EXPECT_TRUE(product.isValid());
 }
 
@@ -75,7 +75,7 @@ TEST(ProductTests, setEdition_basic_isValid)
 
   EXPECT_EQ(kBasic, product.edition());
   EXPECT_EQ(Product::SerialKeyEditionID::Basic, product.serialKeyId());
-  EXPECT_EQ("Deskflow Basic", product.name());
+  EXPECT_EQ("Synergy 1 Basic", product.name());
 }
 
 TEST(ProductTests, setEdition_business_isValid)
@@ -86,5 +86,5 @@ TEST(ProductTests, setEdition_business_isValid)
 
   EXPECT_EQ(kBusiness, product.edition());
   EXPECT_EQ(Product::SerialKeyEditionID::Business, product.serialKeyId());
-  EXPECT_EQ("Deskflow Business", product.name());
+  EXPECT_EQ("Synergy 1 Business", product.name());
 }
