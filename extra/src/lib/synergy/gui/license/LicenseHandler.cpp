@@ -99,7 +99,9 @@ LicenseHandler::LicenseHandler()
       qFatal("core process not set");
     }
 
-    if (m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
+    // Only an activation that a core start is waiting on may start the core; an activation
+    // from serial key entry must not, the customer has not chosen to start anything yet.
+    if (m_coreStartActivation && m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
       qDebug("resuming core process after activation");
       m_pCoreProcess->start();
     }
@@ -113,7 +115,8 @@ LicenseHandler::LicenseHandler()
 
     qWarning("license activation server unreachable, continuing without activation");
 
-    if (m_pCoreProcess != nullptr && m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
+    if (m_coreStartActivation && m_pCoreProcess != nullptr &&
+        m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
       m_pCoreProcess->start();
     }
   });
@@ -392,9 +395,6 @@ bool LicenseHandler::showSerialKeyDialog()
       qDebug("restarting core on serial key change");
       m_pCoreProcess->restart();
     }
-  } else if (m_license.serialKey().isOffline && (isOfflineActivated() || !serverMode) && !m_pCoreProcess->isStarted()) {
-    qDebug("starting core after offline serial key accepted");
-    m_pCoreProcess->start();
   }
 
   // If the user accepted the dialog while not activated (e.g. recovering from a
@@ -740,6 +740,9 @@ void LicenseHandler::askServerQuestion()
   const auto reply = QMessageBox::question(m_pMainWindow, "Server in use", question);
   if (reply == QMessageBox::Yes) {
     qInfo("server question accepted, reactivating");
+
+    // The customer just chose to be the server, so success may resume the stopped core.
+    m_coreStartActivation = true;
     m_apiClient.activate(buildApiData(), true);
     return;
   }
