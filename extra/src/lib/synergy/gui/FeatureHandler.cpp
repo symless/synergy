@@ -30,6 +30,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDate>
 #include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -37,6 +38,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLocale>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
@@ -131,6 +133,7 @@ void FeatureHandler::handleAbout(QDialog *parent) const
   addTagline(parent);
   setAttribution(parent);
   tightenVersionRow(parent);
+  addBuildDate(parent);
   addLicenseLinks(parent);
   addTrademark(parent);
 }
@@ -184,6 +187,22 @@ void FeatureHandler::tightenVersionRow(QDialog *parent) const
   if (auto *copyButton = parent->findChild<QPushButton *>(QStringLiteral("btnCopyVersion"))) {
     copyButton->setMaximumHeight(copyButton->fontMetrics().height() + 4);
   }
+}
+
+void FeatureHandler::addBuildDate(QDialog *parent) const
+{
+  auto *version = parent->findChild<QLabel *>(QStringLiteral("lblVersion"));
+  if (version == nullptr) {
+    return;
+  }
+
+  // Compile date of this file; close enough to the build date since release
+  // builds always compile from scratch in CI.
+  const auto date = QLocale::c().toDate(QStringLiteral(__DATE__).simplified(), QStringLiteral("MMM d yyyy"));
+  if (!date.isValid()) {
+    return;
+  }
+  version->setText(QStringLiteral("%1, built %2").arg(version->text(), date.toString(Qt::ISODate)));
 }
 
 void FeatureHandler::addLicenseLinks(QDialog *parent) const

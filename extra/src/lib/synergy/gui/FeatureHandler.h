@@ -42,6 +42,7 @@ private:
   void addTagline(QDialog *parent) const;
   void setAttribution(QDialog *parent) const;
   void tightenVersionRow(QDialog *parent) const;
+  void addBuildDate(QDialog *parent) const;
   void addLicenseLinks(QDialog *parent) const;
   void addTrademark(QDialog *parent) const;
 
