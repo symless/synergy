@@ -18,7 +18,6 @@ const auto kRevFqdnName = "@CMAKE_PROJECT_REV_FQDN@";
 
 const auto kCopyright = //
     "Copyright @CMAKE_PROJECT_COPYRIGHT@\n"
-    "Copyright (C) 2024-2026 Deskflow Developers\n"
     "Copyright (C) 2009-2012 Nick Bolton\n"
     "Copyright (C) 2002-2009 Chris Schoeneman";
 

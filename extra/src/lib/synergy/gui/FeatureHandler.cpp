@@ -37,11 +37,11 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPalette>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QPalette>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSettings>
@@ -169,12 +169,13 @@ void FeatureHandler::setAttribution(QDialog *parent) const
   color.setAlphaF(0.6);
   palette.setColor(QPalette::WindowText, color);
   description->setPalette(palette);
-  description->setText(QObject::tr(
-      "Synergy was originally created by Chris Schoeneman and today builds on Deskflow, "
-      "the open-source upstream project maintained by Nick Bolton and Chris Rizzitello. "
-      "Thanks to the Deskflow developers, all our contributors, and the wider open-source "
-      "community."
-  ));
+  description->setText(
+      QObject::tr(
+          "Synergy was originally created by Chris Schoeneman. Thanks to our contributors "
+          "and the open source projects Synergy builds on, including Deskflow, Qt, OpenSSL, "
+          "and many others."
+      )
+  );
 }
 
 void FeatureHandler::tightenVersionRow(QDialog *parent) const
@@ -189,9 +190,9 @@ void FeatureHandler::addLicenseLinks(QDialog *parent) const
 {
   // Upstream shows only the GPL link; add the EULA alongside it.
   if (auto *linkGpl = parent->findChild<QLabel *>(QStringLiteral("linkGpl"))) {
-    const auto gpl = QString(kLink).arg(kUrlGpl, kColorSecondary, QObject::tr("License: GNU GPL Version 2"));
     const auto eula = QString(kLink).arg(kUrlEula, kColorSecondary, QObject::tr("End User License Agreement"));
-    linkGpl->setText(QStringLiteral("%1&nbsp;&nbsp;|&nbsp;&nbsp;%2").arg(gpl, eula));
+    const auto gpl = QString(kLink).arg(kUrlGpl, kColorSecondary, QObject::tr("License: GNU GPL Version 2"));
+    linkGpl->setText(QStringLiteral("%1&nbsp;&nbsp;|&nbsp;&nbsp;%2").arg(eula, gpl));
   }
 }
 
@@ -199,8 +200,7 @@ void FeatureHandler::addTrademark(QDialog *parent) const
 {
   if (auto *copyright = parent->findChild<QLabel *>(QStringLiteral("lblCopyright"))) {
     copyright->setText(
-        copyright->text() + QStringLiteral("\n") +
-        QObject::tr("The Synergy logo is a trademark of Synergy App Ltd.")
+        copyright->text() + QStringLiteral("\n") + QObject::tr("The Synergy logo is a trademark of Synergy App Ltd.")
     );
   }
 }
@@ -210,8 +210,7 @@ static QString pathLabel(const QString &path)
   if (QFileInfo::exists(path)) {
     return QStringLiteral("<a href=\"file://%1\">%1</a>").arg(path);
   }
-  return QStringLiteral("<code>%1</code> %2")
-      .arg(path, QObject::tr("(not yet created)"));
+  return QStringLiteral("<code>%1</code> %2").arg(path, QObject::tr("(not yet created)"));
 }
 
 void FeatureHandler::addScopeTab(QDialog *parent) const
@@ -259,8 +258,7 @@ void FeatureHandler::addScopeTab(QDialog *parent) const
   };
 
   auto *userRadio = buildOption(
-      QObject::tr("Current user"),
-      QObject::tr("Settings apply only to your user account on this computer."),
+      QObject::tr("Current user"), QObject::tr("Settings apply only to your user account on this computer."),
       Settings::UserSettingFile
   );
   auto *systemRadio = buildOption(
