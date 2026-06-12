@@ -176,14 +176,17 @@ jobs:
         uses: SSLcom/esigner-codesign@develop
         with:
           command: batch_sign
-          username: ${{ secrets.SSL_USERNAME }}
-          password: ${{ secrets.SSL_PASSWORD }}
-          credential_id: ${{ secrets.SSL_CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.SSL_TOTP_SECRET }}
+          username: ${{ secrets.WINDOWS_SSL_USERNAME }}
+          password: ${{ secrets.WINDOWS_SSL_PASSWORD }}
+          credential_id: ${{ secrets.WINDOWS_SSL_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.WINDOWS_SSL_TOTP_SECRET }}
           dir_path: ${{ runner.temp }}\sign-stage\in
           output_path: ${{ runner.temp }}\sign-stage\out
-          malware_block: "true"
           environment_name: PROD
+
+          # The pre-sign malware scan draws on a separate, much smaller quota than signing and
+          # exhausts it across a full release; signing produces a valid signature without it.
+          malware_block: "false"
 
       - name: Restore + verify signed binaries
         if: env.SYNERGY_VERSION_RELEASE == 'true'
@@ -215,13 +218,15 @@ jobs:
         uses: SSLcom/esigner-codesign@develop
         with:
           command: sign
-          username: ${{ secrets.SSL_USERNAME }}
-          password: ${{ secrets.SSL_PASSWORD }}
-          credential_id: ${{ secrets.SSL_CREDENTIAL_ID }}
-          totp_secret: ${{ secrets.SSL_TOTP_SECRET }}
+          username: ${{ secrets.WINDOWS_SSL_USERNAME }}
+          password: ${{ secrets.WINDOWS_SSL_PASSWORD }}
+          credential_id: ${{ secrets.WINDOWS_SSL_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.WINDOWS_SSL_TOTP_SECRET }}
           file_path: ${{ steps.locate-msi.outputs.path }}
           override: "true"
-          malware_block: "true"
+          # The pre-sign malware scan draws on a separate, much smaller quota than signing and
+          # exhausts it across a full payload; signing produces a valid signature without it.
+          malware_block: "false"
           environment_name: PROD
 
       - name: Verify MSI is signed
