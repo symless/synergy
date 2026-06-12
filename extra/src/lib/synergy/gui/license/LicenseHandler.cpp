@@ -285,6 +285,12 @@ bool LicenseHandler::handleCoreStart()
 
   // The role is only reliably known at core start; start optimistically, a deactivated verdict stops the core.
   if (m_settings.activated() && !m_license.serialKey().isOffline) {
+    // A personal license activates once and stays activated; refreshing here would be the
+    // kind of post-activation phone-home that breaks offline networks.
+    if (m_license.productEdition() != Product::Edition::kBusiness) {
+      qDebug("license is activated, starting core for personal license");
+      return true;
+    }
     if (m_apiClient.isBusy()) {
       qInfo("license api busy, starting core without refreshing activation");
       return true;
@@ -630,6 +636,19 @@ void LicenseHandler::runRemoteCheck()
 {
   if (!m_license.isValid() || m_license.serialKey().isOffline) {
     qDebug("license invalid or offline, skipping remote check");
+    return;
+  }
+
+  // Personal licenses activate once and are never re-validated, so they keep working on
+  // offline and restricted networks. Only business licenses are re-checked.
+  if (m_license.productEdition() != Product::Edition::kBusiness) {
+    if (isInGracePeriod()) {
+      // Nothing else clears grace once personal checks stop, and a stale grace flag
+      // suppresses the renew nag forever.
+      qInfo("clearing stale grace period for personal license");
+      resetGracePeriod();
+    }
+    qDebug("personal license, skipping remote check");
     return;
   }
 
