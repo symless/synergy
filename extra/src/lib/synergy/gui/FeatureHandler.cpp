@@ -200,7 +200,7 @@ void FeatureHandler::addTrademark(QDialog *parent) const
 {
   if (auto *copyright = parent->findChild<QLabel *>(QStringLiteral("lblCopyright"))) {
     copyright->setText(
-        copyright->text() + QStringLiteral("\n") + QObject::tr("The Synergy logo is a trademark of Synergy App Ltd.")
+        copyright->text() + QStringLiteral("\n") + QObject::tr("The Synergy logo is a trademark of Synergy App Ltd")
     );
   }
 }
