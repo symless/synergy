@@ -79,14 +79,17 @@ LicenseHandler::LicenseHandler()
 {
   m_enabled = synergy::gui::license::isActivationEnabled();
 
-  connect(&m_apiClient, &LicenseApiClient::activationFailed, this, [this](ActivationIntent intent, const QString &message) {
-    handleLicenseUnverified(message);
+  connect(
+      &m_apiClient, &LicenseApiClient::activationFailed, this,
+      [this](ActivationIntent intent, const QString &message) {
+        handleLicenseUnverified(message);
 
-    if (intent == ActivationIntent::kKeyEntry) {
-      qWarning("activation failed at key entry, showing serial key dialog");
-      showSerialKeyDialog();
-    }
-  });
+        if (intent == ActivationIntent::kKeyEntry) {
+          qWarning("activation failed at key entry, showing serial key dialog");
+          showSerialKeyDialog();
+        }
+      }
+  );
 
   connect(&m_apiClient, &LicenseApiClient::activationSucceeded, this, [this](ActivationIntent intent) {
     qDebug("license activation succeeded, saving settings");
@@ -133,9 +136,7 @@ LicenseHandler::LicenseHandler()
     m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart);
   });
 
-  connect(&m_apiClient, &LicenseApiClient::validateSucceeded, this, [] {
-    qInfo("business license key validated");
-  });
+  connect(&m_apiClient, &LicenseApiClient::validateSucceeded, this, [] { qInfo("business license key validated"); });
 
   connect(&m_apiClient, &LicenseApiClient::validateFailed, this, [this](const QString &message) {
     qWarning().noquote() << "business license key validation failed:" << message;
@@ -336,11 +337,12 @@ bool LicenseHandler::handleCoreStart()
     // displaced server would silently reclaim instead of asking. So a machine that already holds
     // its slot (and a plain client) only checks; a machine taking on the server role claims it.
     const bool isServer = liveCoreMode() == Settings::Server;
-    if (isServer && !m_settings.holdsServerActivation()) {
-      qDebug("claiming server slot on core start");
-      m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart);
-    } else if (!isServer && m_settings.holdsServerActivation()) {
-      qDebug("releasing server slot as client on core start");
+    if (isServer != m_settings.holdsServerActivation()) {
+      if (isServer) {
+        qDebug("core server, claiming server activation slot on core start");
+      } else {
+        qDebug("core client, releasing server activation slot on core start");
+      }
       m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart);
     } else {
       qDebug("license is activated, checking on core start");
