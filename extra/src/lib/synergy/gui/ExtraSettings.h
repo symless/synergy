@@ -49,6 +49,15 @@ public:
     m_activated = activated;
   }
 
+  bool holdsServerActivation() const
+  {
+    return m_holdsServerActivation;
+  }
+  void setHoldsServerActivation(bool holdsServerActivation)
+  {
+    m_holdsServerActivation = holdsServerActivation;
+  }
+
   qint64 graceStartEpochSecs() const
   {
     return m_graceStartEpochSecs;
@@ -73,6 +82,7 @@ public:
 private:
   QString m_serialKey;
   bool m_activated = false;
+  bool m_holdsServerActivation = false;
   qint64 m_graceStartEpochSecs = 0;
   QString m_offlineActivationResponse;
 };

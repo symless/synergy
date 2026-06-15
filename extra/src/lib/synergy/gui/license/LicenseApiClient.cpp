@@ -26,6 +26,10 @@
 
 namespace synergy::gui::license {
 
+constexpr auto kPropRequestKind = "requestKind";
+constexpr auto kPropActivationIntent = "activationIntent";
+constexpr auto kPropCheckIntent = "checkIntent";
+
 QString activateUrl()
 {
   const auto testUrl = TestSettings::instance().apiUrlActivate();
@@ -47,65 +51,84 @@ LicenseApiClient::LicenseApiClient()
   connect(&m_manager, &QNetworkAccessManager::finished, this, &LicenseApiClient::handleResponse);
 }
 
-void LicenseApiClient::activate(Data data, bool takeover)
+void LicenseApiClient::activate(Data data, ActivationIntent intent, bool takeover)
 {
-  post(RequestKind::kActivate, QUrl(activateUrl()), data, takeover);
+  post(RequestKind::kActivate, QUrl(activateUrl()), data, intent, CheckIntent::kPoll, takeover);
 }
 
-void LicenseApiClient::check(Data data)
+void LicenseApiClient::check(Data data, CheckIntent intent)
 {
-  post(RequestKind::kCheck, QUrl(checkUrl()), data);
+  post(RequestKind::kCheck, QUrl(checkUrl()), data, ActivationIntent::kCoreStart, intent);
 }
 
-void LicenseApiClient::post(RequestKind kind, const QUrl &url, const Data &data, std::optional<bool> takeover)
+void LicenseApiClient::validate(Data data)
+{
+  post(RequestKind::kValidate, QUrl(checkUrl()), data);
+}
+
+void LicenseApiClient::post(
+    RequestKind kind, const QUrl &url, const Data &data, ActivationIntent intent, CheckIntent checkIntent,
+    std::optional<bool> takeover
+)
 {
   m_isBusy = true;
-  m_pendingKind = kind;
 
   qDebug().noquote() << "license api request:" << url.toString();
 
   auto request = QNetworkRequest(url);
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-  m_manager.post(request, getRequestData(data, takeover));
+  auto *reply = m_manager.post(request, getRequestData(data, takeover));
+  reply->setProperty(kPropRequestKind, static_cast<int>(kind));
+  reply->setProperty(kPropActivationIntent, static_cast<int>(intent));
+  reply->setProperty(kPropCheckIntent, static_cast<int>(checkIntent));
 }
 
 void LicenseApiClient::handleResponse(QNetworkReply *reply)
 {
   m_isBusy = false;
-  const auto kind = m_pendingKind;
 
-  const auto emitFailed = [this, kind](const QString &message) {
+  if (!reply) {
+    qWarning("no license api reply");
+    return;
+  }
+
+  const auto kind = static_cast<RequestKind>(reply->property(kPropRequestKind).toInt());
+  const auto intent = static_cast<ActivationIntent>(reply->property(kPropActivationIntent).toInt());
+  const auto checkIntent = static_cast<CheckIntent>(reply->property(kPropCheckIntent).toInt());
+
+  const auto emitFailed = [this, kind, intent](const QString &message) {
     if (kind == RequestKind::kActivate) {
-      Q_EMIT activationFailed(message);
+      Q_EMIT activationFailed(intent, message);
+    } else if (kind == RequestKind::kValidate) {
+      Q_EMIT validateFailed(message);
     } else {
       Q_EMIT checkFailed(message);
     }
   };
 
-  const auto emitSucceeded = [this, kind] {
+  const auto emitSucceeded = [this, kind, intent] {
     if (kind == RequestKind::kActivate) {
-      Q_EMIT activationSucceeded();
+      Q_EMIT activationSucceeded(intent);
+    } else if (kind == RequestKind::kValidate) {
+      Q_EMIT validateSucceeded();
     } else {
       Q_EMIT checkSucceeded();
     }
   };
 
   // A transport failure is not a license verdict; activation tolerates it and retries
-  // later, while the check path owns the grace period.
-  const auto emitUnreachable = [this, kind](const QString &message) {
+  // later, while the check path owns the grace period. Key entry can't validate offline,
+  // so it proceeds and lets the runtime check catch a bad key later.
+  const auto emitUnreachable = [this, kind, intent](const QString &message) {
     if (kind == RequestKind::kActivate) {
-      Q_EMIT activationUnreachable();
+      Q_EMIT activationUnreachable(intent);
+    } else if (kind == RequestKind::kValidate) {
+      Q_EMIT validateSucceeded();
     } else {
       Q_EMIT checkFailed(message);
     }
   };
-
-  if (!reply) {
-    qWarning("no license api reply");
-    emitUnreachable("License request failed, empty network reply.");
-    return;
-  }
 
   const auto response = reply->readAll();
 
@@ -136,12 +159,29 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
     if (status == "deactivated") {
       qWarning("license api found this machine deactivated");
       if (kind == RequestKind::kActivate) {
-        Q_EMIT activationDeactivated(message);
+        Q_EMIT activationDeactivated(intent, message);
+      } else if (kind == RequestKind::kValidate) {
+        Q_EMIT validateDeactivated(message);
       } else {
-        Q_EMIT checkDeactivated(message);
+        Q_EMIT checkDeactivated(checkIntent, message);
       }
       reply->deleteLater();
       return;
+    }
+
+    // The license is valid but this machine has no activation row. At key entry that is
+    // expected (the row appears once the role is known); at runtime the app must (re)claim it.
+    if (status == "notActivated") {
+      if (kind == RequestKind::kValidate) {
+        Q_EMIT validateSucceeded();
+        reply->deleteLater();
+        return;
+      }
+      if (kind == RequestKind::kCheck) {
+        Q_EMIT checkNotActivated();
+        reply->deleteLater();
+        return;
+      }
     }
 
     if (!status.isEmpty()) {

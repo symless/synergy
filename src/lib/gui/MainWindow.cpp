@@ -498,6 +498,12 @@ void MainWindow::openSettings()
 
 void MainWindow::resetCore()
 {
+#ifdef SYNERGY_EXTRA_HEADER
+  if (!synergy::hooks::onCoreStart()) {
+    return;
+  }
+#endif
+
   m_coreProcess.restart();
 }
 

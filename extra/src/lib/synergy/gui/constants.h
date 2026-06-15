@@ -43,5 +43,6 @@ const auto kUrlApiLicenseActivate = QString("%1/product/activate").arg(kUrlApi);
 const auto kUrlApiLicenseCheck = QString("%1/product/check").arg(kUrlApi);
 
 constexpr auto kLicenseGracePeriod = std::chrono::days{14};
+constexpr auto kRemoteCheckInterval = std::chrono::hours{24};
 
 } // namespace synergy::gui

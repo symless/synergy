@@ -24,6 +24,8 @@
 #include "synergy/license/License.h"
 #include "synergy/license/Product.h"
 
+#include <QTimer>
+
 class QMainWindow;
 class QDialog;
 
@@ -95,8 +97,8 @@ private:
   void runRemoteCheck();
   void handleLicenseVerified();
   void handleLicenseUnverified(const QString &message);
-  void handleActivationDeactivated(const QString &message);
-  void handleCheckDeactivated(const QString &message);
+  void handleActivationDeactivated(synergy::gui::license::LicenseApiClient::ActivationIntent intent, const QString &message);
+  void handleCheckDeactivated(synergy::gui::license::LicenseApiClient::CheckIntent intent, const QString &message);
   void askServerQuestion();
   bool isInGracePeriod() const;
   bool isGracePeriodExpired() const;
@@ -111,8 +113,8 @@ private:
   synergy::gui::ExtraSettings m_settings;
   synergy::gui::license::LicenseApiClient m_apiClient;
   bool m_warnedAboutGrace = false;
-  bool m_coreStartActivation = false;
   qint64 m_lastCoreStartMs = 0;
+  QTimer m_remoteCheckTimer;
   QMainWindow *m_pMainWindow = nullptr;
   deskflow::gui::CoreProcess *m_pCoreProcess = nullptr;
 };
