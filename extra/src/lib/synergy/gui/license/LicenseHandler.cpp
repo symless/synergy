@@ -801,14 +801,14 @@ void LicenseHandler::askServerQuestion()
                   "<p>If you need to add more seats to your team's license, please "
                   R"(<a href="%1">contact us</a> today.</p>)"
                   "<p>Do you want to reassign a server activation to this computer?</p>"
-                  "<p>The activation will be taken away from another computer on this license.</p>")
+                  "<p>This will deactivate the other computer and interrupt an existing setup.</p>")
                    .arg(kUrlContact);
   } else {
     question = tr("<p>Another computer is currently the server for your license.</p>"
                   "<p>If you need more than one server running at the same time, please "
                   R"(<a href="%1">contact us</a> today.</p>)"
                   "<p>Do you want to reassign the server activation to this computer?</p>"
-                  "<p>The activation will be taken away from the other computer.</p>")
+                  "<p>This will deactivate the other computer and interrupt an existing setup.</p>")
                    .arg(kUrlContact);
   }
   const auto reply = QMessageBox::question(m_pMainWindow, "License limit reached", question);
