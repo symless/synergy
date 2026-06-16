@@ -33,7 +33,7 @@ namespace {
 
 // The wire format here must stay in lockstep with the vendor signer in the web-muskoka repo
 // (website lib/server/product-license/offline-activation-protocol.ts).
-constexpr auto kDomain = std::string_view{"Synergy1OfflineActivationV1"};
+constexpr auto kDomain = std::string_view{"synergy-offline-activation-v1"};
 constexpr size_t kSecretLength = 32;
 
 // No vowels, so codes can never spell words; no I, L, or O, so nothing is mistaken
@@ -219,7 +219,7 @@ std::string buildOfflineChallenge(const std::string &machineId, const std::strin
 
 bool verifyOfflineResponse(const std::string &machineId, const std::string &serialHex, const std::string &responseCode)
 {
-  return verifyOfflineResponse(machineId, serialHex, responseCode, kOfflineActivationSecretHex);
+  return verifyOfflineResponse(machineId, serialHex, responseCode, kOfflineActivationHex);
 }
 
 bool verifyOfflineResponse(

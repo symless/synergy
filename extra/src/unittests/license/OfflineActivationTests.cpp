@@ -30,8 +30,8 @@ using namespace synergy::license;
 const auto kVectorSecret = "0707070707070707070707070707070707070707070707070707070707070707";
 const auto kVectorMachineId = "test-machine-id-0001";
 const auto kVectorSerial = "deadbeef00112233";
-const auto kVectorChallenge = "CS6WZ1BVJJSN";
-const auto kVectorResponse = "HG5CR1761BVQ";
+const auto kVectorChallenge = "CS34563YJPF9";
+const auto kVectorResponse = "FNY0QQP3MM39";
 
 TEST(OfflineActivationTests, buildOfflineChallenge_vectorInputs_matchesVendorTool)
 {
@@ -60,12 +60,12 @@ TEST(OfflineActivationTests, verifyOfflineResponse_vendorSignedResponse_verifies
 
 TEST(OfflineActivationTests, verifyOfflineResponse_groupedLowercaseResponse_verifies)
 {
-  EXPECT_TRUE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "hg5c-r176-1bvq", kVectorSecret));
+  EXPECT_TRUE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "fny0-qqp3-mm39", kVectorSecret));
 }
 
 TEST(OfflineActivationTests, verifyOfflineResponse_confusableLettersTyped_verifies)
 {
-  EXPECT_TRUE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "HG5CRI76LBVQ", kVectorSecret));
+  EXPECT_TRUE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "FNYOQQP3MM39", kVectorSecret));
 }
 
 TEST(OfflineActivationTests, verifyOfflineResponse_tamperedResponse_fails)
@@ -100,7 +100,7 @@ TEST(OfflineActivationTests, verifyOfflineResponse_malformedResponse_fails)
 {
   EXPECT_FALSE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "", kVectorSecret));
   EXPECT_FALSE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "not a code @#!", kVectorSecret));
-  EXPECT_FALSE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "HG5C", kVectorSecret));
+  EXPECT_FALSE(verifyOfflineResponse(kVectorMachineId, kVectorSerial, "FNY0", kVectorSecret));
 }
 
 TEST(OfflineActivationTests, verifyOfflineResponse_malformedSecret_fails)
@@ -119,8 +119,8 @@ TEST(OfflineActivationTests, verifyOfflineResponse_embeddedProductionSecret_reje
 // implementations to one shared vector.
 TEST(OfflineActivationTests, verifyOfflineResponse_sharedVendorVector_verifies)
 {
-  EXPECT_EQ(buildOfflineChallenge("test machine id", "TEST SERIAL KEY"), "7DQSYXM59MV5");
-  EXPECT_TRUE(verifyOfflineResponse("test machine id", "TEST SERIAL KEY", "T6R4-TGRC-WDQ9", kVectorSecret));
+  EXPECT_EQ(buildOfflineChallenge("test machine id", "TEST SERIAL KEY"), "7D6NNQP2VMRH");
+  EXPECT_TRUE(verifyOfflineResponse("test machine id", "TEST SERIAL KEY", "PHSD-R6RS-YSSX", kVectorSecret));
 }
 
 TEST(OfflineActivationTests, formatOfflineCode_groupsOfFour_insertsDashes)

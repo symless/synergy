@@ -31,9 +31,8 @@ namespace synergy::license {
  * (deterrence, not copy protection).
  */
 
-/// @brief Shared secret the response codes are verified against.
-inline constexpr auto kOfflineActivationSecretHex =
-    "8acfc45b6524b47ae91e68610c7d2463c28b7e5f80a04d3fd589c87917848534";
+/// @brief Shared hex the response codes are verified against (deliberately not secret)
+inline constexpr auto kOfflineActivationHex = "8acfc45b6524b47ae91e68610c7d2463c28b7e5f80a04d3fd589c87917848534";
 
 /**
  * @brief Builds the challenge code the customer enters on their account page.
