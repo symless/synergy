@@ -124,10 +124,12 @@ void PrimaryClient::disable()
 void PrimaryClient::enter(SInt32 xAbs, SInt32 yAbs, UInt32 seqNum, KeyModifierMask mask, bool screensaver)
 {
   m_screen->setSequenceNumber(seqNum);
+  // enter() first so m_isOnScreen becomes true before warpCursor triggers
+  // mouse-move events — otherwise onMouseMove re-centers the cursor
+  m_screen->enter(mask);
   if (!screensaver) {
     m_screen->warpCursor(xAbs, yAbs);
   }
-  m_screen->enter(mask);
 }
 
 bool PrimaryClient::leave()
