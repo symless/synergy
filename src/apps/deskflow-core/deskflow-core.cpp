@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     sharedMemory.detach();
 
   if (!sharedMemory.create(1) && parser.singleInstanceOnly()) {
-    LOG_WARN("an instance of deskflow core is already running");
+    LOG_WARN("an instance of %s is already running", kCoreBinName);
     return s_exitDuplicate;
   }
 
