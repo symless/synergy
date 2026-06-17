@@ -6,22 +6,21 @@
 	<metadata_license>CC0-1.0</metadata_license>
 	<project_license>GPL-2.0-only</project_license>
 	<name>Synergy</name>
-	<developer id="io.synergyapp">
+	<developer id="com.symless">
 		<name>Synergy App Ltd</name>
 	</developer>
 	<summary>Share one keyboard and mouse between computers</summary>
 	<description>
 		<p>
-			Use the keyboard, mouse, or trackpad of one computer to control nearby computers, and work seamlessly between them.
+			Use the keyboard, mouse, or trackpad of one computer to control nearby computers, and work
+			seamlessly between them.
 		</p>
 	</description>
 	<launchable type="desktop-id">com.symless.synergy.desktop</launchable>
-	<url type="homepage">https://synergyapp.io</url>
-	<url type="help">https://symless.com/synergy</url>
-	<!-- Screenshots: needs Synergy-branded artwork hosted at synergyapp.io.
-	     Left empty intentionally; flatpak-builder-lint exception covers this
-	     until the marketing site exposes screenshot URLs. -->
-	<provides> <id>com.symless.synergy.desktop</id> </provides>
+	<url type="homepage">https://symless.com/synergy</url>
+	<provides>
+		<id>com.symless.synergy.desktop</id>
+	</provides>
 	<categories>
 		<category>Utility</category>
 	</categories>
@@ -38,9 +37,49 @@
 	<releases>
 		<release version="1.21.0" date="2026-06-02" urgency="medium">
 			<description>
-				<p>Synergy re-forked from Deskflow 1.26. See the release notes for the full changelog.</p>
+				<p>
+					This release folds a large number of upstream improvements into Synergy from Deskflow,
+					much of it built by the Synergy team and contributed upstream.
+					Highlights since the previous release:
+				</p>
+				<p>Stronger security</p>
+				<ul>
+					<li>TLS fingerprints are now kept in a fingerprint database, with a clearer comparison
+						dialog that shows both the local and remote prints side by side.</li>
+					<li>A new option for servers to require a client certificate before accepting a
+						connection.</li>
+				</ul>
+				<p>Reliability</p>
+				<ul>
+					<li>The app now connects to the running core process over a dedicated IPC channel and
+						receives status updates directly, instead of inferring the connection state by parsing
+						log output.</li>
+					<li>Only one copy of the core runs at a time, so duplicate instances no longer fight over
+						the connection.</li>
+					<li>On Windows, clipboard changes are tracked with a modern format-listener API for more
+						reliable clipboard sharing.</li>
+				</ul>
+				<p>Features and interface</p>
+				<ul>
+					<li>A single combined core binary replaces the separate client and server processes.</li>
+					<li>A hotkey to cycle through computers, and an option to start with the cursor locked
+						to the current computer.</li>
+					<li>An option to show the version in the window title.</li>
+					<li>The server address can be a list of host names or IP addresses, with a more accurate
+						suggested address that updates as the network changes.</li>
+					<li>A new client configuration dialog, a searchable log you can dock and hide, millisecond
+						timestamps, and a refreshed about dialog and status area.</li>
+					<li>A setting to choose the network protocol (Synergy or Barrier) for compatibility with
+						different clients.</li>
+					<li>Live interface translation without restarting, with Spanish, Italian, Japanese,
+						Chinese (simplified), Korean, and Russian added.</li>
+					<li>Mono or colorful tray icons with matching light and dark icon themes.</li>
+					<li>A new scroll scaling option replaces the old scroll-speed setting.</li>
+					<li>On Linux, server and client configuration honors XDG_CONFIG_HOME.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
 			</description>
-			<url>https://synergyapp.io/release-notes</url>
+			<url>https://symless.com/synergy/download</url>
 		</release>
 	</releases>
 </component>
