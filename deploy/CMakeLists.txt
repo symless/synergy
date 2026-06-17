@@ -34,6 +34,11 @@ else()
 endif()
 
 set(CPACK_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}-${PACKAGE_VERSION_LABEL}-${OS_STRING}")
+
+# Synergy overlay: rewrite CPACK_PACKAGE_FILE_NAME to the release-templates scheme
+# (synergy_<version>_<os>_<arch>); kept in extra/ since upstream won't adopt it.
+include(${CMAKE_SOURCE_DIR}/extra/deploy/PackageFileName.cmake)
+
 message(STATUS "Package Basename: ${CPACK_PACKAGE_FILE_NAME}")
 
 include(CPack)

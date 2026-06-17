@@ -608,8 +608,9 @@ jobs:
             cd build
             sudo -u build makepkg -s
             export OSNAME=$(cat /etc/os-release | grep ^ID= | sed 's/ID=//g')
+            [ "$OSNAME" = "arch" ] && OSNAME="arch-linux"
             export ARCH=$(uname -m)
-            mv *.pkg.tar.zst ${{ env.PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-${OSNAME}-${ARCH}.pkg.tar.zst
+            mv *.pkg.tar.zst ${{ env.PACKAGE_PREFIX }}_${{ steps.get-version.outputs.version }}_${OSNAME}_${ARCH}.pkg.tar.zst
             cd ..
           else
             cmake --build build --config Release -j8 --target package
@@ -684,7 +685,7 @@ jobs:
       - name: Build
         uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
-          bundle: ${{ env.PACKAGE_PREFIX }}-${{ steps.get-version.outputs.version }}-linux-${{ matrix.flatpak.arch }}.flatpak
+          bundle: ${{ env.PACKAGE_PREFIX }}_${{ steps.get-version.outputs.version }}_linux_${{ matrix.flatpak.arch }}.flatpak
           manifest-path: extra/deploy/linux/flatpak/com.symless.synergy.yml
           cache-key: flatpak-builder-${{matrix.flatpak.arch}}-2.0
           arch: ${{matrix.flatpak.arch}}
