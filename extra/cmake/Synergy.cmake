@@ -82,13 +82,15 @@ set(CMAKE_PROJECT_VERSION_MAJOR ${SYNERGY_VERSION_MAJOR})
 set(CMAKE_PROJECT_VERSION_MINOR ${SYNERGY_VERSION_MINOR})
 set(CMAKE_PROJECT_VERSION_PATCH ${SYNERGY_VERSION_PATCH})
 
-# Human-facing version: release stays clean; dev/snapshot append the short sha
-# for traceability. Composed here (not the C++ template) because only the build
-# knows the stage. Consumed by VersionInfo.h.in (kDisplayVersion).
-if(SYNERGY_VERSION_RELEASE OR NOT GIT_SHA_SHORT)
-  set(CMAKE_PROJECT_VERSION_DISPLAY "${CMAKE_PROJECT_VERSION}")
-else()
+# Human-facing version. The composed version already carries its build metadata
+# (dev: +<sha>, snapshot: +rN), so it is the display string as-is. Snapshot is the
+# exception: +rN is a rev count, not the commit, so append the short sha for
+# traceability. Dev already embeds the sha (don't double it); release stays clean.
+# Consumed by VersionInfo.h.in (kDisplayVersion).
+if(SYNERGY_VERSION_SNAPSHOT AND GIT_SHA_SHORT)
   set(CMAKE_PROJECT_VERSION_DISPLAY "${CMAKE_PROJECT_VERSION} (${GIT_SHA_SHORT})")
+else()
+  set(CMAKE_PROJECT_VERSION_DISPLAY "${CMAKE_PROJECT_VERSION}")
 endif()
 
 if(NOT SYNERGY_VERSION_RELEASE AND NOT SYNERGY_VERSION_SNAPSHOT)
