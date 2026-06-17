@@ -15,7 +15,7 @@ set(SYNERGY_VERSION_STAGE "beta")
 #
 #   RELEASE       → "X.Y.Z[-STAGE]"             (STAGE = SYNERGY_VERSION_STAGE, e.g. beta1)
 #   SNAPSHOT      → "X.Y.Z[-STAGE]-snapshot+rN"  (N = commits since last v* tag)
-#   neither (dev) → "X.Y.Z[-STAGE]-dev"
+#   neither (dev) → "X.Y.Z[-STAGE]-dev+<short-sha>"
 #
 # Outputs (PARENT_SCOPE):
 #   OUT_VERSION  the composed version string
@@ -26,6 +26,7 @@ set(SYNERGY_VERSION_STAGE "beta")
 #                a strict identifier).
 function(synergy_compute_version SOURCE_DIR OUT_VERSION OUT_TWEAK OUT_BASE)
   set(_rev_count 0)
+  set(_git_sha "")
   find_package(Git QUIET)
   if(GIT_FOUND)
     execute_process(
@@ -37,6 +38,12 @@ function(synergy_compute_version SOURCE_DIR OUT_VERSION OUT_TWEAK OUT_BASE)
     if(_git_describe MATCHES "-([0-9]+)-g")
       set(_rev_count "${CMAKE_MATCH_1}")
     endif()
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --short=8 HEAD
+      WORKING_DIRECTORY "${SOURCE_DIR}"
+      OUTPUT_VARIABLE _git_sha
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
   endif()
 
   set(_base "${SYNERGY_VERSION_MAJOR}.${SYNERGY_VERSION_MINOR}.${SYNERGY_VERSION_PATCH}")
@@ -51,7 +58,11 @@ function(synergy_compute_version SOURCE_DIR OUT_VERSION OUT_TWEAK OUT_BASE)
     set(_version "${_base}${_stage}-snapshot+r${_rev_count}")
     set(_tweak ${_rev_count})
   else()
-    set(_version "${_base}${_stage}-dev")
+    if(_git_sha)
+      set(_version "${_base}${_stage}-dev+${_git_sha}")
+    else()
+      set(_version "${_base}${_stage}-dev")
+    endif()
     set(_tweak ${_rev_count})
   endif()
 
