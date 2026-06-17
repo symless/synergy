@@ -41,6 +41,10 @@ set(CPACK_WIX_UPGRADE_GUID "027D1C8A-E7A5-4754-BB93-B2D45BFDBDC8")
 set(CPACK_WIX_UI_BANNER "${CMAKE_SOURCE_DIR}/extra/deploy/windows/wix-banner.png")
 set(CPACK_WIX_UI_DIALOG "${CMAKE_SOURCE_DIR}/extra/deploy/windows/wix-dialog.png")
 
+# Show the Synergy EULA (which references the canonical copy at synergyapp.io/eula)
+# on the license page instead of the GPL; the GPL still ships as the LICENSE file.
+set(CPACK_WIX_LICENSE_RTF "${CMAKE_SOURCE_DIR}/extra/deploy/windows/synergy-eula.rtf")
+
 # Required Extra Extenstions
 list(APPEND CPACK_WIX_EXTENSIONS "WixToolset.Util.wixext" "WixToolset.Firewall.wixext")
 
