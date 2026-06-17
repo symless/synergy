@@ -264,6 +264,10 @@ jobs:
     name: ${{ matrix.target.name }}
     runs-on: ${{ matrix.target.runs-on }}
     timeout-minutes: ${{ matrix.target.timeout }}
+
+    env:
+      MAC_SIGNING: ${{ secrets.APPLE_CODESIGN_ID != '' }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -312,7 +316,7 @@ jobs:
       # set-key-partition-list grants codesign passwordless access so the later
       # sign step doesn't prompt.
       - name: Set up signing keychain
-        if: env.SYNERGY_VERSION_RELEASE == 'true'
+        if: env.MAC_SIGNING == 'true'
         shell: bash
         env:
           APPLE_P12_CERTIFICATE: ${{ secrets.APPLE_P12_CERTIFICATE }}
@@ -323,8 +327,6 @@ jobs:
           security create-keychain -p "$keychain_pass" "$keychain"
           security set-keychain-settings -lut 3600 "$keychain"
           security unlock-keychain -p "$keychain_pass" "$keychain"
-          # Prepend to keychain search list so codesign finds the cert without
-          # changing the user's default keychain.
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d ' "')
           cert_file="$RUNNER_TEMP/cert.p12"
           echo "$APPLE_P12_CERTIFICATE" | base64 --decode > "$cert_file"
@@ -339,7 +341,7 @@ jobs:
       # signatures inward. `--deep --options runtime` are required for
       # notarization to accept the bundle later.
       - name: Sign macOS bundle
-        if: env.SYNERGY_VERSION_RELEASE == 'true'
+        if: env.MAC_SIGNING == 'true'
         shell: bash
         env:
           APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
@@ -376,7 +378,7 @@ jobs:
       # submit to notarytool (synchronous via --wait) and staple the returned
       # ticket so Gatekeeper can verify offline.
       - name: Sign + notarize + staple DMG
-        if: env.SYNERGY_VERSION_RELEASE == 'true'
+        if: env.MAC_SIGNING == 'true'
         shell: bash
         env:
           APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
