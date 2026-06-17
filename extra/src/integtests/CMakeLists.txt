@@ -1,4 +1,4 @@
-# Deskflow -- mouse and keyboard sharing utility
+# Synergy -- mouse and keyboard sharing utility
 # Copyright (C) 2024 - 2026 Synergy App Ltd
 #
 # This package is free software; you can redistribute it and/or
