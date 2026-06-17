@@ -34,8 +34,8 @@ QString licenseNotice(const License &license, const QString &linkColor)
   } else if (license.isSubscription()) {
     return subscriptionLicenseNotice(license, linkColor);
   } else {
-    qFatal("license notice only for time limited licenses");
-    return ""; // Workaround for no return warning on Windows.
+    qCritical("license notice only for time limited licenses");
+    return "";
   }
 }
 

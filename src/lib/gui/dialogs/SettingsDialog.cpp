@@ -365,7 +365,8 @@ bool SettingsDialog::isClientMode() const
 void SettingsDialog::updateKeyLengthOnFile(const QString &path)
 {
   if (!QFile(path).exists()) {
-    qFatal("tls certificate file not found: %s", qUtf8Printable(path));
+    qCritical("tls certificate file not found: %s", qUtf8Printable(path));
+    return;
   }
 
   auto length = TlsUtility::getCertKeyLength(path);

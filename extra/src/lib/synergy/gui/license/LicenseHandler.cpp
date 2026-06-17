@@ -100,7 +100,8 @@ LicenseHandler::LicenseHandler()
     resetGracePeriod();
 
     if (m_pCoreProcess == nullptr) {
-      qFatal("core process not set");
+      qCritical("core process not set");
+      return;
     }
 
     // Key entry activations must never start the core; the customer chose nothing yet.
@@ -166,14 +167,15 @@ void LicenseHandler::handleMainWindow(QMainWindow *mainWindow, deskflow::gui::Co
   qDebug("main window create handled");
 
   if (!loadSettings()) {
-    qFatal("failed to load license settings");
+    qCritical("failed to load license settings");
   }
 }
 
 bool LicenseHandler::handleAppStart()
 {
   if (m_pMainWindow == nullptr) {
-    qFatal("main window not set");
+    qCritical("main window not set");
+    return false;
   }
 
   if (!m_enabled) {
@@ -313,11 +315,13 @@ bool LicenseHandler::handleCoreStart()
   }
 
   if (m_pMainWindow == nullptr) {
-    qFatal("main window not set");
+    qCritical("main window not set");
+    return false;
   }
 
   if (m_pCoreProcess == nullptr) {
-    qFatal("core process not set");
+    qCritical("core process not set");
+    return false;
   }
 
   // The role is only reliably known at core start; start optimistically, a deactivated verdict stops the core.
@@ -553,7 +557,8 @@ LicenseHandler::SetSerialKeyResult LicenseHandler::setLicense(const QString &hex
   using enum LicenseHandler::SetSerialKeyResult;
 
   if (hexString.isEmpty()) {
-    qFatal("serial key is empty");
+    qCritical("serial key is empty");
+    return kInvalid;
   }
 
   qDebug() << "changing serial key to:" << hexString;
@@ -630,7 +635,8 @@ void LicenseHandler::clampFeatures()
 
   const auto isSystemScope = (Settings::settingsFile() == Settings::SystemSettingFile);
   if (isSystemScope && !m_license.isSettingsScopeAvailable()) {
-    qFatal("settings scope not available");
+    qCritical("settings scope not available");
+    return;
   }
 
   qDebug("committing default feature settings");

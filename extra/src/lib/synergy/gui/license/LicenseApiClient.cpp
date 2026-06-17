@@ -221,23 +221,28 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
 QByteArray LicenseApiClient::getRequestData(const Data &data, std::optional<bool> takeover) const
 {
   if (data.machineSignature.isEmpty()) {
-    qFatal("cannot create license request, no machine id");
+    qCritical("cannot create license request, no machine id");
+    return {};
   }
 
   if (data.hostnameSignature.isEmpty()) {
-    qFatal("cannot create license request, no hostname");
+    qCritical("cannot create license request, no hostname");
+    return {};
   }
 
   if (data.serialKey.isEmpty()) {
-    qFatal("cannot create license request, no serial key");
+    qCritical("cannot create license request, no serial key");
+    return {};
   }
 
   if (data.appVersion.isEmpty()) {
-    qFatal("cannot create license request, no app version");
+    qCritical("cannot create license request, no app version");
+    return {};
   }
 
   if (data.osName.isEmpty()) {
-    qFatal("cannot create license request, no os name");
+    qCritical("cannot create license request, no os name");
+    return {};
   }
 
   QJsonObject requestData;

@@ -187,7 +187,8 @@ void ActivationDialog::showResultDialog(LicenseHandler::SetSerialKeyResult resul
     break;
 
   default:
-    qFatal("unexpected change serial key result: %d", static_cast<int>(result));
+    qCritical("unexpected change serial key result: %d", static_cast<int>(result));
+    break;
   }
 }
 
