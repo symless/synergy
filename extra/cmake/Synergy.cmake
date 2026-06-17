@@ -81,6 +81,23 @@ synergy_compute_version("${CMAKE_SOURCE_DIR}"
 set(CMAKE_PROJECT_VERSION_MAJOR ${SYNERGY_VERSION_MAJOR})
 set(CMAKE_PROJECT_VERSION_MINOR ${SYNERGY_VERSION_MINOR})
 set(CMAKE_PROJECT_VERSION_PATCH ${SYNERGY_VERSION_PATCH})
+
+# Human-facing version: release stays clean; dev/snapshot append the short sha
+# for traceability. Composed here (not the C++ template) because only the build
+# knows the stage. Consumed by VersionInfo.h.in (kDisplayVersion).
+if(SYNERGY_VERSION_RELEASE OR NOT GIT_SHA_SHORT)
+  set(CMAKE_PROJECT_VERSION_DISPLAY "${CMAKE_PROJECT_VERSION}")
+else()
+  set(CMAKE_PROJECT_VERSION_DISPLAY "${CMAKE_PROJECT_VERSION} (${GIT_SHA_SHORT})")
+endif()
+
 if(NOT SYNERGY_VERSION_RELEASE AND NOT SYNERGY_VERSION_SNAPSHOT)
   add_compile_definitions(SYNERGY_VERSION_DEV)
+endif()
+
+# Compile activation in for distributable builds only; dev builds opt in at
+# runtime via Synergy.test.conf (licensing=true) so local iteration isn't gated
+# on a serial key.
+if(SYNERGY_VERSION_RELEASE OR SYNERGY_VERSION_SNAPSHOT)
+  add_compile_definitions(SYNERGY_ENABLE_ACTIVATION)
 endif()
