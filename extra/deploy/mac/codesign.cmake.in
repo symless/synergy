@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: (C) 2012 - 2026 Synergy App Ltd
+# SPDX-License-Identifier: MIT
+
+# CPack pre-build script: sign the app bundle as the final packaging step, after
+# every install() has populated it (frameworks, LICENSE, translations) and just
+# before the DMG is built. Signing earlier and then adding files breaks the seal,
+# which the notary service rejects with "the signature of the binary is invalid".
+
+set(app "${CPACK_TEMPORARY_INSTALL_DIRECTORY}/@CMAKE_PROJECT_PROPER_NAME@.app")
+
+execute_process(
+  COMMAND /usr/bin/codesign --force --deep --options runtime --timestamp
+          --sign "@APPLE_CODESIGN_ID@" "${app}"
+  RESULT_VARIABLE result
+)
+if(NOT result EQUAL 0)
+  message(FATAL_ERROR "codesign of the app bundle failed (${result})")
+endif()

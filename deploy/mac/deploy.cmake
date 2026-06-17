@@ -15,22 +15,18 @@ if (OSX_BUNDLE)
     -timestamp -codesign=-
   )")
 
-  # macdeployqt only ad-hoc signs the staged bundle above. When a Developer ID
-  # is provided, re-sign every nested binary with hardened runtime and a secure
-  # timestamp so the app embedded in the DMG passes notarization; an ad-hoc
-  # signature is rejected by the notary service as Invalid.
+  # macdeployqt above only ad-hoc signs the staged bundle, and later install()
+  # steps (e.g. LICENSE into Resources) would invalidate any signature applied
+  # at install time. So when a Developer ID is provided, defer signing to a CPack
+  # pre-build script that runs once the staging tree is fully populated, right
+  # before the DMG is built; otherwise the notary service rejects it as Invalid.
   if(APPLE_CODESIGN_ID)
-    install(CODE "
-      execute_process(
-        COMMAND /usr/bin/codesign --force --deep --options runtime --timestamp
-                --sign \"${APPLE_CODESIGN_ID}\"
-                \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_PROPER_NAME}.app\"
-        RESULT_VARIABLE result
-      )
-      if(NOT result EQUAL 0)
-        message(FATAL_ERROR \"codesign of the app bundle failed (\${result})\")
-      endif()
-    ")
+    configure_file(
+      ${CMAKE_SOURCE_DIR}/extra/deploy/mac/codesign.cmake.in
+      ${CMAKE_CURRENT_BINARY_DIR}/mac-codesign.cmake
+      @ONLY
+    )
+    set(CPACK_PRE_BUILD_SCRIPTS ${CMAKE_CURRENT_BINARY_DIR}/mac-codesign.cmake)
   endif()
 
   set(CPACK_PACKAGE_ICON "${MY_DIR}/dmg-volume.icns")
