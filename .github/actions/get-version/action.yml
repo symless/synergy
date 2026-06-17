@@ -15,6 +15,10 @@ runs:
     - id: compute
       shell: bash
       run: |
+        # Container jobs bind-mount the workspace owned by the host user while
+        # running as root, so git rejects it as dubious-owned and the SHA lookup
+        # in Version.cmake fails silently, degrading the version to a no-SHA form.
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
         mkdir -p build
         cmake \
           -DVERSION_FILE=build/VERSION \
