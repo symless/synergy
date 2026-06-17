@@ -12,9 +12,11 @@
 # The bundled module ships the runtime of the compiler's own toolset, but its
 # path carries only the toolset major (.../Redist/MSVC/v143/MergeModules/...), so
 # the runtime version isn't in it. Take the minor from the compiler version
-# instead (cl 19.x maps to CRT 14.x, with matching minors); that floor is always
-# <= the runtime we bundle, so it can never reject the runtime we ship. Builds
-# with no bundled module (dev) keep upstream's registry value.
+# instead: cl major 19 maps to CRT major 14 and the minor matches (e.g. 19.44 ->
+# 14.44), per Microsoft's _MSC_VER / build-tools version table:
+# https://learn.microsoft.com/en-us/cpp/overview/compiler-versions?view=msvc-170
+# That floor is always <= the runtime we bundle, so it can't reject what we ship.
+# Builds with no bundled module (dev) keep upstream's registry value.
 #
 # The glob mirrors deploy/windows/deploy.cmake's bundling condition; keep in sync.
 if(MSVC)
