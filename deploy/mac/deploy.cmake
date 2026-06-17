@@ -14,6 +14,25 @@ if (OSX_BUNDLE)
     \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_PROPER_NAME}.app\"
     -timestamp -codesign=-
   )")
+
+  # macdeployqt only ad-hoc signs the staged bundle above. When a Developer ID
+  # is provided, re-sign every nested binary with hardened runtime and a secure
+  # timestamp so the app embedded in the DMG passes notarization; an ad-hoc
+  # signature is rejected by the notary service as Invalid.
+  if(APPLE_CODESIGN_ID)
+    install(CODE "
+      execute_process(
+        COMMAND /usr/bin/codesign --force --deep --options runtime --timestamp
+                --sign \"${APPLE_CODESIGN_ID}\"
+                \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_PROJECT_PROPER_NAME}.app\"
+        RESULT_VARIABLE result
+      )
+      if(NOT result EQUAL 0)
+        message(FATAL_ERROR \"codesign of the app bundle failed (\${result})\")
+      endif()
+    ")
+  endif()
+
   set(CPACK_PACKAGE_ICON "${MY_DIR}/dmg-volume.icns")
   set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/extra/deploy/mac/dmg-background.tiff")
   set(CPACK_DMG_DS_STORE_SETUP_SCRIPT "${MY_DIR}/generate_ds_store.applescript")

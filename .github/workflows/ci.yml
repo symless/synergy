@@ -303,7 +303,7 @@ jobs:
         uses: ./.github/actions/get-version
 
       - name: Configure
-        run: ${{ env.CMAKE_CONFIGURE }} ${{ matrix.target.config-args }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }}
+        run: ${{ env.CMAKE_CONFIGURE }} ${{ matrix.target.config-args }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DAPPLE_CODESIGN_ID="${{ secrets.APPLE_CODESIGN_ID }}"
 
       - name: Build
         shell: bash
@@ -336,33 +336,16 @@ jobs:
           echo "SIGN_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
           echo "SIGN_KEYCHAIN_PASS=$keychain_pass" >> "$GITHUB_ENV"
 
-      # Sign the inner .app BEFORE the DMG is built — CPack DragNDrop embeds
-      # the bundle into the DMG, and signing the DMG afterward doesn't propagate
-      # signatures inward. `--deep --options runtime` are required for
-      # notarization to accept the bundle later.
-      - name: Sign macOS bundle
-        if: env.MAC_SIGNING == 'true'
-        shell: bash
-        env:
-          APPLE_CODESIGN_ID: ${{ secrets.APPLE_CODESIGN_ID }}
-        run: |
-          bundle=$(find build -maxdepth 4 -name "*.app" -type d | head -n1)
-          if [ -z "$bundle" ]; then
-            echo "ERROR: no .app bundle found under build/" >&2
-            find build -maxdepth 4 -name "*.app" -o -name "Info.plist" 2>/dev/null
-            exit 1
-          fi
-          security unlock-keychain -p "$SIGN_KEYCHAIN_PASS" "$SIGN_KEYCHAIN"
-          /usr/bin/codesign \
-            --deep --force --timestamp --options runtime \
-            --sign "$APPLE_CODESIGN_ID" "$bundle"
-          /usr/bin/codesign --verify --strict --verbose=2 "$bundle"
-          echo "Bundle signed: $bundle"
-
-      # CPack on macOS is flaky; retry a handful of times before failing.
+      # CPack runs macdeployqt and, when a Developer ID is configured, codesigns
+      # the bundle that gets embedded in the DMG (see deploy/mac/deploy.cmake), so
+      # the keychain must be unlocked first. CPack on macOS is flaky; retry a
+      # handful of times before failing.
       - name: Package
         shell: bash
         run: |
+          if [ -n "$SIGN_KEYCHAIN" ]; then
+            security unlock-keychain -p "$SIGN_KEYCHAIN_PASS" "$SIGN_KEYCHAIN"
+          fi
           for i in $(seq 1 5); do
             if cmake --build build --config Release -j8 --target package 2>&1; then
               echo "Package successful"
@@ -397,11 +380,22 @@ jobs:
           security unlock-keychain -p "$SIGN_KEYCHAIN_PASS" "$SIGN_KEYCHAIN"
           /usr/bin/codesign --force --timestamp --sign "$APPLE_CODESIGN_ID" "$dmg"
 
-          xcrun notarytool submit "$dmg" \
+          result=$(xcrun notarytool submit "$dmg" \
             --apple-id "$APPLE_NOTARY_USER" \
             --password "$APPLE_NOTARY_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --output-format json --wait)
+          echo "$result"
+          id=$(echo "$result" | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])")
+          status=$(echo "$result" | python3 -c "import sys, json; print(json.load(sys.stdin)['status'])")
+          if [ "$status" != "Accepted" ]; then
+            echo "Notarization $status; per-file detail follows:" >&2
+            xcrun notarytool log "$id" \
+              --apple-id "$APPLE_NOTARY_USER" \
+              --password "$APPLE_NOTARY_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID"
+            exit 1
+          fi
 
           xcrun stapler staple "$dmg"
           xcrun stapler validate "$dmg"
