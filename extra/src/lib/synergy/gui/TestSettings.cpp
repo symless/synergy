@@ -68,8 +68,7 @@ void TestSettings::load()
   m_enabled = false;
   m_licensing = false;
   m_serialKey.clear();
-  m_apiUrlActivate.clear();
-  m_apiUrlCheck.clear();
+  m_apiUrlBase.clear();
   m_machineId.clear();
   m_startTimeEpochSecs = 0;
   m_verbose = false;
@@ -89,8 +88,7 @@ void TestSettings::load()
   }
   m_licensing = ini.value(QStringLiteral("test/licensing"), false).toBool();
   m_serialKey = ini.value(QStringLiteral("test/serialKey")).toString();
-  m_apiUrlActivate = ini.value(QStringLiteral("test/apiUrlActivate")).toString();
-  m_apiUrlCheck = ini.value(QStringLiteral("test/apiUrlCheck")).toString();
+  m_apiUrlBase = ini.value(QStringLiteral("test/apiUrlBase")).toString();
   m_machineId = ini.value(QStringLiteral("test/machineId")).toString();
   m_startTimeEpochSecs = ini.value(QStringLiteral("test/startTime"), 0).toLongLong();
 

@@ -30,16 +30,20 @@ constexpr auto kPropRequestKind = "requestKind";
 constexpr auto kPropActivationIntent = "activationIntent";
 constexpr auto kPropCheckIntent = "checkIntent";
 
+QString apiBaseUrl()
+{
+  const auto testBase = TestSettings::instance().apiUrlBase();
+  return testBase.isEmpty() ? QString::fromUtf8(kUrlApi) : testBase;
+}
+
 QString activateUrl()
 {
-  const auto testUrl = TestSettings::instance().apiUrlActivate();
-  return testUrl.isEmpty() ? kUrlApiLicenseActivate : testUrl;
+  return QStringLiteral("%1/product/activate").arg(apiBaseUrl());
 }
 
 QString checkUrl()
 {
-  const auto testUrl = TestSettings::instance().apiUrlCheck();
-  return testUrl.isEmpty() ? kUrlApiLicenseCheck : testUrl;
+  return QStringLiteral("%1/product/check").arg(apiBaseUrl());
 }
 
 LicenseApiClient::LicenseApiClient()

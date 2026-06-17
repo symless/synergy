@@ -54,13 +54,9 @@ public:
   {
     return m_serialKey;
   }
-  QString apiUrlActivate() const
+  QString apiUrlBase() const
   {
-    return m_apiUrlActivate;
-  }
-  QString apiUrlCheck() const
-  {
-    return m_apiUrlCheck;
+    return m_apiUrlBase;
   }
   QString machineId() const
   {
@@ -105,8 +101,7 @@ private:
   bool m_enabled = false;
   bool m_licensing = false;
   QString m_serialKey;
-  QString m_apiUrlActivate;
-  QString m_apiUrlCheck;
+  QString m_apiUrlBase;
   QString m_machineId;
   qint64 m_startTimeEpochSecs = 0;
   bool m_verbose = false;
