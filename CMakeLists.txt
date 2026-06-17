@@ -126,6 +126,9 @@ if (MSVC)
   endif()
 endif()
 
+# Synergy overlay: anchor the runtime requirement to the bundled CRT merge module.
+include(${CMAKE_SOURCE_DIR}/extra/cmake/MsvcRuntime.cmake)
+
 # Control debug item visibility
 # When not set logging is forced to DEBUG and show code locations
 # Also exposes a test menu
