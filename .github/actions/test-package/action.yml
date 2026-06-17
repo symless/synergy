@@ -15,13 +15,13 @@ runs:
       shell: bash
       run: |
         if [ "$RUNNER_OS" == "macOS" ]; then
-          dmg=$(ls build/synergy-*.dmg | head -1)
+          dmg=$(ls build/synergy[-_]*.dmg | head -1)
           echo "Y" | hdiutil attach "$dmg" -nobrowse -mountpoint /tmp/synergy-dmg
           /tmp/synergy-dmg/Synergy.app/Contents/MacOS/synergy-core --version
           hdiutil detach /tmp/synergy-dmg
 
         elif [ "$RUNNER_OS" == "Windows" ]; then
-          7z x build/synergy-*-portable.7z -otmp/synergy-pkg
+          7z x build/synergy[-_]*-portable.7z -otmp/synergy-pkg
           exe=$(find tmp/synergy-pkg -name "synergy-core.exe" -type f | head -1)
           exe_dir=$(dirname "$exe")
           pkg_root=$(dirname "$exe_dir")
@@ -30,13 +30,13 @@ runs:
 
         elif [ "$RUNNER_OS" == "Linux" ]; then
           if [ "${{inputs.like}}" == "debian" ]; then
-            apt-get install -y ./build/synergy-*.deb
+            apt-get install -y ./build/synergy[-_]*.deb
           elif [ "${{inputs.like}}" == "fedora" ]; then
-            dnf install -y build/synergy-*.rpm
+            dnf install -y build/synergy[-_]*.rpm
           elif [ "${{inputs.like}}" == "suse" ]; then
-            zypper install -y --allow-unsigned-rpm build/synergy-*.rpm
+            zypper install -y --allow-unsigned-rpm build/synergy[-_]*.rpm
           elif [ "${{inputs.like}}" == "arch" ]; then
-            pacman -U --noconfirm build/synergy-*.pkg.tar.zst
+            pacman -U --noconfirm build/synergy[-_]*.pkg.tar.zst
           else
             echo "Unknown like: ${{inputs.like}}"
             exit 1
