@@ -183,6 +183,14 @@ void FeatureHandler::setAttribution(QDialog *parent) const
 
 void FeatureHandler::tightenVersionRow(QDialog *parent) const
 {
+  // The .ui pins lblVersion to a fixed point size, so it renders out of step with its
+  // "Version:" sibling on systems whose default UI font differs; match the sibling instead.
+  auto *prefix = parent->findChild<QLabel *>(QStringLiteral("label"));
+  auto *version = parent->findChild<QLabel *>(QStringLiteral("lblVersion"));
+  if (prefix != nullptr && version != nullptr) {
+    version->setFont(prefix->font());
+  }
+
   // The copy button is taller than the version text and padded the centred row; cap it.
   if (auto *copyButton = parent->findChild<QPushButton *>(QStringLiteral("btnCopyVersion"))) {
     copyButton->setMaximumHeight(copyButton->fontMetrics().height() + 4);
