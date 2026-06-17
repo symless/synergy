@@ -41,7 +41,7 @@
 
 	<!-- Local Lan Entitlements -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>This app uses local network permissions for communication between a Deskflow server and clients.</string>
+	<string>This app uses local network permissions for communication between a @CMAKE_PROJECT_PROPER_NAME@ server and clients.</string>
 	<key>com.apple.security.networking.local</key>
 	<true/>
 
