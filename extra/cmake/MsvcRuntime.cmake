@@ -5,25 +5,23 @@
 # (deploy/windows/deploy.cmake) instead of making the user install the
 # redistributable. The runtime guard (ArchMiscWindows::guardRuntimeVersion) must
 # therefore require the version we actually ship, not the build machine's
-# installed redist that upstream's registry query returns. The two drift: CI
-# runners get a newer redist than the toolset's merge module, so the guard ends
-# up rejecting our own bundled runtime and the service fails to start.
+# installed redist that upstream's registry query returns: CI runners carry a
+# newer redist than the bundled module, so the guard rejects our own runtime and
+# the service fails to start.
 #
-# Override the upstream registry-derived minor with the version of the CRT merge
-# module we bundle, taken from the redist directory name
-# (.../Redist/MSVC/<version>/MergeModules/...). Builds without a merge module
-# (dev) keep upstream's registry value as the fallback.
+# The bundled module ships the runtime of the compiler's own toolset, but its
+# path carries only the toolset major (.../Redist/MSVC/v143/MergeModules/...), so
+# the runtime version isn't in it. Take the minor from the compiler version
+# instead (cl 19.x maps to CRT 14.x, with matching minors); that floor is always
+# <= the runtime we bundle, so it can never reject the runtime we ship. Builds
+# with no bundled module (dev) keep upstream's registry value.
 #
-# This globs the same path deploy/windows/deploy.cmake bundles from; keep the two
-# in sync until a future change discovers the module once and shares the path.
+# The glob mirrors deploy/windows/deploy.cmake's bundling condition; keep in sync.
 if(MSVC)
   file(GLOB _crt_msms
     "$ENV{VCINSTALLDIR}Redist/MSVC/*/MergeModules/Microsoft_VC*_CRT_${BUILD_ARCHITECTURE}.msm")
-  list(SORT _crt_msms)
-  if(_crt_msms)
-    list(GET _crt_msms -1 _crt_msm)
-    string(REGEX MATCH "Redist/MSVC/[0-9]+\\.([0-9]+)\\." _ "${_crt_msm}")
+  if(_crt_msms AND CMAKE_CXX_COMPILER_VERSION MATCHES "^[0-9]+\\.([0-9]+)")
     set(REQUIRED_MSVC_RUNTIME_MINOR "${CMAKE_MATCH_1}")
-    message(STATUS "MSVC runtime (bundled CRT merge module): ${REQUIRED_MSVC_RUNTIME_MAJOR}.${REQUIRED_MSVC_RUNTIME_MINOR}")
+    message(STATUS "MSVC runtime (compiler toolset): ${REQUIRED_MSVC_RUNTIME_MAJOR}.${REQUIRED_MSVC_RUNTIME_MINOR}")
   endif()
 endif()
