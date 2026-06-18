@@ -55,7 +55,6 @@ public:
     inline static const auto Display = QStringLiteral("core/display");
     inline static const auto UseHooks = QStringLiteral("core/useHooks");
     inline static const auto Language = QStringLiteral("core/language");
-    inline static const auto UseWlClipboard = QStringLiteral("core/wlClipboard");
     inline static const auto EnableEnterCommand = QStringLiteral("core/enableEnterCommand");
     inline static const auto ScreenEnterCommand = QStringLiteral("core/enterCommand");
     inline static const auto EnableExitCommand = QStringLiteral("core/enableExitCommand");
@@ -212,7 +211,6 @@ private:
     , Settings::Core::ComputerName
     , Settings::Core::Display
     , Settings::Core::UseHooks
-    , Settings::Core::UseWlClipboard
     , Settings::Core::Language
     , Settings::Daemon::ConfigFile
     , Settings::Daemon::Elevate
@@ -254,7 +252,6 @@ private:
     , Settings::Gui::ShowVersionInTitle
     , Settings::Gui::IgnoreMissingKeyboardLayouts
     , Settings::Core::PreventSleep
-    , Settings::Core::UseWlClipboard
     , Settings::Core::EnableEnterCommand
     , Settings::Core::EnableExitCommand
     , Settings::Client::DynamicConnectionRetry

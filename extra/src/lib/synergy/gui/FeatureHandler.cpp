@@ -73,11 +73,6 @@ void FeatureHandler::styleUpdateNotice(QMainWindow *mainWindow) const
 
 void FeatureHandler::handleAppStart()
 {
-  // wl-clipboard's focus-stealing behavior on common compositors makes it
-  // unfit for shipping; force the setting off on every launch regardless
-  // of how it got set.
-  Settings::setValue(Settings::Core::UseWlClipboard, false);
-
   if (TestSettings::instance().isEnabled()) {
     addTestMenu();
   }
@@ -106,9 +101,6 @@ void FeatureHandler::handleSettings(QDialog *parent) const
 {
   if (parent == nullptr) {
     return;
-  }
-  if (auto *wlClipboard = parent->findChild<QWidget *>(QStringLiteral("widgetWlClipboard"))) {
-    wlClipboard->hide();
   }
 
   addUpdateChannelOption(parent);
