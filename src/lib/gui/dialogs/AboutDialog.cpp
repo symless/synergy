@@ -64,8 +64,9 @@ AboutDialog::AboutDialog(QWidget *parent) : QDialog(parent), ui{std::make_unique
 
 void AboutDialog::copyVersionText() const
 {
-  QString infoString = QStringLiteral("%1: %2 (%3)\nQt: %4\nSystem: %5")
-                           .arg(kAppName, kVersion, kVersionGitSha, qVersion(), QSysInfo::prettyProductName());
+  // Divergence from upstream: kDisplayVersion already carries version + commit; don't append the git sha.
+  QString infoString = QStringLiteral("%1: %2\nQt: %3\nSystem: %4")
+                           .arg(kAppName, kDisplayVersion, qVersion(), QSysInfo::prettyProductName());
   if (Settings::isPortableMode()) {
     infoString.append(QStringLiteral("\nPortable Mode"));
   }

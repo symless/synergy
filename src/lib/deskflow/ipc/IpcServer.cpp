@@ -120,7 +120,8 @@ void IpcServer::processMessage(QLocalSocket *clientSocket, const QString &messag
       return;
     }
 
-    const auto versionId = QStringLiteral("%1+%2").arg(kVersion, kVersionGitSha);
+    // Divergence from upstream: kVersion already carries the build metadata; don't re-append the git sha.
+    const auto versionId = QString::fromUtf8(kVersion);
     const auto clientVersion = parts.at(1);
     LOG_DEBUG("%s ipc server got hello message (version: %s)", m_typeName.constData(), versionId.toUtf8().constData());
 

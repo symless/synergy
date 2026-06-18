@@ -70,7 +70,8 @@ void IpcClient::attemptConnection()
   connect(
       m_socket, &QLocalSocket::connected, this,
       [this] {
-        const auto versionId = QStringLiteral("%1+%2").arg(kVersion, kVersionGitSha);
+        // Divergence from upstream: kVersion already carries the build metadata; don't re-append the git sha.
+        const auto versionId = QString::fromUtf8(kVersion);
         m_socket->write(QStringLiteral("hello=%1\n").arg(versionId).toUtf8());
         qDebug().noquote() << QStringLiteral("%1 ipc client sent hello with version: %2").arg(m_typeName, versionId);
       },
@@ -176,7 +177,8 @@ void IpcClient::handleHandshakeMessage(const QStringList &parts)
     return;
   }
 
-  const auto versionId = QStringLiteral("%1+%2").arg(kVersion, kVersionGitSha);
+  // Divergence from upstream: kVersion already carries the build metadata; don't re-append the git sha.
+  const auto versionId = QString::fromUtf8(kVersion);
 
   if (parts.at(0) == QStringLiteral("versionMismatch")) {
     const auto serverVersion = parts.size() >= 2 ? parts.at(1) : QStringLiteral("unknown");
