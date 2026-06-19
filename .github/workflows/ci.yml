@@ -715,9 +715,10 @@ jobs:
           if [[ "${{ env.SYNERGY_VERSION_RELEASE }}" == "true" ]]; then
             sub_dir="release"
           elif [[ "${{ env.SYNERGY_VERSION_SNAPSHOT }}" == "true" ]]; then
-            # Organize snapshots by major.minor.patch for easier navigation.
-            short_version=$(echo "$version" | cut -d'-' -f1 | cut -d'+' -f1)
-            sub_dir="snapshot/$short_version"
+            # Group snapshots by base version, keeping the stage so the folder
+            # matches the release path (i.e. 1.21.2-beta/1.21.2-beta-snapshot+r42).
+            base_version="${version%%-snapshot*}"
+            sub_dir="snapshot/$base_version"
           else
             sub_dir="dev"
           fi
