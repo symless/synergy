@@ -65,12 +65,13 @@ macro(configure_windows_packaging)
   # Get the merge module (MSM) from the dev env.
   # This is deprecated and we should switch to MSI when possible.
   # Docs: https://learn.microsoft.com/en-us/cpp/windows/redistributing-components-by-using-merge-modules?view=msvc-170
-  set(REDIST_MERGE_MODULE_DIR "$ENV{VCINSTALLDIR}Redist/MSVC/v143/MergeModules")
+  set(REDIST_MERGE_MODULE_DIR "$ENV{VCINSTALLDIR}Redist/MSVC")
   message(VERBOSE "MSVC merge module dir: ${REDIST_MERGE_MODULE_DIR}")
-  file(GLOB REDIST_MERGE_MODULE_PATHS "${REDIST_MERGE_MODULE_DIR}/Microsoft_VC143_CRT_x64.msm")
+  file(GLOB REDIST_MERGE_MODULE_PATHS "${REDIST_MERGE_MODULE_DIR}/*/MergeModules/Microsoft_VC*_CRT_x64.msm")
   if (REDIST_MERGE_MODULE_PATHS)
     message(VERBOSE "MSVC merge module paths: ${REDIST_MERGE_MODULE_PATHS}")
-    list(GET REDIST_MERGE_MODULE_PATHS 0 REDIST_MERGE_MODULE_PATH)
+    list(SORT REDIST_MERGE_MODULE_PATHS)
+    list(GET REDIST_MERGE_MODULE_PATHS -1 REDIST_MERGE_MODULE_PATH)
     message(STATUS "MSVC merge module found: ${REDIST_MERGE_MODULE_PATH}")
   else()
     message(WARNING "MSVC merge module not found in: ${REDIST_MERGE_MODULE_DIR}")
