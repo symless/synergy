@@ -73,6 +73,7 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   int clipboardSharingSizeM = static_cast<int>(serverConfig().clipboardSharingSize() / 1024);
   m_pSpinBoxClipboardSizeLimit->setValue(clipboardSharingSizeM);
   m_pSpinBoxClipboardSizeLimit->setEnabled(serverConfig().clipboardSharing());
+  m_pCheckBoxTouchInputLocal->setChecked(serverConfig().touchInputLocal());
 
   foreach (const Hotkey &hotkey, serverConfig().hotkeys())
     m_pListHotkeys->addItem(hotkey.text());
@@ -104,6 +105,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   if (locked.contains("clipboardSharingSize")) {
     qDebug() << "locking clipboard size setting";
     m_pSpinBoxClipboardSizeLimit->setEnabled(false);
+  }
+  if (locked.contains("touchInputLocal")) {
+    qDebug() << "locking touch input local setting";
+    m_pCheckBoxTouchInputLocal->setEnabled(false);
   }
   locked.endGroup();
 
@@ -140,6 +145,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   });
   connect(m_pCheckBoxDisableLockToScreen, &QCheckBox::stateChanged, this, [this](const int &v) {
     serverConfig().setDisableLockToScreen(v);
+    onChange();
+  });
+  connect(m_pCheckBoxTouchInputLocal, &QCheckBox::stateChanged, this, [this](const int &v) {
+    serverConfig().setTouchInputLocal(v);
     onChange();
   });
   connect(m_pCheckBoxCornerTopLeft, &QCheckBox::stateChanged, this, [this](const int &v) {
@@ -190,6 +199,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config, Ap
   });
   connect(m_pCheckBoxDisableLockToScreen, &QCheckBox::checkStateChanged, this, [this](const Qt::CheckState &v) {
     serverConfig().setDisableLockToScreen(v == Qt::Checked);
+    onChange();
+  });
+  connect(m_pCheckBoxTouchInputLocal, &QCheckBox::checkStateChanged, this, [this](const Qt::CheckState &v) {
+    serverConfig().setTouchInputLocal(v == Qt::Checked);
     onChange();
   });
   connect(m_pCheckBoxCornerTopLeft, &QCheckBox::checkStateChanged, this, [this](const Qt::CheckState &v) {

@@ -19,6 +19,7 @@
 #include "platform/MSWindowsScreen.h"
 
 #include "arch/Arch.h"
+#include "deskflow/option_types.h"
 #include "arch/win32/ArchMiscWindows.h"
 #include "base/IEventQueue.h"
 #include "base/Log.h"
@@ -83,6 +84,28 @@
 #define PBT_APMRESUMEAUTOMATIC 0x0012
 #endif
 
+// WM_POINTER stuff (Windows 8+)
+#if !defined(WM_POINTERDOWN)
+#define WM_POINTERDOWN 0x0246
+#define WM_POINTERUP 0x0247
+#define WM_POINTERUPDATE 0x0245
+#define WM_POINTERENTER 0x0249
+#define WM_POINTERLEAVE 0x024A
+#define GET_POINTERID_WPARAM(wParam) (LOWORD(wParam))
+#endif
+
+#if !defined(PT_POINTER)
+#define PT_POINTER 1
+#define PT_TOUCH 2
+#define PT_PEN 3
+#define PT_MOUSE 4
+#endif
+
+// Function pointer type for GetPointerType (loaded dynamically for Win7 compat)
+typedef BOOL(WINAPI *GetPointerTypeFunc)(UINT32 pointerId, DWORD *pointerType);
+static GetPointerTypeFunc s_getPointerType = NULL;
+static bool s_pointerApiChecked = false;
+
 //
 // MSWindowsScreen
 //
@@ -124,7 +147,9 @@ MSWindowsScreen::MSWindowsScreen(
       m_hasMouse(GetSystemMetrics(SM_MOUSEPRESENT) != 0),
       m_events(events),
       m_dropWindow(NULL),
-      m_dropWindowSize(20)
+      m_dropWindowSize(20),
+      m_touchInputLocal(false),
+      m_lastInputWasTouch(false)
 {
   LOG_DEBUG("settting up %s screen", m_isPrimary ? "primary" : "secondary");
 
@@ -313,6 +338,7 @@ void MSWindowsScreen::enter()
 
   // now on screen
   m_isOnScreen = true;
+  m_hook.setIsOnScreen(true);
   setupMouseKeys();
 }
 
@@ -369,6 +395,7 @@ void MSWindowsScreen::leave()
 
   // now off screen
   m_isOnScreen = false;
+  m_hook.setIsOnScreen(false);
 
   if (isDraggingStarted() && !m_isPrimary) {
     m_sendDragThread = new Thread(new TMethodJob<MSWindowsScreen>(this, &MSWindowsScreen::sendDragThread));
@@ -475,6 +502,16 @@ void MSWindowsScreen::resetOptions()
 
 void MSWindowsScreen::setOptions(const OptionsList &options)
 {
+  // Handle touch input local option
+  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+    if (options[i] == kOptionTouchInputLocal) {
+      m_touchInputLocal = (options[i + 1] != 0);
+      LOG((CLOG_DEBUG1 "touchInputLocal = %s", m_touchInputLocal ? "true" : "false"));
+      // Update the hook so it can block touch-generated mouse events
+      m_hook.setTouchInputLocal(m_touchInputLocal);
+    }
+  }
+
   m_desks->setOptions(options);
 }
 
@@ -1042,6 +1079,19 @@ bool MSWindowsScreen::onEvent(HWND, UINT msg, WPARAM wParam, LPARAM lParam, LRES
   case WM_DISPLAYCHANGE:
     return onDisplayChange();
 
+  // Handle pointer input (touch/pen) - Windows 8+
+  // This allows us to detect touch vs mouse input and optionally keep touch local
+  case WM_POINTERDOWN:
+  case WM_POINTERUP:
+  case WM_POINTERUPDATE:
+    if (m_isPrimary && onPointerInput(wParam, lParam)) {
+      // Touch input was consumed (kept local)
+      *result = 0;
+      return true;
+    }
+    // Fall through to let DefWindowProc convert to mouse messages
+    return false;
+
   /* On windows 10 we don't receive WM_POWERBROADCAST after sleep.
    We receive only WM_TIMECHANGE hence this message is used to resume.*/
   case WM_TIMECHANGE:
@@ -1375,6 +1425,58 @@ bool MSWindowsScreen::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
     sendEvent(m_events->forIPrimaryScreen().wheel(), WheelInfo::alloc(xDelta, yDelta));
   }
   return true;
+}
+
+bool MSWindowsScreen::isPointerTypeTouch(UINT32 pointerId) const
+{
+  // Dynamically load GetPointerType for Windows 7 compatibility
+  if (!s_pointerApiChecked) {
+    s_pointerApiChecked = true;
+    HMODULE user32 = GetModuleHandle("user32.dll");
+    if (user32 != NULL) {
+      s_getPointerType = (GetPointerTypeFunc)GetProcAddress(user32, "GetPointerType");
+    }
+  }
+
+  if (s_getPointerType == NULL) {
+    // API not available (Windows 7 or earlier)
+    return false;
+  }
+
+  DWORD pointerType = PT_POINTER;
+  if (s_getPointerType(pointerId, &pointerType)) {
+    return (pointerType == PT_TOUCH || pointerType == PT_PEN);
+  }
+  return false;
+}
+
+bool MSWindowsScreen::onPointerInput(WPARAM wParam, LPARAM lParam)
+{
+  UINT32 pointerId = GET_POINTERID_WPARAM(wParam);
+
+  LOG((CLOG_DEBUG "onPointerInput: pointerId=%d, touchInputLocal=%s, isOnScreen=%s",
+       pointerId, m_touchInputLocal ? "true" : "false", m_isOnScreen ? "true" : "false"));
+
+  // Check if this is touch/pen input
+  if (isPointerTypeTouch(pointerId)) {
+    m_lastInputWasTouch = true;
+    LOG((CLOG_DEBUG "pointer is touch input"));
+
+    // If touchInputLocal is enabled and cursor is on another screen,
+    // consume the event so it stays local
+    if (m_touchInputLocal && !m_isOnScreen) {
+      LOG((CLOG_INFO "touch input kept local (cursor on client screen)"));
+      // Return true to indicate we handled it - this prevents
+      // DefWindowProc from converting it to mouse input
+      return true;
+    }
+  } else {
+    m_lastInputWasTouch = false;
+  }
+
+  // Let the system handle the pointer input normally
+  // It will be converted to mouse messages and caught by our hook
+  return false;
 }
 
 bool MSWindowsScreen::onScreensaver(bool activated)
