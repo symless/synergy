@@ -3,11 +3,12 @@
 # SPDX-FileCopyrightText: (C) 2009 - 2012 Nick Bolton
 # SPDX-License-Identifier: MIT
 
-if(UNIX AND NOT APPLE AND BUILD_WAYLAND_SUPPORT)
-  pkg_check_modules(LIBEI REQUIRED QUIET "libei-1.0 >= ${REQUIRED_LIBEI_VERSION}")
+# Detected, not REQUIRED: RHEL ships no libei/libportal, so those legs build X11-only.
+if(UNIX AND NOT APPLE)
+  pkg_check_modules(LIBEI QUIET "libei-1.0 >= ${REQUIRED_LIBEI_VERSION}")
   message(STATUS "libei version: ${LIBEI_VERSION}")
 
-  pkg_check_modules(LIBPORTAL REQUIRED QUIET "libportal >= ${REQUIRED_LIBPORTAL_VERSION}")
+  pkg_check_modules(LIBPORTAL QUIET "libportal >= ${REQUIRED_LIBPORTAL_VERSION}")
   message(STATUS "libportal version: ${LIBPORTAL_VERSION}")
 
   # Check if we have the restore ability in the IC portal

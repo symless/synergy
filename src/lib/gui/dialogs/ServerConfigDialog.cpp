@@ -17,6 +17,7 @@
 #include "dialogs/HotkeyDialog.h"
 #include "dialogs/ScreenSettingsDialog.h"
 
+#include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
 

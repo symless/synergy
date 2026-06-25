@@ -435,27 +435,15 @@ jobs:
       fail-fast: false
       matrix:
         target:
-          - name: "debian-x86_64"
+          - name: "debian-13-x86_64"
             runs-on: ubuntu-latest
-            container: debian:stable-slim
+            container: debian:13-slim
             like: "debian"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
-          - name: "debian-arm64"
+          - name: "debian-13-arm64"
             runs-on: ubuntu-24.04-arm
-            container: debian:stable-slim
-            like: "debian"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
-
-          - name: "debian-testing-x86_64"
-            runs-on: ubuntu-latest
-            container: debian:testing-slim
-            like: "debian"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
-
-          - name: "debian-testing-arm64"
-            runs-on: ubuntu-24.04-arm
-            container: debian:testing-slim
+            container: debian:13-slim
             like: "debian"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
@@ -507,13 +495,18 @@ jobs:
             like: "fedora"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
-          # RHEL 8.10 ships Qt 5.13 and OpenSSL 1.1.1 and has no libei/libportal, so this
-          # target builds against Qt5, X11-only, with tests off (EPEL GoogleTest is too old).
+          # RHEL/Rocky: Qt5, X11-only, tests off (EPEL GoogleTest too old).
           - name: "rocky-8-x86_64"
             runs-on: ubuntu-latest
             container: rockylinux:8
             like: "rhel"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_WAYLAND_SUPPORT=OFF -DBUILD_TESTS=OFF"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF"
+
+          - name: "rocky-9-x86_64"
+            runs-on: ubuntu-latest
+            container: rockylinux:9
+            like: "rhel"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF"
 
           - name: "opensuse-x86_64"
             runs-on: ubuntu-latest

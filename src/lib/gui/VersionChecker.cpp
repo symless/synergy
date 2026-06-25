@@ -13,6 +13,7 @@
 #include "synergy/hooks/gui_hook.h"
 #endif
 
+#include <QDebug>
 #include <QLocale>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>

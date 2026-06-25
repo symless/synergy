@@ -9,6 +9,7 @@
 #include <QDBusConnection>
 #include <QDBusInterface>
 #include <QDBusReply>
+#include <QDebug>
 
 #include "common/Constants.h"
 #include "common/PlatformInfo.h"

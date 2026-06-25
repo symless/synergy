@@ -23,6 +23,7 @@
 #endif
 
 #include <QComboBox>
+#include <QDebug>
 #include <QDir>
 #include <QFileDialog>
 #include <QMessageBox>

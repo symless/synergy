@@ -10,8 +10,10 @@
 #include "common/Settings.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QList>
+#include <QLocale>
 #include <QMap>
 #include <QObject>
 #include <QTranslator>

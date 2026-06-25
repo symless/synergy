@@ -37,6 +37,7 @@
 
 #include <QCheckBox>
 #include <QCloseEvent>
+#include <QDebug>
 #include <QDesktopServices>
 #include <QFileDialog>
 #include <QLocalServer>

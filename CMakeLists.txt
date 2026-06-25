@@ -149,7 +149,6 @@ add_definitions(-DQT_NO_KEYWORDS)
 #Options for Linux platform support
 if(UNIX AND NOT APPLE)
   option(BUILD_X11_SUPPORT "Build with x11 support" ON)
-  option(BUILD_WAYLAND_SUPPORT "Build with Wayland (libei/libportal) support" ON)
 elseif (APPLE)
   option(BUILD_OSX_BUNDLE "Build mac os bundle" ON)
 endif()

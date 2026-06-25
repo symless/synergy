@@ -23,6 +23,7 @@
 
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QDebug>
 #include <QLocalSocket>
 #include <QMessageBox>
 #include <QSharedMemory>

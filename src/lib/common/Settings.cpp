@@ -11,6 +11,7 @@
 #include "common/UrlConstants.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QFile>
 #include <QRect>
 #include <QRegularExpression>

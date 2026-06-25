@@ -10,6 +10,7 @@
 #include "common/Settings.h"
 #include "net/SecureUtils.h"
 
+#include <QDebug>
 #include <QFile>
 #include <QSslCertificate>
 #include <QSslKey>

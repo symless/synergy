@@ -13,6 +13,7 @@
 #include "common/VersionInfo.h"
 
 #include <QCheckBox>
+#include <QDebug>
 #include <QMessageBox>
 #include <QPushButton>
 #include <memory>
