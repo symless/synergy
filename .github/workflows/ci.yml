@@ -447,17 +447,19 @@ jobs:
             like: "debian"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
+          # Debian 12's GCC 12 trips -Wstringop-overflow false positives (gone in GCC 13),
+          # so warnings-as-errors is off here; the GCC 13+ legs keep it on.
           - name: "debian-12-x86_64"
             runs-on: ubuntu-latest
             container: debian:12-slim
             like: "debian"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF"
 
           - name: "debian-12-arm64"
             runs-on: ubuntu-24.04-arm
             container: debian:12-slim
             like: "debian"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF"
 
           - name: "fedora-42-x86_64"
             runs-on: ubuntu-latest

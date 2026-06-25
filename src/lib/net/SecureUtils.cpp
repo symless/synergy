@@ -12,6 +12,7 @@
 
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
@@ -68,7 +69,17 @@ void generatePemSelfSignedCert(const QString &path, int keyLength)
 {
   auto expirationDays = 365;
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
   auto *privateKey = EVP_RSA_gen(keyLength);
+#else
+  EVP_PKEY *privateKey = nullptr;
+  if (auto *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr)) {
+    if (EVP_PKEY_keygen_init(ctx) > 0 && EVP_PKEY_CTX_set_rsa_keygen_bits(ctx, keyLength) > 0) {
+      EVP_PKEY_keygen(ctx, &privateKey);
+    }
+    EVP_PKEY_CTX_free(ctx);
+  }
+#endif
   if (!privateKey) {
     throw std::runtime_error("failed to generate a " + std::to_string(keyLength) + "bit key for certificate");
   }
@@ -91,7 +102,11 @@ void generatePemSelfSignedCert(const QString &path, int keyLength)
 
   X509_sign(cert, privateKey, EVP_sha256());
   const QFile file(path);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
   const std::filesystem::path fsPath = file.filesystemFileName();
+#else
+  const std::filesystem::path fsPath = std::filesystem::path(file.fileName().toStdString());
+#endif
 
 #if defined(Q_OS_WIN)
   auto fp = _wfopen(fsPath.native().c_str(), L"w");
