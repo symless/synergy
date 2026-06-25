@@ -27,6 +27,7 @@
 #include <QLocalSocket>
 #include <QMessageBox>
 #include <QSharedMemory>
+#include <QTextStream>
 
 #if defined(Q_OS_MACOS)
 #include <Carbon/Carbon.h>

@@ -10,6 +10,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QMessageBox>
+#include <QTextStream>
 #include <QTime>
 
 #if defined(Q_OS_WIN)

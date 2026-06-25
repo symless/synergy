@@ -9,6 +9,7 @@
 #include "Hotkey.h"
 
 #include <QSettings>
+#include <QTextStream>
 
 QString Hotkey::text() const
 {

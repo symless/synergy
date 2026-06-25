@@ -13,6 +13,7 @@
 
 #include <QAbstractButton>
 #include <QPushButton>
+#include <QTextStream>
 
 using enum ScreenConfig::Modifier;
 using enum ScreenConfig::SwitchCorner;

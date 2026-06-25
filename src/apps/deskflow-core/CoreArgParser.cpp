@@ -13,6 +13,8 @@
 #include "common/VersionInfo.h"
 #include "deskflow/ProtocolTypes.h"
 
+#include <QTextStream>
+
 const QString CoreArgParser::s_headerText = QStringLiteral("%1: %2\n").arg(kCoreBinName, kDisplayVersion);
 
 CoreArgParser::CoreArgParser(const QStringList &args)
