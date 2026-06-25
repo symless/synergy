@@ -39,7 +39,7 @@ void DaemonIpcServer::processCommand(QLocalSocket *clientSocket, const QString &
     writeToClientSocket(clientSocket, kAckMessage);
   } else if (command == QStringLiteral("logPath")) {
     LOG_DEBUG("daemon ipc server got log path request");
-    writeToClientSocket(clientSocket, QStringLiteral("logPath=%1").arg(m_logFilename.toUtf8()));
+    writeToClientSocket(clientSocket, QStringLiteral("logPath=%1").arg(m_logFilename));
   } else if (command == QStringLiteral("clearSettings")) {
     LOG_DEBUG("daemon ipc server got clear settings message");
     Q_EMIT clearSettingsRequested();
