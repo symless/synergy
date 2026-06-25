@@ -21,7 +21,7 @@ void restart()
 
   // look for and remove --reset option if found
   if (int resetIndex = arguments.indexOf("--reset"); resetIndex != -1)
-    arguments.remove(resetIndex);
+    arguments.removeAt(resetIndex);
 
   qInfo("launching new process: %s", qPrintable(program));
   QProcess::startDetached(program, arguments);
