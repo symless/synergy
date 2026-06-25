@@ -41,5 +41,5 @@ std::string XWindowsClipboardTextConverter::fromIClipboard(const std::string &da
 
 std::string XWindowsClipboardTextConverter::toIClipboard(const std::string &data) const
 {
-  return QString::fromLatin1(data).toUtf8().toStdString();
+  return QString::fromLatin1(QByteArray::fromStdString(data)).toUtf8().toStdString();
 }
