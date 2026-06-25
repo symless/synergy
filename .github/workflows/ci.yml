@@ -459,6 +459,18 @@ jobs:
             like: "debian"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
+          - name: "debian-12-x86_64"
+            runs-on: ubuntu-latest
+            container: debian:12-slim
+            like: "debian"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          - name: "debian-12-arm64"
+            runs-on: ubuntu-24.04-arm
+            container: debian:12-slim
+            like: "debian"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
           - name: "fedora-42-x86_64"
             runs-on: ubuntu-latest
             container: fedora:42
@@ -494,6 +506,14 @@ jobs:
             container: fedora:44
             like: "fedora"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          # RHEL 8.10 ships Qt 5.13 and OpenSSL 1.1.1 and has no libei/libportal, so this
+          # target builds against Qt5, X11-only, with tests off (EPEL GoogleTest is too old).
+          - name: "rocky-8-x86_64"
+            runs-on: ubuntu-latest
+            container: rockylinux:8
+            like: "rhel"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_WAYLAND_SUPPORT=OFF -DBUILD_TESTS=OFF"
 
           - name: "opensuse-x86_64"
             runs-on: ubuntu-latest
@@ -551,6 +571,8 @@ jobs:
             zypper install -y --force-resolution git
           elif [ "${{ matrix.target.like }}" == "arch" ]; then
             pacman -Syu --noconfirm git
+          elif [ "${{ matrix.target.like }}" == "rhel" ]; then
+            dnf install -y git
           else
             echo "Unknown: ${{ matrix.target.like }}"
           fi
@@ -616,6 +638,7 @@ jobs:
           fi
 
       - name: Tests
+        if: ${{ matrix.target.like != 'rhel' }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
 

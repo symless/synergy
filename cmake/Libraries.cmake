@@ -19,9 +19,28 @@ macro(configure_libs)
     )
   endif()
 
-  find_package(Qt6 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Widgets Network)
+  find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Network)
+
+  # RHEL 8.10 (the only Qt5 target) ships Qt 5.13 and OpenSSL 1.1.1, below the Qt 6.4 /
+  # OpenSSL 3.0 floors the Qt6 build assumes.
+  if(QT_VERSION_MAJOR EQUAL 5)
+    set(REQUIRED_QT_VERSION 5.13)
+    set(REQUIRED_OPENSSL_VERSION 1.1.1)
+  endif()
+
+  find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Widgets Network)
   if(UNIX AND NOT APPLE)
-      find_package(Qt6 ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS DBus Xml)
+      find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS DBus Xml)
+  endif()
+
+  # Alias the Qt6:: targets onto Qt5:: so per-library CMake keeps its Qt6:: references
+  # without a version-agnostic edit in every file. Drop this block when Qt5 is no longer needed.
+  if(QT_VERSION_MAJOR EQUAL 5)
+    foreach(_qt_comp IN ITEMS Core Gui Widgets Network DBus Xml)
+      if(TARGET Qt5::${_qt_comp} AND NOT TARGET Qt6::${_qt_comp})
+        add_library(Qt6::${_qt_comp} ALIAS Qt5::${_qt_comp})
+      endif()
+    endforeach()
   endif()
 
   # Define the location of Qt deployment tool
@@ -47,7 +66,7 @@ macro(configure_libs)
   set(CMAKE_AUTOUIC ON)
   set(CMAKE_AUTORCC ON)
 
-  message(STATUS "Qt version: ${Qt6_VERSION}")
+  message(STATUS "Qt version: ${Qt${QT_VERSION_MAJOR}_VERSION}")
 
   # Check if <format> header is available
   check_cxx_source_compiles("

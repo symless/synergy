@@ -98,7 +98,11 @@ void ScreenSetupView::dragMoveEvent(QDragMoveEvent *event)
       event->setDropAction(Qt::MoveAction);
       event->accept();
     } else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
       const auto &point = event->position().toPoint();
+#else
+      const auto &point = event->pos();
+#endif
       int col = columnAt(point.x());
       int row = rowAt(point.y());
 
@@ -145,6 +149,7 @@ void ScreenSetupView::startDrag(Qt::DropActions)
   }
 }
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 void ScreenSetupView::initViewItemOption(QStyleOptionViewItem *option) const
 {
   // HACK make a basic widget and init from it
@@ -160,3 +165,16 @@ void ScreenSetupView::initViewItemOption(QStyleOptionViewItem *option) const
   option->displayAlignment = Qt::AlignTop | Qt::AlignHCenter;
   option->textElideMode = Qt::ElideMiddle;
 }
+#else
+QStyleOptionViewItem ScreenSetupView::viewOptions() const
+{
+  QStyleOptionViewItem option = QTableView::viewOptions();
+  option.decorationSize = QSize(96, 96);
+  option.showDecorationSelected = true;
+  option.decorationPosition = QStyleOptionViewItem::Top;
+  option.decorationAlignment = Qt::AlignHCenter | Qt::AlignVCenter;
+  option.displayAlignment = Qt::AlignTop | Qt::AlignHCenter;
+  option.textElideMode = Qt::ElideMiddle;
+  return option;
+}
+#endif

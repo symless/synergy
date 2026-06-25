@@ -218,25 +218,25 @@ int ServerConfig::adjacentScreenIndex(int idx, int deltaColumn, int deltaRow) co
 
 QTextStream &operator<<(QTextStream &outStream, const ServerConfig &config)
 {
-  outStream << "section: screens" << Qt::endl;
+  outStream << "section: screens" << '\n';
 
   for (const Screen &s : config.screens()) {
     if (!s.isNull())
       outStream << s.screensSection();
   }
 
-  outStream << "end" << Qt::endl << Qt::endl;
+  outStream << "end" << '\n' << '\n';
 
-  outStream << "section: aliases" << Qt::endl;
+  outStream << "section: aliases" << '\n';
 
   for (const Screen &s : config.screens()) {
     if (!s.isNull())
       outStream << s.aliasesSection();
   }
 
-  outStream << "end" << Qt::endl << Qt::endl;
+  outStream << "end" << '\n' << '\n';
 
-  outStream << "section: links" << Qt::endl;
+  outStream << "section: links" << '\n';
 
   for (int i = 0; const auto &screen : config.screens()) {
     if (!screen.isNull()) {
@@ -244,58 +244,58 @@ QTextStream &operator<<(QTextStream &outStream, const ServerConfig &config)
       for (const auto &neighbour : std::as_const(neighbourDirs)) {
         int idx = config.adjacentScreenIndex(i, neighbour.x, neighbour.y);
         if (idx != -1 && !config.screens()[idx].isNull())
-          outStream << "\t\t" << neighbour.name << " = " << config.screens()[idx].name() << Qt::endl;
+          outStream << "\t\t" << neighbour.name << " = " << config.screens()[idx].name() << '\n';
       }
     }
     i++;
   }
 
-  outStream << "end" << Qt::endl << Qt::endl;
+  outStream << "end" << '\n' << '\n';
 
-  outStream << "section: options" << Qt::endl;
+  outStream << "section: options" << '\n';
 
   if (config.hasHeartbeat())
-    outStream << "\t" << "heartbeat = " << config.heartbeat() << Qt::endl;
+    outStream << "\t" << "heartbeat = " << config.heartbeat() << '\n';
 
   if (config.protocol() == NetworkProtocol::Unknown)
     qCritical("unrecognized protocol when writing config");
-  outStream << "\t" << "protocol = " << networkProtocolToOption(config.protocol()) << Qt::endl;
+  outStream << "\t" << "protocol = " << networkProtocolToOption(config.protocol()) << '\n';
 
   outStream << "\t"
-            << "relativeMouseMoves = " << (config.relativeMouseMoves() ? "true" : "false") << Qt::endl;
+            << "relativeMouseMoves = " << (config.relativeMouseMoves() ? "true" : "false") << '\n';
   outStream << "\t"
-            << "win32KeepForeground = " << (config.win32KeepForeground() ? "true" : "false") << Qt::endl;
+            << "win32KeepForeground = " << (config.win32KeepForeground() ? "true" : "false") << '\n';
   outStream << "\t"
-            << "defaultLockToScreenState = " << (config.defaultLockToScreenState() ? "true" : "false") << Qt::endl;
+            << "defaultLockToScreenState = " << (config.defaultLockToScreenState() ? "true" : "false") << '\n';
   outStream << "\t"
-            << "disableLockToScreen = " << (config.disableLockToScreen() ? "true" : "false") << Qt::endl;
+            << "disableLockToScreen = " << (config.disableLockToScreen() ? "true" : "false") << '\n';
   outStream << "\t"
-            << "clipboardSharing = " << (config.clipboardSharing() ? "true" : "false") << Qt::endl;
+            << "clipboardSharing = " << (config.clipboardSharing() ? "true" : "false") << '\n';
   outStream << "\t"
-            << "clipboardSharingSize = " << config.clipboardSharingSize() << Qt::endl;
+            << "clipboardSharingSize = " << config.clipboardSharingSize() << '\n';
 
   if (config.hasSwitchDelay())
     outStream << "\t"
-              << "switchDelay = " << config.switchDelay() << Qt::endl;
+              << "switchDelay = " << config.switchDelay() << '\n';
 
   if (config.hasSwitchDoubleTap())
     outStream << "\t"
-              << "switchDoubleTap = " << config.switchDoubleTap() << Qt::endl;
+              << "switchDoubleTap = " << config.switchDoubleTap() << '\n';
 
   outStream << "\t"
             << "switchCorners = none ";
   for (int i = 0; i < config.switchCorners().size(); i++)
     if (config.switchCorners()[i])
       outStream << "+" << ServerConfig::switchCornerName(i) << " ";
-  outStream << Qt::endl;
+  outStream << '\n';
 
   outStream << "\t"
-            << "switchCornerSize = " << config.switchCornerSize() << Qt::endl;
+            << "switchCornerSize = " << config.switchCornerSize() << '\n';
 
   for (const Hotkey &hotkey : config.hotkeys())
     outStream << hotkey;
 
-  outStream << "end" << Qt::endl << Qt::endl;
+  outStream << "end" << '\n' << '\n';
 
   return outStream;
 }

@@ -53,7 +53,11 @@ void ClientApp::parseArgs()
   // save server addresses (comma-separated list supported)
   if (const auto addressList = Settings::value(Settings::Client::RemoteHost).toString(); !addressList.isEmpty()) {
     const int port = Settings::value(Settings::Core::Port).toInt();
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     const QStringList addresses = addressList.split(',', Qt::SkipEmptyParts);
+#else
+    const QStringList addresses = addressList.split(',', QString::SkipEmptyParts);
+#endif
 
     for (const QString &addr : addresses) {
       const QString trimmedAddr = addr.trimmed();

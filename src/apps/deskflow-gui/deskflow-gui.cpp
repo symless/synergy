@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
   }
 
   if (parser.isSet(versionOption)) {
-    QTextStream(stdout) << kHeader << kCopyright << Qt::endl;
+    QTextStream(stdout) << kHeader << kCopyright << '\n';
     return s_exitSuccess;
   }
 

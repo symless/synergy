@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: (C) 2009 - 2012 Nick Bolton
 # SPDX-License-Identifier: MIT
 
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.20...3.24)
 
 # Link items by fill path
 cmake_policy(SET CMP0003 NEW)
@@ -149,6 +149,7 @@ add_definitions(-DQT_NO_KEYWORDS)
 #Options for Linux platform support
 if(UNIX AND NOT APPLE)
   option(BUILD_X11_SUPPORT "Build with x11 support" ON)
+  option(BUILD_WAYLAND_SUPPORT "Build with Wayland (libei/libportal) support" ON)
 elseif (APPLE)
   option(BUILD_OSX_BUNDLE "Build mac os bundle" ON)
 endif()
@@ -181,8 +182,9 @@ add_subdirectory(docs)
 
 option(BUILD_GUI "Build GUI" ON)
 
-# build translations before source, I18N unit tests fail if they are missing
-if(BUILD_GUI)
+# build translations before source, I18N unit tests fail if they are missing.
+# Qt 5.13 lacks the versionless qt_create_translation (added in 5.15), so skip it on Qt5.
+if(BUILD_GUI AND NOT QT_VERSION_MAJOR EQUAL 5)
   add_subdirectory(translations)
 endif()
 

@@ -133,7 +133,7 @@ bool FileLogOutputter::write(LogLevel::Level, const QString &message)
   if (!file.open(QFile::WriteOnly | QFile::Append))
     return false;
 
-  QTextStream(&file) << message << Qt::endl;
+  QTextStream(&file) << message << '\n';
   file.close();
 
   if (file.size() > s_logFileSizeLimit) {

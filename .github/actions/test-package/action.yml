@@ -31,7 +31,7 @@ runs:
         elif [ "$RUNNER_OS" == "Linux" ]; then
           if [ "${{inputs.like}}" == "debian" ]; then
             apt-get install -y ./build/synergy[-_]*.deb
-          elif [ "${{inputs.like}}" == "fedora" ]; then
+          elif [ "${{inputs.like}}" == "fedora" ] || [ "${{inputs.like}}" == "rhel" ]; then
             dnf install -y build/synergy[-_]*.rpm
           elif [ "${{inputs.like}}" == "suse" ]; then
             zypper install -y --allow-unsigned-rpm build/synergy[-_]*.rpm

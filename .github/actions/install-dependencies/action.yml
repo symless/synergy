@@ -57,6 +57,21 @@ runs:
               pacman -Syu --noconfirm base-devel cmake ninja \
                 gcc openssl glib2 libxtst libxkbfile gtest libei libportal \
                 qt6-base qt6-tools qt6-svg qt6-translations qt6-declarative gtk3 help2man doxygen graphviz rsync
+            elif [ ${{ inputs.like }} == "rhel" ]; then
+              # el8: Qt5 + X11 only (no Qt6, no libei/libportal); tests and translations are
+              # off so no gtest/qttools. -devel packages live in the CodeReady Builder repo
+              # (powertools on el8).
+              dnf install -y 'dnf-command(config-manager)'
+              dnf install -y epel-release
+              dnf config-manager --set-enabled powertools 2>/dev/null \
+                || dnf config-manager --set-enabled crb 2>/dev/null || true
+              dnf install -y \
+                cmake make ninja-build rpm-build help2man \
+                gcc-toolset-13 \
+                openssl-devel glib2-devel \
+                libX11-devel libXext-devel libXtst-devel libXrandr-devel \
+                libXinerama-devel libXi-devel libxkbfile-devel \
+                qt5-qtbase-devel gtk3-devel
             else
               echo "Unknown like"
             fi
@@ -64,6 +79,19 @@ runs:
             echo "Unknown OS: $RUNNER_OS"
           fi
       shell: bash
+
+    # el8's system GCC 8 can't build C++20, so use gcc-toolset-13. It links the newer libstdc++
+    # bits statically (libstdc++_nonshared) over the stable system ABI, so the binary still runs
+    # on stock el8. cmake comes from the distro (the project floor is lowered to match).
+    - name: Setup RHEL toolchain
+      if: ${{ inputs.like == 'rhel' }}
+      shell: bash
+      run: |
+        toolset=/opt/rh/gcc-toolset-13/root/usr
+        echo "${toolset}/bin" >> "$GITHUB_PATH"
+        echo "CC=${toolset}/bin/gcc" >> "$GITHUB_ENV"
+        echo "CXX=${toolset}/bin/g++" >> "$GITHUB_ENV"
+        echo "LD_LIBRARY_PATH=${toolset}/lib64" >> "$GITHUB_ENV"
 
     - name: Install Qt
       if: ${{runner.os != 'Linux' }}
