@@ -406,8 +406,8 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   if (processMode == ProcessMode::Desktop) {
     m_process = new QProcess(this);
     connect(
-        m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
-        &CoreProcess::onProcessFinished, Qt::UniqueConnection
+        m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &CoreProcess::onProcessFinished,
+        Qt::UniqueConnection
     );
     connect(
         m_process, &QProcess::readyReadStandardOutput, this, &CoreProcess::onProcessReadyReadStandardOutput,
