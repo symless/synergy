@@ -615,15 +615,6 @@ jobs:
         shell: bash
         run: cmake --build build --config Release -j8
 
-      - name: Debug backtrace (rhel)
-        if: ${{ matrix.target.like == 'rhel' }}
-        continue-on-error: true
-        shell: bash
-        run: |
-          bin=$(find build -name synergy-core -type f | head -1)
-          echo "binary: $bin"
-          gdb -batch -ex run -ex bt -ex "info registers" --args "$bin" --version || true
-
       - name: Package
         shell: bash
         run: |
