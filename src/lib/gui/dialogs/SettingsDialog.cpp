@@ -117,11 +117,16 @@ void SettingsDialog::initConnections() const
   connect(ui->groupSecurity, &QGroupBox::toggled, this, &SettingsDialog::updateTlsControlsEnabled);
   connect(ui->groupService, &QGroupBox::toggled, this, &SettingsDialog::updateControls);
   connect(ui->btnTlsRegenCert, &QPushButton::clicked, this, &SettingsDialog::regenCertificates);
-  connect(ui->comboTlsKeyLength, &QComboBox::currentIndexChanged, this, &SettingsDialog::updateRequestedKeySize);
+  connect(
+      ui->comboTlsKeyLength, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+      &SettingsDialog::updateRequestedKeySize
+  );
   connect(ui->btnTlsCertPath, &QPushButton::clicked, this, &SettingsDialog::browseCertificatePath);
   connect(ui->btnBrowseLog, &QPushButton::clicked, this, &SettingsDialog::browseLogPath);
   connect(ui->groupLogToFile, &QGroupBox::toggled, this, &SettingsDialog::setLogToFile);
-  connect(ui->comboLogLevel, &QComboBox::currentIndexChanged, this, &SettingsDialog::logLevelChanged);
+  connect(
+      ui->comboLogLevel, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsDialog::logLevelChanged
+  );
   connect(ui->comboLanguage, &QComboBox::currentTextChanged, this, [](const QString &lang) {
     const auto shortName = I18N::nativeTo639Name(lang);
     I18N::setLanguage(shortName);
@@ -129,11 +134,23 @@ void SettingsDialog::initConnections() const
 
   // Connect modifiable controls
   connect(ui->rbIconMono, &QRadioButton::toggled, this, &SettingsDialog::setButtonBoxEnabledButtons);
-  connect(ui->sbPort, &QSpinBox::valueChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
-  connect(ui->comboLogLevel, &QComboBox::currentIndexChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
-  connect(ui->comboInterface, &QComboBox::currentIndexChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
-  connect(ui->comboTlsKeyLength, &QComboBox::currentIndexChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
-  connect(ui->comboLanguage, &QComboBox::currentIndexChanged, this, &SettingsDialog::setButtonBoxEnabledButtons);
+  connect(ui->sbPort, QOverload<int>::of(&QSpinBox::valueChanged), this, &SettingsDialog::setButtonBoxEnabledButtons);
+  connect(
+      ui->comboLogLevel, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+      &SettingsDialog::setButtonBoxEnabledButtons
+  );
+  connect(
+      ui->comboInterface, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+      &SettingsDialog::setButtonBoxEnabledButtons
+  );
+  connect(
+      ui->comboTlsKeyLength, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+      &SettingsDialog::setButtonBoxEnabledButtons
+  );
+  connect(
+      ui->comboLanguage, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+      &SettingsDialog::setButtonBoxEnabledButtons
+  );
   connect(ui->rbAutoHide, &QRadioButton::toggled, this, &SettingsDialog::setButtonBoxEnabledButtons);
   connect(ui->cbPreventSleep, &QCheckBox::toggled, this, &SettingsDialog::setButtonBoxEnabledButtons);
   connect(ui->rbCloseToTray, &QRadioButton::toggled, this, &SettingsDialog::setButtonBoxEnabledButtons);

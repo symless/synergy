@@ -51,7 +51,12 @@ QValidator::State LineEditValidator::validate(QString &input, int &) const
     int padVer = 2;
     int padHor = 0;
     int borderWidth = 1;
-    if (const auto wStyle = QApplication::style()->name().toLower(); wStyle == QStringLiteral("breeze")) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 1, 0)
+    const auto wStyle = QApplication::style()->name().toLower();
+#else
+    const auto wStyle = QApplication::style()->objectName().toLower();
+#endif
+    if (wStyle == QStringLiteral("breeze")) {
       radius = 6;
       padVer = 5;
       padHor = 5;
