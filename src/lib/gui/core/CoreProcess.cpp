@@ -227,11 +227,13 @@ void CoreProcess::startForegroundProcess(const QStringList &args)
   qInfo("running command: %s", qPrintable(quoted));
 
 #ifdef Q_OS_LINUX
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
   m_process->setChildProcessModifier([] {
     // the core process becomes orphaned when the gui process exits abruptly (e.g. with kill -9),
     // so ensure the os also kills the core when that happens to the gui.
     prctl(PR_SET_PDEATHSIG, SIGTERM);
   });
+#endif
 #endif
 
   m_process->start(m_appPath, args);
@@ -263,10 +265,21 @@ void CoreProcess::startProcessFromDaemon()
   if (m_daemonIpcClient->isConnected()) {
     sendStart();
   } else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     connect(
         m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, sendStart,
         static_cast<Qt::ConnectionType>(Qt::SingleShotConnection | Qt::QueuedConnection)
     );
+#else
+    connect(
+        m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this,
+        [this, sendStart] {
+          disconnect(m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, nullptr);
+          sendStart();
+        },
+        Qt::QueuedConnection
+    );
+#endif
     m_daemonIpcClient->connectToServer();
   }
 }
@@ -308,10 +321,21 @@ void CoreProcess::stopProcessFromDaemon()
   if (m_daemonIpcClient->isConnected()) {
     sendStop();
   } else {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     connect(
         m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, sendStop,
         static_cast<Qt::ConnectionType>(Qt::SingleShotConnection | Qt::QueuedConnection)
     );
+#else
+    connect(
+        m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this,
+        [this, sendStop] {
+          disconnect(m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, nullptr);
+          sendStop();
+        },
+        Qt::QueuedConnection
+    );
+#endif
     m_daemonIpcClient->connectToServer();
   }
 }
@@ -381,7 +405,10 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
 
   if (processMode == ProcessMode::Desktop) {
     m_process = new QProcess(this);
-    connect(m_process, &QProcess::finished, this, &CoreProcess::onProcessFinished, Qt::UniqueConnection);
+    connect(
+        m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+        &CoreProcess::onProcessFinished, Qt::UniqueConnection
+    );
     connect(
         m_process, &QProcess::readyReadStandardOutput, this, &CoreProcess::onProcessReadyReadStandardOutput,
         Qt::UniqueConnection
@@ -428,6 +455,9 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   connect(
       this, &CoreProcess::processStateChanged, this,
       [this](ProcessState state) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        disconnect(this, &CoreProcess::processStateChanged, this, nullptr);
+#endif
         if (state != ProcessState::Started) {
           return;
         }
@@ -453,7 +483,11 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
           m_coreIpcClient->connectToServer();
         });
       },
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
       static_cast<Qt::ConnectionType>(Qt::SingleShotConnection | Qt::QueuedConnection)
+#else
+      Qt::QueuedConnection
+#endif
   );
 
   if (processMode == ProcessMode::Desktop) {

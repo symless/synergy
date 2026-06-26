@@ -70,24 +70,38 @@ void IpcClient::attemptConnection()
   connect(
       m_socket, &QLocalSocket::connected, this,
       [this] {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        disconnect(m_socket, &QLocalSocket::connected, this, nullptr);
+#endif
         // Divergence from upstream: kVersion already carries the build metadata; don't re-append the git sha.
         const auto versionId = QString::fromUtf8(kVersion);
         m_socket->write(QStringLiteral("hello=%1\n").arg(versionId).toUtf8());
         qDebug().noquote() << QStringLiteral("%1 ipc client sent hello with version: %2").arg(m_typeName, versionId);
       },
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
       Qt::SingleShotConnection
+#else
+      Qt::AutoConnection
+#endif
   );
 
   connect(
       m_socket, &QLocalSocket::errorOccurred, this,
       [this] {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        disconnect(m_socket, &QLocalSocket::errorOccurred, this, nullptr);
+#endif
         qWarning().noquote(
         ) << QStringLiteral("%1 ipc client failed to connect: %2").arg(m_typeName, m_socket->errorString());
         m_socket->disconnectFromServer();
         m_state = State::Unconnected;
         QTimer::singleShot(0, this, &IpcClient::attemptConnection);
       },
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
       Qt::SingleShotConnection
+#else
+      Qt::AutoConnection
+#endif
   );
 
   m_socket->connectToServer(m_socketName);
