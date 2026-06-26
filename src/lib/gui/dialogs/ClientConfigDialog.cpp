@@ -60,9 +60,15 @@ void ClientConfigDialog::initConnections() const
   connect(ui->cbDynamicConnectTime, checkboxSignal, this, &ClientConfigDialog::setButtonBoxEnabledButtons);
   connect(ui->cbLanguageSync, checkboxSignal, this, &ClientConfigDialog::setButtonBoxEnabledButtons);
   connect(ui->cbYScrollInvert, checkboxSignal, this, &ClientConfigDialog::setButtonBoxEnabledButtons);
-  connect(ui->sbYScrollScale, &QDoubleSpinBox::valueChanged, this, &ClientConfigDialog::setButtonBoxEnabledButtons);
+  connect(
+      ui->sbYScrollScale, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+      &ClientConfigDialog::setButtonBoxEnabledButtons
+  );
   connect(ui->cbXScrollInvert, checkboxSignal, this, &ClientConfigDialog::setButtonBoxEnabledButtons);
-  connect(ui->sbXScrollScale, &QDoubleSpinBox::valueChanged, this, &ClientConfigDialog::setButtonBoxEnabledButtons);
+  connect(
+      ui->sbXScrollScale, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+      &ClientConfigDialog::setButtonBoxEnabledButtons
+  );
 }
 
 bool ClientConfigDialog::isModified() const
