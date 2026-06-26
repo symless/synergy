@@ -348,7 +348,7 @@ void FeatureHandler::addUpdateChannelOption(QDialog *parent) const
   // dialog's accept() (not on change) so Cancel still discards.
   auto *buttonBox = parent->findChild<QDialogButtonBox *>();
   if (auto *saveButton = buttonBox ? buttonBox->button(QDialogButtonBox::Save) : nullptr) {
-    QObject::connect(combo, &QComboBox::currentIndexChanged, saveButton, [saveButton]() {
+    QObject::connect(combo, QOverload<int>::of(&QComboBox::currentIndexChanged), saveButton, [saveButton]() {
       saveButton->setEnabled(true);
     });
   }

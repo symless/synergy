@@ -28,6 +28,7 @@
 #include "ui_ActivationDialog.h"
 
 #include <QApplication>
+#include <QDebug>
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QScreen>

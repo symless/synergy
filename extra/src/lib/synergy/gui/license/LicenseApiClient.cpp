@@ -20,6 +20,7 @@
 #include "synergy/gui/TestSettings.h"
 #include "synergy/gui/constants.h"
 
+#include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
