@@ -27,6 +27,8 @@
 #include <QTextStream>
 #include <QThread>
 
+#include <memory>
+
 void qtMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &message)
 {
   const auto utf8 = message.toUtf8();
@@ -88,6 +90,13 @@ int main(int argc, char **argv)
   for (int i = 0; i < argc; i++)
     args.append(argv[i]);
 
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+  // Qt5's QCommandLineParser::helpText() dereferences QCoreApplication, but the real
+  // QApplication is built further down (it needs a display); use a display-less app for
+  // the help/version fast paths so they don't crash headless.
+  auto earlyApp = std::make_unique<QCoreApplication>(argc, argv);
+#endif
+
   CoreArgParser parser(args);
 
   // Print any parser errors
@@ -104,6 +113,10 @@ int main(int argc, char **argv)
     QTextStream(stdout) << parser.versionText();
     return s_exitSuccess;
   }
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+  earlyApp.reset();
+#endif
 
   // Before we check any more args we need to check for a duplicate process.
   // Create a shared memory segment with a unique key
