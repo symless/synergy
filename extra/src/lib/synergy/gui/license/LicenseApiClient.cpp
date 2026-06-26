@@ -139,7 +139,7 @@ void LicenseApiClient::handleResponse(QNetworkReply *reply)
 
   if (reply->error() != QNetworkReply::NoError) {
     const auto kLimit = 200;
-    const auto responseSliced = response.length() > kLimit ? response.sliced(0, kLimit) + "..." : response;
+    const auto responseSliced = response.length() > kLimit ? response.left(kLimit) + "..." : response;
     qWarning().noquote() << "license api error:" << reply->error() << reply->errorString() << responseSliced;
     emitUnreachable("License request failed, there was a network error.");
     reply->deleteLater();
