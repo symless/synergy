@@ -73,7 +73,7 @@ runs:
               dnf config-manager --set-enabled powertools 2>/dev/null \
                 || dnf config-manager --set-enabled crb 2>/dev/null || true
               dnf install -y \
-                cmake make ninja-build rpm-build help2man \
+                cmake make ninja-build rpm-build help2man gdb \
                 gcc-toolset-13 \
                 openssl-devel glib2-devel \
                 libX11-devel libXext-devel libXtst-devel libXrandr-devel \
