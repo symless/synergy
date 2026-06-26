@@ -95,6 +95,9 @@ modules:
     buildsystem: cmake-ninja
     config-opts:
       - "-DCMAKE_BUILD_TYPE=Release"
+      # Dev build by default; CI overwrites these for snapshot/release flatpaks.
+      - "-DSYNERGY_VERSION_RELEASE=false"
+      - "-DSYNERGY_VERSION_SNAPSHOT=false"
     sources:
       - type: dir
         path: ../../../../

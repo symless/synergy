@@ -674,6 +674,18 @@ jobs:
 
       - run: git config --global protocol.file.allow always
 
+      # flatpak-builder can't take cmake args, so the build's version flags live
+      # in the manifest. Flip them to match the event; fail loudly if they ever
+      # go missing rather than silently shipping a dev build.
+      - name: Set version flags
+        run: |
+          manifest=extra/deploy/linux/flatpak/com.symless.synergy.yml
+          grep -q -- '-DSYNERGY_VERSION_RELEASE=' "$manifest" \
+            && grep -q -- '-DSYNERGY_VERSION_SNAPSHOT=' "$manifest" \
+            || { echo "::error::version flags missing from $manifest"; exit 1; }
+          sed -i "s|-DSYNERGY_VERSION_RELEASE=[a-zA-Z]*|-DSYNERGY_VERSION_RELEASE=$SYNERGY_VERSION_RELEASE|" "$manifest"
+          sed -i "s|-DSYNERGY_VERSION_SNAPSHOT=[a-zA-Z]*|-DSYNERGY_VERSION_SNAPSHOT=$SYNERGY_VERSION_SNAPSHOT|" "$manifest"
+
       - name: Lint appsteam
         run: flatpak-builder-lint appstream extra/deploy/linux/com.symless.synergy.metainfo.xml
 
