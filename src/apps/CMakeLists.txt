@@ -11,7 +11,9 @@ if(UNIX AND NOT APPLE)
 endif()
 
 function(generate_app_man TARGET NAME)
-  if(HELP2MAN)
+  # Building the man page runs the binary, which segfaults under the el8/el9 Qt5 build;
+  # skip it there (test-package still exercises the installed binary).
+  if(HELP2MAN AND NOT QT_VERSION_MAJOR EQUAL 5)
     add_custom_command(
       TARGET ${target} POST_BUILD
         COMMAND QT_QPA_PLATFORM=minimal PATH=$<TARGET_FILE_DIR:${target}>:${PATH} ${HELP2MAN}
