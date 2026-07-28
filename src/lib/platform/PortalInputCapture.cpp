@@ -482,10 +482,11 @@ std::pair<double, double> PortalInputCapture::mapPortalReleasePosition(double x,
     return {x, y};
   }
 
-  auto mappedX = scaleCoordinateBetweenRanges(x, screenLeft, screenRight, portalBounds.left, portalBounds.right);
-  auto mappedY = scaleCoordinateBetweenRanges(y, screenTop, screenBottom, portalBounds.top, portalBounds.bottom);
-  BarrierInfo releaseBarrier;
-  if (getClosestReleaseBarrier(x, y, screenLeft, screenTop, screenRight, screenBottom, portalBounds, releaseBarrier)) {
+  auto mappedX = static_cast<std::int32_t>(std::lround(x));
+  auto mappedY = static_cast<std::int32_t>(std::lround(y));
+
+  if (BarrierInfo releaseBarrier;
+      getClosestReleaseBarrier(x, y, screenLeft, screenTop, screenRight, screenBottom, portalBounds, releaseBarrier)) {
     const Bounds releaseBounds = {
         releaseBarrier.x, releaseBarrier.y, releaseBarrier.x + static_cast<gint>(releaseBarrier.width) - 1,
         releaseBarrier.y + static_cast<gint>(releaseBarrier.height) - 1
