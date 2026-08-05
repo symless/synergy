@@ -64,9 +64,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config)
       &ServerConfigDialog::listActionsSelectionChanged
   );
 
-  // force the first tab, since qt creator sets the active tab as the last one
-  // the developer was looking at, and it's easy to accidentally save that.
-  ui->tabWidget->setCurrentIndex(0);
+  if (ui->groupExternalConfig->isChecked())
+    ui->tabWidget->setCurrentIndex(3);
+  else
+    ui->tabWidget->setCurrentIndex(0);
 
   ui->btnBrowseConfigFile->setIcon(QIcon::fromTheme(QStringLiteral("document-open")));
   ui->lineConfigFile->setText(serverConfig().configFile());
