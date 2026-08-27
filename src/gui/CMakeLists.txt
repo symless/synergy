@@ -52,9 +52,9 @@ target_link_libraries(
   ${target}
   ${DESKFLOW_GUI_HOOK_LIB}
   gui
-  Qt6::Core
-  Qt6::Widgets
-  Qt6::Network)
+  Qt${QT_VERSION_MAJOR}::Core
+  Qt${QT_VERSION_MAJOR}::Widgets
+  Qt${QT_VERSION_MAJOR}::Network)
 
 if(WIN32)
   set_target_properties(${target} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:LIBCMT")
@@ -110,8 +110,8 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 elseif(WIN32)
 
-  find_package(Qt6 REQUIRED COMPONENTS Widgets)
-  get_target_property(WINDEPLOYQT_EXE Qt6::windeployqt IMPORTED_LOCATION)
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+  get_target_property(WINDEPLOYQT_EXE Qt${QT_VERSION_MAJOR}::windeployqt IMPORTED_LOCATION)
   add_custom_command(TARGET ${GUI_BINARY_NAME} POST_BUILD
     COMMAND ${WINDEPLOYQT_EXE}
       --force-openssl

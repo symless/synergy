@@ -28,6 +28,7 @@ install_linux_deps() {
   echo "Detected Linux: ${os}"
   case "${os}" in
     *debian*) install_debian_deps ;;
+    *rhel*) install_rhel_deps ;;
     *fedora*) install_fedora_deps ;;
     *suse*) install_suse_deps ;;
     *arch*) install_arch_deps ;;
@@ -130,6 +131,62 @@ install_fedora_deps() {
     libportal-devel \
     tomlplusplus-devel \
     cli11-devel
+}
+
+install_rhel_deps() {
+  dnf install -y 'dnf-command(config-manager)'
+  dnf install -y epel-release
+
+  # The -devel packages live in the CodeReady Builder repo (powertools on el8, crb on el9+).
+  dnf config-manager --set-enabled powertools 2>/dev/null \
+    || dnf config-manager --set-enabled crb 2>/dev/null || true
+
+  . /etc/os-release || true
+
+  # el8 has no Qt6 and a pre-C++20 compiler, so it needs Qt5 and a gcc-toolset;
+  # el9+ build against Qt6. qttools is skipped (the build has no translations, and
+  # on el9 EPEL's qt6-linguist has an unsatisfiable LLVM dependency).
+  if [ "${VERSION_ID%%.*}" = "8" ]; then
+    dnf install -y \
+      cmake \
+      make \
+      ninja-build \
+      tar \
+      gzip \
+      python3.11 \
+      python3.11-pip \
+      gcc-toolset-13 \
+      rpm-build \
+      openssl-devel \
+      glib2-devel \
+      gdk-pixbuf2-devel \
+      libXtst-devel \
+      libnotify-devel \
+      libxkbfile-devel \
+      qt5-qtbase-devel \
+      gtk3-devel \
+      gtest-devel \
+      gmock-devel
+  else
+    dnf install -y \
+      cmake \
+      make \
+      ninja-build \
+      tar \
+      gzip \
+      gcc-c++ \
+      rpm-build \
+      openssl-devel \
+      glib2-devel \
+      gdk-pixbuf2-devel \
+      libXtst-devel \
+      libnotify-devel \
+      libxkbfile-devel \
+      qt6-qtbase-devel \
+      gtk3-devel \
+      gtest-devel \
+      gmock-devel
+  fi
 }
 
 install_suse_deps() {

@@ -35,10 +35,10 @@ if(WIN32)
     platform
     app
     ${libs}
-    Qt6::Core)
-  
-  find_package(Qt6 REQUIRED COMPONENTS Widgets)
-  get_target_property(WINDEPLOYQT_EXE Qt6::windeployqt IMPORTED_LOCATION)
+    Qt${QT_VERSION_MAJOR}::Core)
+
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+  get_target_property(WINDEPLOYQT_EXE Qt${QT_VERSION_MAJOR}::windeployqt IMPORTED_LOCATION)
   add_custom_command(TARGET ${DAEMON_BINARY_NAME} POST_BUILD
     COMMAND ${WINDEPLOYQT_EXE}
       --no-compiler-runtime

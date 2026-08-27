@@ -23,7 +23,9 @@ void QProcessProxy::create()
 {
   m_pProcess = std::make_unique<QProcess>();
 
-  connect(m_pProcess.get(), &QProcess::finished, this, [this](int exitCode, QProcess::ExitStatus exitStatus) {
+  connect(
+      m_pProcess.get(), static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
+      [this](int exitCode, QProcess::ExitStatus exitStatus) {
     emit finished(exitCode, exitStatus);
   });
 

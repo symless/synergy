@@ -45,9 +45,9 @@ TEST(dotenv_tests, dotenv_envFileWithEntry_loadsEnvVar)
   const QString entry = key + " = " + value;
 
   QTextStream out(&file);
-  out << " # Comment" << Qt::endl;
-  out << "FOOBAR" << Qt::endl;
-  out << entry << Qt::endl;
+  out << " # Comment" << '\n';
+  out << "FOOBAR" << '\n';
+  out << entry << '\n';
   file.close();
 
   deskflow::gui::dotenv(envFile);

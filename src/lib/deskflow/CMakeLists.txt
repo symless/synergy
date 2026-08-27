@@ -43,7 +43,7 @@ add_library(${lib_name} STATIC ${sources})
 
 if(WIN32)
 
-  target_link_libraries(${lib_name} PRIVATE Qt6::Core Qt6::Network)
+  target_link_libraries(${lib_name} PRIVATE Qt${QT_VERSION_MAJOR}::Core Qt${QT_VERSION_MAJOR}::Network)
 
 elseif(UNIX)
 
@@ -62,7 +62,7 @@ elseif(UNIX)
     ${tomlplusplus_lib})
 
   if(NOT APPLE)
-    target_link_libraries(${lib_name} PRIVATE Qt6::Xml)
+    target_link_libraries(${lib_name} PRIVATE Qt${QT_VERSION_MAJOR}::Xml)
 
     find_package(PkgConfig)
     if(PKG_CONFIG_FOUND)

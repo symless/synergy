@@ -35,6 +35,11 @@
 #include <openssl/ssl.h>
 #include <sstream>
 
+// SSL_OP_IGNORE_UNEXPECTED_EOF was added in OpenSSL 3.0; older versions behave this way by default.
+#ifndef SSL_OP_IGNORE_UNEXPECTED_EOF
+#define SSL_OP_IGNORE_UNEXPECTED_EOF 0
+#endif
+
 //
 // SecureSocket
 //

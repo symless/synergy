@@ -19,6 +19,7 @@
 #include "Hotkey.h"
 
 #include <QSettings>
+#include <QTextStream>
 
 Hotkey::Hotkey() : m_KeySequence(), m_Actions()
 {

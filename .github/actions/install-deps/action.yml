@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 name: "Install dependencies"
+description: "Install build dependencies for Synergy."
 
 inputs:
   working-directory:
@@ -11,6 +12,10 @@ inputs:
     description: "The version of Qt to install on macOS and Windows."
     required: false
     default: "6.9.3"
+  target-name:
+    description: "The name of the build target (e.g. rocky-8-x86_64)."
+    required: false
+    default: ""
 
 outputs:
   vcpkg-cmake-config:
@@ -26,6 +31,33 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: ./scripts/install_deps.sh ${args}
+
+    # el8/el9 ship cmake 3.20 (below our 3.22 minimum); el8 also has no C++20 compiler
+    # and only Python 3.6. Set up a newer cmake/compiler/python before the Python env
+    # and build steps that need them.
+    - name: Setup RHEL toolchain
+      if: ${{ startsWith(inputs.target-name, 'rocky') }}
+      shell: bash
+      run: |
+        . /etc/os-release
+
+        cmake_version=3.28.3
+        curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${cmake_version}/cmake-${cmake_version}-linux-x86_64.tar.gz" \
+          | tar -xz -C /opt
+        echo "/opt/cmake-${cmake_version}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+        if [ "${VERSION_ID%%.*}" = "8" ]; then
+          toolset=/opt/rh/gcc-toolset-13/root/usr
+          echo "${toolset}/bin" >> "$GITHUB_PATH"
+          echo "CC=${toolset}/bin/gcc" >> "$GITHUB_ENV"
+          echo "CXX=${toolset}/bin/g++" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=${toolset}/lib64" >> "$GITHUB_ENV"
+
+          # el8's python3 is 3.6; the build scripts need >= 3.9, so expose python3.11 as python3.
+          mkdir -p /opt/python-shim
+          ln -sf /usr/bin/python3.11 /opt/python-shim/python3
+          echo "/opt/python-shim" >> "$GITHUB_PATH"
+        fi
 
     # HACK: Needed for GTest on Windows (installed bia Meson).
     - name: Install Meson deps (Windows)

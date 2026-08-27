@@ -21,6 +21,7 @@
 #include "base/Log.h"
 
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>

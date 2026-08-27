@@ -91,9 +91,9 @@ if(UNIX)
     ${libs})
 
   if(NOT APPLE)
-    find_package(Qt6 COMPONENTS DBus)
+    find_package(Qt${QT_VERSION_MAJOR} COMPONENTS DBus)
 
-    target_link_libraries(platform Qt6::DBus)
+    target_link_libraries(platform Qt${QT_VERSION_MAJOR}::DBus)
 
     if(${LIBXKBCOMMON_VERSION} VERSION_GREATER_EQUAL "1.10")
       target_compile_definitions(platform PRIVATE HAVE_XKB_KEYMAP_MOD_GET_MASK=1)

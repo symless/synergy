@@ -21,6 +21,7 @@
 #include "gui/Logger.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QSettings>

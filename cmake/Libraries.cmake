@@ -25,7 +25,8 @@ macro(configure_libs)
     configure_windows_libs()
   endif()
 
-  find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
+  find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Network)
+  find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets Network)
   
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTOUIC ON)
@@ -540,11 +541,11 @@ endmacro()
 macro(configure_qt)
 
   find_package(
-    Qt6
+    Qt${QT_VERSION_MAJOR}
     COMPONENTS Core Widgets Network Xml
     REQUIRED)
 
-  message(STATUS "Qt version: ${Qt6_VERSION}")
+  message(STATUS "Qt version: ${Qt${QT_VERSION_MAJOR}_VERSION}")
 
   set(GUI_RES_DIR ${DESKFLOW_RES_DIR}/gui)
   set(GUI_QRC_FILE ${GUI_RES_DIR}/app.qrc)

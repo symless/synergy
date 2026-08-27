@@ -67,6 +67,14 @@ target:
     runs-on: ubuntu-latest
     container: fedora:42
 
+  - name: rocky-8-x86_64
+    runs-on: ubuntu-latest
+    container: rockylinux:8
+
+  - name: rocky-9-x86_64
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+
   - name: opensuse-tumbleweed-x86_64
     runs-on: ubuntu-latest
     container: opensuse/tumbleweed:latest

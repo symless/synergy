@@ -183,6 +183,8 @@ jobs:
         id: install-deps
         if: ${{ !steps.vars.outputs.is-flatpak }}
         uses: ./.github/actions/install-deps
+        with:
+          target-name: ${{ matrix.target.name }}
 
       - name: Build
         id: build
@@ -201,7 +203,7 @@ jobs:
             ${{ steps.install-deps.outputs.vcpkg-cmake-config }}
 
       - name: Tests
-        if: ${{ !steps.vars.outputs.is-flatpak }}
+        if: ${{ !steps.vars.outputs.is-flatpak && !startsWith(matrix.target.name, 'rocky-8') }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
         with:

@@ -20,6 +20,7 @@
 #include "TlsFingerprint.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QProcess>
 #include <cstdint>

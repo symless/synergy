@@ -15,7 +15,6 @@
 
 import subprocess
 import sys
-import lib.env as env
 
 try:
     import colorama  # type: ignore
@@ -89,6 +88,9 @@ def run(
         get_output (bool): Return the output of the command.
         print_cmd (bool): Print the command before running it (false by default for security)
     """
+
+    # Imported here, not at module top, to avoid a circular import with lib.env.
+    import lib.env as env
 
     is_list_cmd = isinstance(command, list)
 

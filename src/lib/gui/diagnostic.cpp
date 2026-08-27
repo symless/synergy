@@ -21,6 +21,7 @@
 #include "paths.h"
 
 #include <QApplication>
+#include <QDebug>
 #include <QDir>
 #include <QMessageBox>
 #include <QProcess>

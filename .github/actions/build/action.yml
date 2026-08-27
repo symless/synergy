@@ -47,6 +47,11 @@ runs:
 
         cmake_args="$cmake_args -DUSE_TOMLPLUSPLUS=OFF -DUSE_CLI11=OFF"
 
+        # el8's EPEL GoogleTest predates MOCK_METHOD, so skip the test build there.
+        if [[ "${{ inputs.target-name }}" == rocky-8-* ]]; then
+          cmake_args="$cmake_args -DBUILD_TESTS=OFF"
+        fi
+
         cmake_args_input=$(echo "${{ inputs.cmake-args }}" | tr '\n' ' ')
         cmake_args="$cmake_args $cmake_args_input"
 
