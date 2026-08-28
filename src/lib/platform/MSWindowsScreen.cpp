@@ -476,6 +476,50 @@ void MSWindowsScreen::resetOptions()
 void MSWindowsScreen::setOptions(const OptionsList &options)
 {
   m_desks->setOptions(options);
+
+  UInt32 anchoredMask[8] = {};
+  bool hasAnchoredKeys = false;
+  bool hasLegacyAnchored = false;
+  UInt32 legacyFKeyMask = 0;
+  UInt8 comboData[64] = {};
+  int comboCount = 0;
+  bool hasCombos = false;
+
+  for (UInt32 i = 0, n = (UInt32)options.size(); i < n; i += 2) {
+    UInt32 akIndex = options[i] - kOptionAnchoredKeys0;
+    if (akIndex < 8) {
+      anchoredMask[akIndex] = static_cast<UInt32>(options[i + 1]);
+      hasAnchoredKeys = true;
+    } else if (options[i] == kOptionAnchoredKeys) {
+      legacyFKeyMask = static_cast<UInt32>(options[i + 1]);
+      hasLegacyAnchored = true;
+    } else if (options[i] == kOptionAnchoredCombosCount) {
+      comboCount = static_cast<int>(options[i + 1]);
+      hasCombos = true;
+    } else {
+      UInt32 acIndex = options[i] - kOptionAnchoredCombos0;
+      if (acIndex < 16) {
+        UInt32 packed = static_cast<UInt32>(options[i + 1]);
+        comboData[acIndex * 4 + 0] = (packed >> 24) & 0xFF;
+        comboData[acIndex * 4 + 1] = (packed >> 16) & 0xFF;
+        comboData[acIndex * 4 + 2] = (packed >> 8) & 0xFF;
+        comboData[acIndex * 4 + 3] = packed & 0xFF;
+      }
+    }
+  }
+
+  if (hasAnchoredKeys) {
+    m_hook.setAnchoredKeys(anchoredMask);
+    LOG((CLOG_DEBUG "anchored keys mask set (256-bit)"));
+  } else if (hasLegacyAnchored) {
+    m_hook.setAnchoredKeysFKeys(legacyFKeyMask);
+    LOG((CLOG_DEBUG "anchored keys mask set (legacy F-key)"));
+  }
+
+  if (hasCombos && comboCount > 0) {
+    m_hook.setAnchoredCombos(comboData, comboCount);
+    LOG((CLOG_DEBUG "anchored combos set (%d)", comboCount));
+  }
 }
 
 void MSWindowsScreen::setSequenceNumber(UInt32 seqNum)
@@ -955,7 +999,13 @@ bool MSWindowsScreen::onPreDispatch(HWND hwnd, UINT message, WPARAM wParam, LPAR
     return onScreensaver(wParam != 0);
 
   case DESKFLOW_MSG_DEBUG:
-    LOG((CLOG_DEBUG1 "hook: 0x%08x 0x%08x", wParam, lParam));
+    if ((wParam & 0xFF000000u) == 0xAC000000u) {
+      UInt32 vk = wParam & 0xFF;
+      UInt32 mods = (wParam >> 8) & 0xFF;
+      LOG((CLOG_INFO "anchored key vk=0x%02x mods=0x%02x", vk, mods));
+    } else {
+      LOG((CLOG_DEBUG1 "hook: 0x%08x 0x%08x", wParam, lParam));
+    }
     return true;
   }
 

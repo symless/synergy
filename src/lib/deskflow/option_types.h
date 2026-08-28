@@ -69,6 +69,32 @@ static const OptionID kOptionWin32KeepForeground = OPTION_CODE("_KFW");
 static const OptionID kOptionDisableLockToScreen = OPTION_CODE("DLTS");
 static const OptionID kOptionClipboardSharing = OPTION_CODE("CLPS");
 static const OptionID kOptionClipboardSharingSize = OPTION_CODE("CLSZ");
+static const OptionID kOptionAnchoredKeys = OPTION_CODE("ANKK");
+static const OptionID kOptionAnchoredKeys0 = OPTION_CODE("AK_0");
+static const OptionID kOptionAnchoredKeys1 = OPTION_CODE("AK_1");
+static const OptionID kOptionAnchoredKeys2 = OPTION_CODE("AK_2");
+static const OptionID kOptionAnchoredKeys3 = OPTION_CODE("AK_3");
+static const OptionID kOptionAnchoredKeys4 = OPTION_CODE("AK_4");
+static const OptionID kOptionAnchoredKeys5 = OPTION_CODE("AK_5");
+static const OptionID kOptionAnchoredKeys6 = OPTION_CODE("AK_6");
+static const OptionID kOptionAnchoredKeys7 = OPTION_CODE("AK_7");
+static const OptionID kOptionAnchoredCombos0 = OPTION_CODE("AC_0");
+static const OptionID kOptionAnchoredCombos1 = OPTION_CODE("AC_1");
+static const OptionID kOptionAnchoredCombos2 = OPTION_CODE("AC_2");
+static const OptionID kOptionAnchoredCombos3 = OPTION_CODE("AC_3");
+static const OptionID kOptionAnchoredCombos4 = OPTION_CODE("AC_4");
+static const OptionID kOptionAnchoredCombos5 = OPTION_CODE("AC_5");
+static const OptionID kOptionAnchoredCombos6 = OPTION_CODE("AC_6");
+static const OptionID kOptionAnchoredCombos7 = OPTION_CODE("AC_7");
+static const OptionID kOptionAnchoredCombos8 = OPTION_CODE("AC_8");
+static const OptionID kOptionAnchoredCombos9 = OPTION_CODE("AC_9");
+static const OptionID kOptionAnchoredCombos10 = OPTION_CODE("AC10");
+static const OptionID kOptionAnchoredCombos11 = OPTION_CODE("AC11");
+static const OptionID kOptionAnchoredCombos12 = OPTION_CODE("AC12");
+static const OptionID kOptionAnchoredCombos13 = OPTION_CODE("AC13");
+static const OptionID kOptionAnchoredCombos14 = OPTION_CODE("AC14");
+static const OptionID kOptionAnchoredCombos15 = OPTION_CODE("AC15");
+static const OptionID kOptionAnchoredCombosCount = OPTION_CODE("ACCN");
 //@}
 
 //! @name Screen switch corner enumeration
