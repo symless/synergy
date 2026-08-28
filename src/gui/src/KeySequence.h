@@ -53,6 +53,7 @@ public:
   bool operator==(const KeySequence &ks) const;
 
 private:
+  static QString keyToString(int key);
   void setValid(bool b)
   {
     m_IsValid = b;
@@ -74,8 +75,6 @@ private:
   inline static const int kStrSize = 4;
   inline static const int kBase = 16;
   inline static const QChar kFillChar = QChar('0');
-
-  static QString keyToString(int key);
 };
 
 #endif

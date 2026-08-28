@@ -28,6 +28,7 @@
 #include "deskflow/win32/AppUtilWindows.h"
 #include "mt/Lock.h"
 #include "mt/Thread.h"
+#include "platform/MSWindowsHook.h"
 #include "platform/MSWindowsScreen.h"
 #include "platform/dfwhook.h"
 
@@ -538,6 +539,7 @@ void MSWindowsDesks::deskEnter(Desk *desk)
   AttachThreadInput(thatThread, thisThread, FALSE);
   EnableWindow(desk->m_window, desk->m_lowLevel ? FALSE : TRUE);
   desk->m_foregroundWindow = NULL;
+  MSWindowsHook::setAnchorTargets(NULL, NULL);
 }
 
 void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
@@ -597,6 +599,7 @@ void MSWindowsDesks::deskLeave(Desk *desk, HKL keyLayout)
         AttachThreadInput(thatThread, thisThread, TRUE);
         SetForegroundWindow(desk->m_window);
         AttachThreadInput(thatThread, thisThread, FALSE);
+        MSWindowsHook::setAnchorTargets(desk->m_foregroundWindow, desk->m_window);
       }
     }
   } else {

@@ -42,13 +42,13 @@ class Screen : public ScreenConfig
   friend QDataStream &operator<<(QDataStream &outStream, const Screen &screen)
   {
     return outStream << screen.name() << screen.switchCornerSize() << screen.aliases() << screen.modifiers()
-                     << screen.switchCorners() << screen.fixes() << screen.isServer();
+                     << screen.switchCorners() << screen.fixes() << screen.isServer() << screen.anchoredKeys();
   }
 
   friend QDataStream &operator>>(QDataStream &inStream, Screen &screen)
   {
     return inStream >> screen.m_Name >> screen.m_SwitchCornerSize >> screen.m_Aliases >> screen.m_Modifiers >>
-           screen.m_SwitchCorners >> screen.m_Fixes >> screen.m_isServer;
+           screen.m_SwitchCorners >> screen.m_Fixes >> screen.m_isServer >> screen.m_AnchoredKeys;
   }
 
 public:
@@ -106,6 +106,10 @@ public:
   QTextStream &writeScreensSection(QTextStream &outStream) const;
   QTextStream &writeAliasesSection(QTextStream &outStream) const;
 
+  const QString &anchoredKeys() const
+  {
+    return m_AnchoredKeys;
+  }
   bool swapped() const
   {
     return m_Swapped;
@@ -172,6 +176,10 @@ protected:
   {
     m_Swapped = on;
   }
+  void setAnchoredKeys(const QString &keys)
+  {
+    m_AnchoredKeys = keys;
+  }
 
 private:
   QPixmap m_Pixmap = QPixmap(":res/icons/64x64/video-display.png");
@@ -181,6 +189,7 @@ private:
   QList<bool> m_SwitchCorners;
   int m_SwitchCornerSize;
   QList<bool> m_Fixes;
+  QString m_AnchoredKeys;
   bool m_Swapped = false;
   bool m_isServer = false;
 };

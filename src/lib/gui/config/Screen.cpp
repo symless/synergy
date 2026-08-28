@@ -58,6 +58,8 @@ void Screen::init()
 
   for (int i = 0; i < static_cast<int>(NumFixes); i++)
     fixes() << false;
+
+  setAnchoredKeys(QString());
 }
 
 void Screen::loadSettings(QSettingsProxy &settings)
@@ -73,6 +75,8 @@ void Screen::loadSettings(QSettingsProxy &settings)
   readSettings(settings, modifiers(), "modifier", static_cast<int>(DefaultMod), static_cast<int>(NumModifiers));
   readSettings(settings, switchCorners(), "switchCorner", 0, static_cast<int>(NumSwitchCorners));
   readSettings(settings, fixes(), "fix", 0, static_cast<int>(NumFixes));
+
+  setAnchoredKeys(settings.value("anchoredKeys").toString());
 }
 
 void Screen::saveSettings(QSettingsProxy &settings) const
@@ -88,6 +92,8 @@ void Screen::saveSettings(QSettingsProxy &settings) const
   writeSettings(settings, modifiers(), "modifier");
   writeSettings(settings, switchCorners(), "switchCorner");
   writeSettings(settings, fixes(), "fix");
+
+  settings.setValue("anchoredKeys", anchoredKeys());
 }
 
 QTextStream &Screen::writeScreensSection(QTextStream &outStream) const
@@ -111,6 +117,10 @@ QTextStream &Screen::writeScreensSection(QTextStream &outStream) const
   outStream << "\t\t"
             << "switchCornerSize = " << switchCornerSize() << '\n';
 
+  if (!anchoredKeys().isEmpty())
+    outStream << "\t\t"
+              << "anchoredKeys = " << anchoredKeys() << Qt::endl;
+
   return outStream;
 }
 
@@ -130,5 +140,6 @@ bool Screen::operator==(const Screen &screen) const
 {
   return m_Name == screen.m_Name && m_Aliases == screen.m_Aliases && m_Modifiers == screen.m_Modifiers &&
          m_SwitchCorners == screen.m_SwitchCorners && m_SwitchCornerSize == screen.m_SwitchCornerSize &&
-         m_Fixes == screen.m_Fixes && m_Swapped == screen.m_Swapped && m_isServer == screen.m_isServer;
+         m_Fixes == screen.m_Fixes && m_AnchoredKeys == screen.m_AnchoredKeys && m_Swapped == screen.m_Swapped &&
+         m_isServer == screen.m_isServer;
 }

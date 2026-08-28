@@ -73,6 +73,8 @@ ScreenSettingsDialog::ScreenSettingsDialog(QWidget *parent, Screen *pScreen, con
   m_pCheckBoxNumLock->setChecked(m_pScreen->fix(NumLock));
   m_pCheckBoxScrollLock->setChecked(m_pScreen->fix(ScrollLock));
   m_pCheckBoxXTest->setChecked(m_pScreen->fix(XTest));
+
+  m_pLineEditAnchoredKeys->setText(m_pScreen->anchoredKeys());
 }
 
 void ScreenSettingsDialog::accept()
@@ -121,6 +123,8 @@ void ScreenSettingsDialog::accept()
   m_pScreen->setFix(static_cast<int>(NumLock), m_pCheckBoxNumLock->isChecked());
   m_pScreen->setFix(static_cast<int>(ScrollLock), m_pCheckBoxScrollLock->isChecked());
   m_pScreen->setFix(static_cast<int>(XTest), m_pCheckBoxXTest->isChecked());
+
+  m_pScreen->setAnchoredKeys(m_pLineEditAnchoredKeys->text());
 
   QDialog::accept();
 }
