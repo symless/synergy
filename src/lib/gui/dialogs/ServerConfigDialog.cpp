@@ -199,6 +199,11 @@ void ServerConfigDialog::accept()
     }
   }
 
+  if (m_originalServerConfig.clipboardSharing() != serverConfig().clipboardSharing()) {
+    Settings::setValue(Settings::Server::XdpRestoreToken, QString());
+    Settings::setValue(Settings::Server::XdpClipboardRetried, false);
+  }
+
   // now that the dialog has been accepted, copy the new server config to the
   // original one, which is a reference to the one in MainWindow.
   setOriginalServerConfig(serverConfig());
