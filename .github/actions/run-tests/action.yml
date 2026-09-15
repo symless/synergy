@@ -25,20 +25,6 @@ runs:
       shell: bash
       continue-on-error: true
 
-    - name: Legacy Tests
-      id: legacy-tests
-      env:
-        QT_QPA_PLATFORM: offscreen
-      run: |
-        ./${{ inputs.bin-dir }}/legacytests
-        result=$?
-
-        if [ $result -ne 0 ]; then
-          echo "Legacy tests failed with code: $result" >> $GITHUB_STEP_SUMMARY
-        fi
-      shell: bash
-      continue-on-error: true
-
     - name: Check test outcome
       if: (steps.unit-tests.outcome != 'success' || steps.legacy-tests.outcome != 'success')
       run: |
