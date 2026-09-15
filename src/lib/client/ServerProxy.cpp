@@ -776,6 +776,11 @@ void ServerProxy::setOptions()
   ProtocolUtil::readf(m_stream, kMsgDSetOptions + 4, &options);
   LOG((CLOG_DEBUG1 "recv set options size=%d", options.size()));
 
+  if (options.size() % 2 != 0) {
+    LOG((CLOG_ERR "options are the incorrect size, can not process them"));
+    return;
+  }
+
   // forward
   m_client->setOptions(options);
 

@@ -451,6 +451,10 @@ void XWindowsScreen::resetOptions()
 
 void XWindowsScreen::setOptions(const OptionsList &options)
 {
+  if (options.size() % 2 != 0) {
+    LOG((CLOG_ERR "options are the incorrect size, can not process them"));
+    return;
+  }
   for (UInt32 i = 0, n = options.size(); i < n; i += 2) {
     if (options[i] == kOptionXTestXineramaUnaware) {
       m_xtestIsXineramaUnaware = (options[i + 1] != 0);
