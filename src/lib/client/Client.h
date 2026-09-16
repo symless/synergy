@@ -201,7 +201,6 @@ private:
   IEventQueue *m_events = nullptr;
   bool m_useSecureNetwork = false;
   bool m_enableClipboard = true;
-  size_t m_maximumClipboardReceiveSize = 0;
   size_t m_maximumClipboardSize = INT_MAX;
   size_t m_resolvedAddressesCount = 0;
 };
