@@ -578,6 +578,7 @@ void CoreProcess::restart()
   if (waitForProcess) {
     qInfo("waiting for current desktop core to exit before restarting");
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     connect(
         m_process, &QProcess::finished, this,
         [this](int, QProcess::ExitStatus) {
@@ -586,6 +587,17 @@ void CoreProcess::restart()
         },
         Qt::SingleShotConnection
     );
+#else
+    connect(
+        m_process, &QProcess::finished, this,
+        [this](int, QProcess::ExitStatus) {
+          disconnect(m_process, &QProcess::finished, this, nullptr);
+          qInfo("desktop core exited, restarting");
+          start();
+        },
+        Qt::QueuedConnection
+    );
+#endif
   }
 
   if (m_lastProcessMode != std::nullopt && m_lastProcessMode != processMode) {
