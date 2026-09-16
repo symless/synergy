@@ -28,6 +28,8 @@
 #include <QMutexLocker>
 #include <QRegularExpression>
 
+#include <memory>
+
 namespace deskflow::gui {
 
 const int kRetryDelay = 1000;
@@ -588,10 +590,11 @@ void CoreProcess::restart()
         Qt::SingleShotConnection
     );
 #else
-    connect(
-        m_process, &QProcess::finished, this,
-        [this](int, QProcess::ExitStatus) {
-          disconnect(m_process, &QProcess::finished, this, nullptr);
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(
+        m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+        [this, connection](int, QProcess::ExitStatus) {
+          disconnect(*connection);
           qInfo("desktop core exited, restarting");
           start();
         },
