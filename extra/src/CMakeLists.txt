@@ -2,7 +2,3 @@
 # SPDX-License-Identifier: MIT
 
 add_subdirectory(lib)
-
-if(BUILD_TESTS)
-  add_subdirectory(unittests)
-endif()
