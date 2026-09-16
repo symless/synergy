@@ -95,12 +95,6 @@ macro(configure_libs)
     # Bug report: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=68080
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-update=atomic")
 
-    setup_target_for_coverage_gcovr_xml(
-      NAME coverage-legacytests
-      EXECUTABLE legacytests
-      BASE_DIRECTORY ${test_src}
-      EXCLUDE ${test_exclude}
-    )
   endif()
 
 endmacro()
