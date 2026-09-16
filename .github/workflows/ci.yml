@@ -497,7 +497,7 @@ jobs:
             like: "fedora"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
-          # RHEL/Rocky: Qt5, X11-only, tests off (EPEL GoogleTest too old).
+          # RHEL/Rocky: Qt5, X11-only, tests off (the suite needs Qt6 Test).
           - name: "rocky-8-x86_64"
             runs-on: ubuntu-latest
             container: rockylinux:8
