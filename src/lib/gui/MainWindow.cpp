@@ -166,6 +166,8 @@ MainWindow::MainWindow()
 #ifdef Q_OS_MACOS
   // Route native quits (Cmd+Q / Apple menu Quit / Dock "Quit") to the usual close-to-tray decision instead.
   installQuitHandler([this] { return !maybeHideToTray(); });
+#endif
+
 #ifdef SYNERGY_EXTRA_HEADER
   synergy::hooks::onMainWindow(this, &m_coreProcess);
 #endif
