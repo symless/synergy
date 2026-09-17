@@ -35,7 +35,13 @@ ScreenSetupModel::ScreenSetupModel(ScreenList &screens, int numColumns, int numR
     qCritical(
         "screen list too small for grid, screens: %lld, cells: %d", static_cast<long long>(m_Screens.size()), span
     );
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     m_Screens.resize(span);
+#else
+    while (m_Screens.size() < span) {
+      m_Screens.append(Screen());
+    }
+#endif
   }
 }
 
