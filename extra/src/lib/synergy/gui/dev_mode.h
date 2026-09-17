@@ -27,16 +27,17 @@
 namespace synergy::gui {
 
 // Extracts the release stage (e.g. "beta") from the composed version string.
-// kVersion is "X.Y.Z[-STAGE][-dev|-snapshot+rN]", so the stage is the first
-// token after the base semver that isn't a build-type marker.
+// kVersion is "X.Y.Z[-STAGE][-dev|-snapshot][+BUILD]", so the stage is the
+// first token after the base semver that isn't a build-type marker, with any
+// "+BUILD" metadata (git sha, snapshot number) dropped before the check.
 inline QString versionStage()
 {
   const QStringList parts = QString::fromLatin1(kVersion).split('-');
   if (parts.size() < 2) {
     return {};
   }
-  const QString &candidate = parts.at(1);
-  if (candidate == QStringLiteral("dev") || candidate.startsWith(QStringLiteral("snapshot"))) {
+  const QString candidate = parts.at(1).section('+', 0, 0);
+  if (candidate == QStringLiteral("dev") || candidate == QStringLiteral("snapshot")) {
     return {};
   }
   return candidate;
