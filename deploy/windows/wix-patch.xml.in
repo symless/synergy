@@ -31,6 +31,38 @@
          module wasn't found at configure time (see deploy.cmake). -->
     @WIX_REDIST_MERGE@
 
+    <!--
+      Close any running @CMAKE_PROJECT_PROPER_NAME@ processes before file replacement so the
+      installer does not have to schedule files for replace-on-reboot.
+      Legacy names (@CMAKE_PROJECT_NAME@s.exe, @CMAKE_PROJECT_NAME@c.exe) are still
+      listed so upgrades from 1.14 installs (separate server/client
+      binaries) also complete without prompting for a reboot.
+    -->
+    <util:CloseApplication
+      Id="CloseGui"
+      Target="@CMAKE_PROJECT_NAME@.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="10" />
+    <util:CloseApplication
+      Id="CloseCore"
+      Target="@CMAKE_PROJECT_NAME@-core.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="10" />
+    <util:CloseApplication
+      Id="CloseLegacyServer"
+      Target="@CMAKE_PROJECT_NAME@s.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="10" />
+    <util:CloseApplication
+      Id="CloseLegacyClient"
+      Target="@CMAKE_PROJECT_NAME@c.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="10" />
+
     <UI>
        <Publish Dialog="ExitDialog"
            Control="Finish"
