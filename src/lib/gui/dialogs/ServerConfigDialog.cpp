@@ -111,6 +111,7 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config)
   connect(ui->cbEnableClipboard, &QCheckBox::toggled, this, &ServerConfigDialog::toggleClipboard);
 
   connect(ui->btnBrowseConfigFile, &QPushButton::clicked, this, &ServerConfigDialog::browseConfigFile);
+  connect(ui->lineConfigFile, &QLineEdit::textChanged, this, &ServerConfigDialog::setServerConfig);
 
   ui->groupExternalConfig->setChecked(serverConfig().useExternalConfig());
   ui->widgetExternalConfigControls->setEnabled(ui->groupExternalConfig->isChecked());
@@ -494,12 +495,17 @@ bool ServerConfigDialog::browseConfigFile()
 
   if (!fileName.isEmpty()) {
     ui->lineConfigFile->setText(fileName);
-    serverConfig().setConfigFile(ui->lineConfigFile->text());
-    onChange();
+    setServerConfig();
     return true;
   }
 
   return false;
+}
+
+void ServerConfigDialog::setServerConfig()
+{
+  serverConfig().setConfigFile(ui->lineConfigFile->text());
+  onChange();
 }
 
 bool ServerConfigDialog::addComputer(const QString &clientName, bool doSilent)
