@@ -57,12 +57,12 @@ private:
   void notifyIfReady();
 
   static void onPrepareForSleep(
-      GDBusConnection *connection, const gchar *sender, const gchar *path, const gchar *interface,
-      const gchar *signal, GVariant *parameters, gpointer data
+      GDBusConnection *connection, const gchar *sender, const gchar *path, const gchar *interface, const gchar *signal,
+      GVariant *parameters, gpointer data
   );
   static void onSessionPropertiesChanged(
-      GDBusConnection *connection, const gchar *sender, const gchar *path, const gchar *interface,
-      const gchar *signal, GVariant *parameters, gpointer data
+      GDBusConnection *connection, const gchar *sender, const gchar *path, const gchar *interface, const gchar *signal,
+      GVariant *parameters, gpointer data
   );
 
   GDBusConnection *m_bus = nullptr;
