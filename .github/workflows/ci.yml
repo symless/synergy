@@ -531,6 +531,12 @@ jobs:
             like: "arch"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_DEV_DOCS=ON"
 
+          - name: "manjaro-x86_64"
+            runs-on: ubuntu-latest
+            container: manjarolinux/base:latest
+            like: "arch"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
           - name: "ubuntu-22.04-x86_64"
             runs-on: ubuntu-latest
             container: ubuntu:22.04
