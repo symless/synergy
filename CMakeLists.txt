@@ -94,6 +94,8 @@ set(REQUIRED_LIBEI_VERSION 1.0)
 set(REQUIRED_LIBPORTAL_VERSION 0.8.0)
 set(REQUIRED_QT_VERSION 6.4.0)
 
+include(${CMAKE_SOURCE_DIR}/extra/cmake/VersionOverrides.cmake)
+
 if (WIN32)
   # VSCMD_ARG_TGT_ARCH is set on CI
   if ("$ENV{VSCMD_ARG_TGT_ARCH}" STREQUAL "")
