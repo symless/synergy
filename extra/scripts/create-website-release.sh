@@ -106,8 +106,8 @@ el_row_for() {
 }
 
 # Two entries below read as typos and are not: a catalog slug keeps the dot the
-# file name replaces (ubuntu-24.04 against ubuntu-24-04), and the Debian 12 arm64
-# deb also fills Raspberry Pi OS, which is Debian and whose own build is gone.
+# file name replaces (ubuntu-24.04 against ubuntu-24-04), and the Ubuntu 22.04
+# arm64 deb is also what fills Raspberry Pi OS.
 package_rows_for() {
 	case "$1" in
 	*_windows_x64.msi) echo "windows-10 X64" ;;
@@ -115,9 +115,11 @@ package_rows_for() {
 	*_mac_x64.dmg) echo "macos-12.0 X64" ;;
 	*_mac_arm64.dmg) echo "macos-12.0 Arm64" ;;
 	*_debian-12_x86_64.deb) echo "debian-12 X64" ;;
-	*_debian-12_aarch64.deb) printf '%s\n' "debian-12 Arm64" "raspberry-pi-os Arm64" ;;
+	*_debian-12_aarch64.deb) echo "debian-12 Arm64" ;;
 	*_debian-13_x86_64.deb) echo "debian-13 X64" ;;
 	*_debian-13_aarch64.deb) echo "debian-13 Arm64" ;;
+	*_ubuntu-22-04_x86_64.deb) echo "ubuntu-22.04 X64" ;;
+	*_ubuntu-22-04_aarch64.deb) printf '%s\n' "ubuntu-22.04 Arm64" "raspberry-pi-os Arm64" ;;
 	*_ubuntu-24-04_x86_64.deb) echo "ubuntu-24.04 X64" ;;
 	*_ubuntu-24-04_aarch64.deb) echo "ubuntu-24.04 Arm64" ;;
 	*_ubuntu-26-04_x86_64.deb) echo "ubuntu-26.04 X64" ;;
@@ -133,6 +135,7 @@ package_rows_for() {
 	*_opensuse-tumbleweed_x86_64.rpm) echo "opensuse-tumbleweed X64" ;;
 	*_opensuse-tumbleweed_aarch64.rpm) echo "opensuse-tumbleweed Arm64" ;;
 	*_arch-linux_x86_64.pkg.tar.zst) echo "arch-linux X64" ;;
+	*_manjaro_x86_64.pkg.tar.zst) echo "manjaro X64" ;;
 	*_linux_x86_64.flatpak) echo "flatpak X64" ;;
 	*_linux_aarch64.flatpak) echo "flatpak Arm64" ;;
 	*) return 1 ;;
