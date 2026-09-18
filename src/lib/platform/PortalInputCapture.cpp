@@ -11,6 +11,7 @@
 #include "base/Event.h"
 #include "base/Log.h"
 #include "base/TMethodJob.h"
+#include "common/Settings.h"
 #include "deskflow/ClipboardTypes.h"
 #include "platform/EiClipboard.h"
 
@@ -18,11 +19,8 @@
 #include "platform/PortalClipboard.h"
 #endif
 
-#ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
-#include "common/Settings.h"
-#endif
-
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <limits>
 #include <poll.h>
@@ -38,6 +36,23 @@
 #include <QtEndian>
 
 namespace deskflow {
+
+namespace {
+
+const unsigned int kRetryDelayMs = 1000;
+const unsigned int kMaxRetryDelayMs = 5000;
+
+// The compositor needs a moment after unlock before it will hand back a session
+const unsigned int kUnlockSettleMs = 500;
+
+// A compositor that closes the session on screen lock refuses to open a new one until the screen
+// is unlocked again. That refusal is recoverable, but only for as long as the process that was
+// granted permission stays alive: the permission is not persisted, so a restarted core has nothing
+// to restore from and the user is asked to grant it again. Retry in place instead of quitting.
+// Once no session has ever been established, quitting is still right, since the portal is missing.
+std::atomic<bool> s_hadSession{false};
+
+} // namespace
 
 const char *PortalInputCapture::barrierSideName(BarrierSide side)
 {
@@ -183,13 +198,17 @@ PortalInputCapture::PortalInputCapture(EiScreen *screen, IEventQueue *events)
   auto tMethodJob = new TMethodJob<PortalInputCapture>(this, &PortalInputCapture::glibThread);
   m_glibThread = new Thread(tMethodJob);
 
-  auto captureCallback = [](gpointer data) { return static_cast<PortalInputCapture *>(data)->initSession(); };
-
-  g_idle_add(captureCallback, this);
+  scheduleInit(0);
 }
 
 PortalInputCapture::~PortalInputCapture()
 {
+  if (m_initSource) {
+    g_source_remove(m_initSource);
+    m_initSource = 0;
+  }
+  m_sessionMonitor.reset();
+
   if (g_main_loop_is_running(m_glibMainLoop))
     g_main_loop_quit(m_glibMainLoop);
 
@@ -205,12 +224,15 @@ PortalInputCapture::~PortalInputCapture()
   if (m_session) {
     using enum Signal;
     XdpSession *parentSession = xdp_input_capture_session_get_session(m_session);
-    g_signal_handler_disconnect(G_OBJECT(parentSession), m_signals.at(SessionClosed));
+    if (m_signals.at(SessionClosed) != 0)
+      g_signal_handler_disconnect(parentSession, m_signals.at(SessionClosed));
     g_signal_handler_disconnect(m_session, m_signals.at(Disabled));
     g_signal_handler_disconnect(m_session, m_signals.at(Activated));
     g_signal_handler_disconnect(m_session, m_signals.at(Deactivated));
     g_signal_handler_disconnect(m_session, m_signals.at(ZonesChanged));
-    g_signal_handler_disconnect(m_session, m_signals.at(SelectionTransfer));
+#ifdef HAVE_LIBPORTAL_CLIPBOARD
+    g_signal_handler_disconnect(parentSession, m_signals.at(SelectionTransfer));
+#endif
     g_object_unref(m_session);
   }
 
@@ -239,22 +261,24 @@ gboolean PortalInputCapture::timeoutHandler() const
 
 void PortalInputCapture::handleSessionClosed(XdpSession *session)
 {
-  LOG_ERR("portal input capture session was closed, exiting");
-  g_main_loop_quit(m_glibMainLoop);
-  m_events->addEvent(Event(EventTypes::Quit));
+  LOG_WARN("portal input capture session was closed, reconnecting");
 
   g_signal_handler_disconnect(session, m_signals.at(Signal::SessionClosed));
   m_signals.at(Signal::SessionClosed) = 0;
+
+  g_clear_object(&m_session);
+  clearSessionState();
+  retryInit();
 }
 
-void PortalInputCapture::claimClipboardOwnership(XdpSession *session)
+void PortalInputCapture::claimClipboardOwnership([[maybe_unused]] XdpSession *session) const
 {
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   PortalClipboard::claimOwnership(m_clipboard, session);
 #endif
 }
 
-void PortalInputCapture::readClipboardSelection(XdpSession *session)
+void PortalInputCapture::readClipboardSelection(XdpSession *session) const
 {
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   const qint64 maxBytes = static_cast<qint64>(m_screen->maximumClipboardSize()) * 1024;
@@ -273,7 +297,7 @@ void PortalInputCapture::readClipboardSelection(XdpSession *session)
 #endif
 }
 
-void PortalInputCapture::handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial)
+void PortalInputCapture::handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial) const
 {
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   if (m_isActive) {
@@ -295,17 +319,21 @@ void PortalInputCapture::setupSession(XdpInputCaptureSession *session)
 
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   if (!xdp_session_is_clipboard_enabled(parentSession) && m_portalVersion > 1) {
-    // Restored sessions can pre-date clipboard support, leaving the channel
-    // disabled even though we requested it. Drop the saved token and recreate
-    // the session from scratch so the user gets a fresh permission dialog.
-    LOG_WARN("clipboard not enabled on session, discarding restore token to force a fresh session");
+    if (Settings::value(Settings::Server::XdpClipboardRetried).toBool()) {
+      // some backends never report clipboard enabled even when granted; don't loop forever
+      LOG_DEBUG("clipboard still not enabled on session after one retry, continuing without it");
+    } else {
+      LOG_WARN("clipboard not enabled on session, discarding restore token to force a fresh session");
 #ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
-    Settings::setValue(Settings::Server::XdpRestoreToken, QString());
+      Settings::setValue(Settings::Server::XdpRestoreToken, QString());
 #endif
-    g_object_unref(m_session);
-    m_session = nullptr;
-    g_idle_add([](gpointer data) { return static_cast<PortalInputCapture *>(data)->initSession(); }, this);
-    return;
+      Settings::setValue(Settings::Server::XdpClipboardRetried, true);
+      g_object_unref(m_session);
+      m_session = nullptr;
+      clearSessionState();
+      scheduleInit(0);
+      return;
+    }
   }
 #endif
 
@@ -342,13 +370,20 @@ void PortalInputCapture::handleInitSession(GObject *object, GAsyncResult *res)
 
   auto session = xdp_portal_create_input_capture_session_finish(XDP_PORTAL(object), res, &error);
   if (!session) {
-    LOG_ERR("failed to initialize input capture session, quitting: %s", error->message);
-    g_main_loop_quit(m_glibMainLoop);
-    m_events->addEvent(Event(EventTypes::Quit));
+    if (!s_hadSession) {
+      LOG_ERR("failed to initialize input capture session, quitting: %s", error->message);
+      g_main_loop_quit(m_glibMainLoop);
+      m_events->addEvent(Event(EventTypes::Quit));
+      return;
+    }
+    LOG_DEBUG("failed to initialize input capture session, retrying: %s", error->message);
+    retryInit();
     return;
   }
 
   m_session = session;
+  s_hadSession = true;
+  m_retryDelay = 0;
 
   setupSession(session);
 }
@@ -360,11 +395,21 @@ void PortalInputCapture::handleStart(GObject *object, GAsyncResult *res)
 #ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
   LOG_DEBUG("portal input capture session initialized");
   if (!xdp_input_capture_session_start_finish(m_session, res, &error)) {
-    LOG_ERR("failed to start input capture session, quitting: %s", error->message);
-    g_main_loop_quit(m_glibMainLoop);
-    m_events->addEvent(Event(EventTypes::Quit));
+    if (!s_hadSession) {
+      LOG_ERR("failed to start input capture session, quitting: %s", error->message);
+      g_main_loop_quit(m_glibMainLoop);
+      m_events->addEvent(Event(EventTypes::Quit));
+      return;
+    }
+    LOG_DEBUG("failed to start input capture session, retrying: %s", error->message);
+    g_clear_object(&m_session);
+    clearSessionState();
+    retryInit();
     return;
   }
+
+  s_hadSession = true;
+  m_retryDelay = 0;
 
   auto restoreToken = QString(xdp_input_capture_session_get_restore_token(m_session));
   if (!restoreToken.isEmpty()) {
@@ -479,10 +524,11 @@ std::pair<double, double> PortalInputCapture::mapPortalReleasePosition(double x,
     return {x, y};
   }
 
-  auto mappedX = scaleCoordinateBetweenRanges(x, screenLeft, screenRight, portalBounds.left, portalBounds.right);
-  auto mappedY = scaleCoordinateBetweenRanges(y, screenTop, screenBottom, portalBounds.top, portalBounds.bottom);
-  BarrierInfo releaseBarrier;
-  if (getClosestReleaseBarrier(x, y, screenLeft, screenTop, screenRight, screenBottom, portalBounds, releaseBarrier)) {
+  auto mappedX = static_cast<std::int32_t>(std::lround(x));
+  auto mappedY = static_cast<std::int32_t>(std::lround(y));
+
+  if (BarrierInfo releaseBarrier;
+      getClosestReleaseBarrier(x, y, screenLeft, screenTop, screenRight, screenBottom, portalBounds, releaseBarrier)) {
     const Bounds releaseBounds = {
         releaseBarrier.x, releaseBarrier.y, releaseBarrier.x + static_cast<gint>(releaseBarrier.width) - 1,
         releaseBarrier.y + static_cast<gint>(releaseBarrier.height) - 1
@@ -556,8 +602,66 @@ void PortalInputCapture::addBarrier(
   m_barrierInfo.push_back({id, side, zoneX, zoneY, zoneWidth, zoneHeight, x1, y1, x2, y2});
 }
 
+void PortalInputCapture::scheduleInit(unsigned int delayMs)
+{
+  if (m_initSource) {
+    g_source_remove(m_initSource);
+  }
+
+  auto callback = [](gpointer data) -> gboolean {
+    auto self = static_cast<PortalInputCapture *>(data);
+    self->m_initSource = 0;
+    return self->initSession();
+  };
+
+  m_initSource = delayMs > 0 ? g_timeout_add(delayMs, callback, this) : g_idle_add(callback, this);
+}
+
+// The capture outlives any one session now, so per-session state has to go with the session.
+// A stale m_enabled in particular makes enable() a no-op and the restored session never captures.
+void PortalInputCapture::clearSessionState()
+{
+  m_enabled = false;
+  m_isActive = false;
+  m_activationId = 0;
+
+  for (auto barrier : m_barriers) {
+    g_object_unref(barrier);
+  }
+  m_barriers.clear();
+  m_barrierInfo.clear();
+}
+
+void PortalInputCapture::retryInit()
+{
+  m_retryDelay = m_retryDelay ? std::min(m_retryDelay * 2, kMaxRetryDelayMs) : kRetryDelayMs;
+  LOG_DEBUG("retrying input capture session in %u ms", m_retryDelay);
+  scheduleInit(m_retryDelay);
+}
+
 gboolean PortalInputCapture::initSession()
 {
+  // Created here, on the GLib context this callback runs on, rather than in the
+  // constructor, which runs on a thread whose context nothing iterates
+  if (!m_sessionMonitor) {
+    m_sessionMonitor = std::make_unique<XDGSessionMonitor>([this] {
+      if (m_initDeferred) {
+        m_initDeferred = false;
+        LOG_INFO("desktop is unlocked and awake, setting up input capture session");
+        m_retryDelay = 0;
+        scheduleInit(kUnlockSettleMs);
+      }
+    });
+  }
+
+  // Asking for a session while locked does not merely fail, it costs the permission the
+  // compositor is holding for this process, and the next attempt prompts the user again.
+  if (!m_sessionMonitor->isReady()) {
+    LOG_INFO("input capture session deferred until the desktop is unlocked and awake");
+    m_initDeferred = true;
+    return false;
+  }
+
   LOG_DEBUG("setting up input capture session");
   XdpInputCaptureSession *session;
 #ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
@@ -593,6 +697,11 @@ gboolean PortalInputCapture::initSession()
         &error
     );
     if (!session) {
+      if (s_hadSession) {
+        LOG_DEBUG("failed to initialize input capture session, retrying: %s", error->message);
+        retryInit();
+        return FALSE;
+      }
       LOG_ERR("failed to initialize input capture session, quitting: %s", error->message);
       g_main_loop_quit(m_glibMainLoop);
       m_events->addEvent(Event(EventTypes::Quit));
@@ -634,6 +743,11 @@ gboolean PortalInputCapture::initSession()
 
 void PortalInputCapture::enable()
 {
+  if (!m_session) {
+    LOG_DEBUG("no input capture session to enable");
+    return;
+  }
+
   if (!m_enabled) {
     LOG_DEBUG("enabling the portal input capture session");
     xdp_input_capture_session_enable(m_session);
@@ -774,8 +888,43 @@ void PortalInputCapture::handleZonesChanged(XdpInputCaptureSession *session, con
   const auto activeSides = m_screen->activeSides();
   using enum DirectionMask;
 
-  // May not correctly handle different sized screens
   auto zones = xdp_input_capture_session_get_zones(session);
+
+  // First pass: compute the bounding box (union) of all input-capture zones.
+  // A pointer barrier must lie on the outer boundary of the combined desktop and
+  // be adjacent to a single monitor edge. A barrier placed on an internal edge
+  // between two adjacent monitors is rejected by the portal ("adjacent to
+  // multiple monitor edges"), and a single rejected barrier fails the whole
+  // barrier set - so on a multi-monitor server input capture never engages.
+  gint unionLeft = 0;
+  gint unionTop = 0;
+  gint unionRight = 0;
+  gint unionBottom = 0;
+  bool boundsInit = false;
+  for (auto z = zones; z != nullptr; z = z->next) {
+    guint w;
+    guint h;
+    gint x;
+    gint y;
+    g_object_get(z->data, "width", &w, "height", &h, "x", &x, "y", &y, nullptr);
+    const gint right = x + static_cast<gint>(w);
+    const gint bottom = y + static_cast<gint>(h);
+    if (!boundsInit) {
+      unionLeft = x;
+      unionTop = y;
+      unionRight = right;
+      unionBottom = bottom;
+      boundsInit = true;
+    } else {
+      unionLeft = std::min(unionLeft, x);
+      unionTop = std::min(unionTop, y);
+      unionRight = std::max(unionRight, right);
+      unionBottom = std::max(unionBottom, bottom);
+    }
+  }
+
+  // Second pass: only add a barrier for a zone edge that is part of the outer
+  // boundary of the union (i.e. not an internal seam between two monitors).
   guint id = 0;
   while (zones != nullptr) {
     guint w;
@@ -786,19 +935,19 @@ void PortalInputCapture::handleZonesChanged(XdpInputCaptureSession *session, con
 
     LOG_DEBUG("input capture zone, %dx%d@%d,%d", w, h, x, y);
 
-    if (activeSides & static_cast<int>(LeftMask)) {
+    if ((activeSides & static_cast<int>(LeftMask)) && x == unionLeft) {
       addBarrier(++id, BarrierSide::Left, x, y, w, h);
     }
 
-    if (activeSides & static_cast<int>(RightMask)) {
+    if ((activeSides & static_cast<int>(RightMask)) && (x + static_cast<gint>(w)) == unionRight) {
       addBarrier(++id, BarrierSide::Right, x, y, w, h);
     }
 
-    if (activeSides & static_cast<int>(TopMask)) {
+    if ((activeSides & static_cast<int>(TopMask)) && y == unionTop) {
       addBarrier(++id, BarrierSide::Top, x, y, w, h);
     }
 
-    if (activeSides & static_cast<int>(BottomMask)) {
+    if ((activeSides & static_cast<int>(BottomMask)) && (y + static_cast<gint>(h)) == unionBottom) {
       addBarrier(++id, BarrierSide::Bottom, x, y, w, h);
     }
     zones = zones->next;

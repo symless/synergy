@@ -19,6 +19,7 @@ if(UNIX AND NOT APPLE)
   set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES};${LIBPORTAL_LINK_LIBRARIES};${GLIB2_LINK_LIBRARIES}")
   check_symbol_exists(xdp_input_capture_session_get_restore_token "libportal/inputcapture.h" HAVE_IC_RESTORE)
   check_symbol_exists(xdp_session_request_clipboard "libportal/portal-helpers.h;libportal/clipboard.h" HAVE_LP_CLIPBOARD)
+  check_symbol_exists(xdp_global_shortcut_new "libportal/globalshortcuts.h" HAVE_LP_SHORTCUTS)
   cmake_pop_check_state()
 endif()
 
@@ -85,6 +86,8 @@ elseif(APPLE)
     OSXCocoaApp.m
     OSXEventQueueBuffer.cpp
     OSXEventQueueBuffer.h
+    OSXKeyLayoutResource.cpp
+    OSXKeyLayoutResource.h
     OSXKeyState.cpp
     OSXKeyState.h
     OSXMediaKeySupport.h
@@ -100,8 +103,6 @@ elseif(APPLE)
     OSXScreenSaverControl.h
     OSXScreenSaverUtil.h
     OSXScreenSaverUtil.m
-    OSXUchrKeyResource.cpp
-    OSXUchrKeyResource.h
   )
 elseif(UNIX)
   set(PLATFORM_SOURCES
@@ -160,11 +161,19 @@ elseif(UNIX)
         PortalInputCapture.h
         PortalRemoteDesktop.cpp
         PortalRemoteDesktop.h
+        XDGSessionMonitor.cpp
+        XDGSessionMonitor.h
       )
       if(HAVE_LP_CLIPBOARD)
         list(APPEND PLATFORM_SOURCES
           PortalClipboard.cpp
           PortalClipboard.h
+        )
+      endif()
+      if(HAVE_LP_SHORTCUTS)
+        list(APPEND PLATFORM_SOURCES
+          PortalGlobalShortcuts.cpp
+          PortalGlobalShortcuts.h
         )
       endif()
     endif()
@@ -203,6 +212,9 @@ if(UNIX)
     endif()
     if (HAVE_LP_CLIPBOARD)
       target_compile_definitions(platform PUBLIC HAVE_LIBPORTAL_CLIPBOARD)
+    endif()
+    if (HAVE_LP_SHORTCUTS)
+      target_compile_definitions(platform PUBLIC HAVE_LIBPORTAL_SHORTCUTS)
     endif()
     target_include_directories(platform PUBLIC ${LIBEI_INCLUDE_DIRS} ${LIBPORTAL_INCLUDE_DIRS})
     target_link_libraries(

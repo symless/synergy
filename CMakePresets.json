@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "configurePresets": [
     {
       "name": "base",
@@ -134,6 +134,56 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release"
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug"
+    },
+    {
+      "name": "macos-release",
+      "configurePreset": "macos-release"
+    },
+    {
+      "name": "windows-debug-min",
+      "configurePreset": "windows-debug-min"
+    },
+    {
+      "name": "windows-release-min",
+      "configurePreset": "windows-release-min"
+    },
+    {
+      "name": "linux-debug-min",
+      "configurePreset": "linux-debug-min"
+    },
+    {
+      "name": "linux-release-min",
+      "configurePreset": "linux-release-min"
+    },
+    {
+      "name": "macos-debug-min",
+      "configurePreset": "macos-debug-min"
+    },
+    {
+      "name": "macos-release-min",
+      "configurePreset": "macos-release-min"
     }
   ]
 }

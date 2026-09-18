@@ -125,7 +125,7 @@
         "command": "${workspaceFolder}/build/bin-copy/synergy.exe"
       },
       "osx": {
-        "command": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy"
+        "command": "${workspaceFolder}/build/bin/Synergy.app/Contents/MacOS/Synergy"
       }
     },
     {

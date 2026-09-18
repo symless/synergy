@@ -13,6 +13,7 @@
 #include "common/Constants.h"
 #include "platform/MSWindowsDesks.h"
 #include "platform/MSWindowsHandle.h"
+#include "platform/MSWindowsHook.h"
 
 // extended mouse buttons
 #if !defined(VK_XBUTTON1)
@@ -844,7 +845,8 @@ int32_t MSWindowsKeyState::pollActiveGroup() const
 void MSWindowsKeyState::pollPressedKeys(KeyButtonSet &pressedKeys) const
 {
   BYTE keyState[256];
-  if (!GetKeyboardState(keyState)) {
+  // The caller's GetKeyboardState queue can lag the low-level hook during a screen switch.
+  if (!MSWindowsHook::getPhysicalKeyState(keyState) && !GetKeyboardState(keyState)) {
     LOG_WARN("keyboard state is unexpected");
     LOG_DEBUG("function 'GetKeyboardState' returned false on 'pollPressedKeys'");
     return;
@@ -1276,6 +1278,11 @@ KeyID MSWindowsKeyState::getKeyID(UINT virtualKey, KeyButton button) const
   // But they have different X11 keysym. So we should distinguish them.
   if ((LOWORD(m_keyLayout) & 0xffffu) == 0x0412u) { // 0x0412 : Korean Locale ID
     if (virtualKey == VK_HANGUL || virtualKey == VK_HANJA) {
+      const auto hangulSpace = 0x0039u;
+      if (button == hangulSpace) {
+        return VK_SPACE;
+      }
+
       // If shift-space is used to change the input mode,
       // the extented bit is not set. So add it to get right key id.
       button |= 0x100u;

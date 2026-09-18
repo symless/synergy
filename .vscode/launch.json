@@ -10,26 +10,8 @@
       "preLaunchTask": "build-silent",
       "initCommands": ["settings set target.preload-symbols false"],
       "osx": {
-        "program": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy"
+        "program": "${workspaceFolder}/build/bin/Synergy.app/Contents/MacOS/Synergy"
       }
-    },
-    {
-      "name": "unix - unittests",
-      "type": "lldb-dap",
-      "cwd": "${workspaceRoot}",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/bin/unittests",
-      "args": ["${input:gtest-args}"],
-      "preLaunchTask": "build-silent"
-    },
-    {
-      "name": "unix - integtests",
-      "type": "lldb-dap",
-      "cwd": "${workspaceRoot}",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/bin/integtests",
-      "args": ["${input:gtest-args}"],
-      "preLaunchTask": "build-silent"
     },
     {
       "name": "unix - server",
@@ -40,7 +22,7 @@
       "args": ["server"],
       "preLaunchTask": "build-silent",
       "osx": {
-        "program": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy-core"
+        "program": "${workspaceFolder}/build/bin/Synergy.app/Contents/MacOS/synergy-core"
       }
     },
     {
@@ -52,16 +34,16 @@
       "args": ["client"],
       "preLaunchTask": "build-silent",
       "osx": {
-        "program": "${workspaceFolder}/build/bin/synergy.app/Contents/MacOS/synergy-core"
+        "program": "${workspaceFolder}/build/bin/Synergy.app/Contents/MacOS/synergy-core"
       }
     },
     {
-      "name": "unix - daemon",
+      "name": "unix - tests",
       "type": "lldb-dap",
       "cwd": "${workspaceRoot}",
       "request": "launch",
-      "program": "${workspaceFolder}/build/bin/synergy-daemon",
-      "args": ["-f"],
+      "program": "${command:cmake.launchTargetPath}",
+      "args": ["${input:gtest-args}"],
       "preLaunchTask": "build-silent"
     },
     {
@@ -78,24 +60,6 @@
       "program": "${workspaceFolder}/build/bin-copy/synergy",
       "internalConsoleOptions": "openOnSessionStart",
       "preLaunchTask": "build-kill-gui"
-    },
-    {
-      "name": "windows - unittests",
-      "type": "cppvsdbg",
-      "cwd": "${workspaceRoot}",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/bin-copy/unittests",
-      "args": ["${input:gtest-args}"],
-      "internalConsoleOptions": "openOnSessionStart"
-    },
-    {
-      "name": "windows - integtests",
-      "type": "cppvsdbg",
-      "cwd": "${workspaceRoot}",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/bin-copy/integtests",
-      "args": ["${input:gtest-args}"],
-      "internalConsoleOptions": "openOnSessionStart"
     },
     {
       "name": "windows - server",
@@ -118,16 +82,6 @@
       "preLaunchTask": "build-kill-core"
     },
     {
-      "name": "windows - active-desktop",
-      "type": "cppvsdbg",
-      "cwd": "${workspaceRoot}",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/bin-copy/synergy-core",
-      "args": ["--active-desktop"],
-      "internalConsoleOptions": "openOnSessionStart",
-      "preLaunchTask": "build-kill-core"
-    },
-    {
       "name": "windows - daemon",
       "type": "cppvsdbg",
       "cwd": "${workspaceRoot}",
@@ -136,6 +90,15 @@
       "args": ["-f"],
       "internalConsoleOptions": "openOnSessionStart",
       "preLaunchTask": "build-kill-core"
+    },
+    {
+      "name": "windows - tests",
+      "type": "cppvsdbg",
+      "cwd": "${workspaceRoot}",
+      "request": "launch",
+      "program": "${command:cmake.launchTargetPath}",
+      "args": ["${input:gtest-args}"],
+      "internalConsoleOptions": "openOnSessionStart"
     },
     {
       "name": "windows - attach",

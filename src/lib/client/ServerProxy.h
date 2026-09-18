@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "common/Enums.h"
+#include "deskflow/ClipboardChunk.h"
 #include "deskflow/ClipboardTypes.h"
 #include "deskflow/KeyTypes.h"
 #include "deskflow/KeyboardLayoutManager.h"
@@ -76,6 +78,8 @@ private:
   // event handlers
   void handleData();
   void handleKeepAliveAlarm();
+  void requestDisconnect(const char *message);
+  void requestRefuseConnection(deskflow::core::ConnectionRefusal reason, const char *message);
 
   // message handlers
   void enter();
@@ -124,6 +128,8 @@ private:
   MessageParser m_parser = &ServerProxy::parseHandshakeMessage;
   IEventQueue *m_events = nullptr;
   std::string m_serverLayout = "";
+  std::string m_clipboardDataCached;
+  ClipboardChunkAssemblyState m_clipboardChunkState;
   bool m_isUserNotifiedAboutLayoutSyncError = false;
   deskflow::KeyboardLayoutManager m_layoutManager;
 };

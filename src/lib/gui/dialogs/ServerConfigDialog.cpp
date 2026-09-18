@@ -64,9 +64,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config)
       &ServerConfigDialog::listActionsSelectionChanged
   );
 
-  // force the first tab, since qt creator sets the active tab as the last one
-  // the developer was looking at, and it's easy to accidentally save that.
-  ui->tabWidget->setCurrentIndex(0);
+  if (ui->groupExternalConfig->isChecked())
+    ui->tabWidget->setCurrentIndex(3);
+  else
+    ui->tabWidget->setCurrentIndex(0);
 
   ui->btnBrowseConfigFile->setIcon(QIcon::fromTheme(QStringLiteral("document-open")));
   ui->lineConfigFile->setText(serverConfig().configFile());
@@ -110,6 +111,7 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config)
   connect(ui->cbEnableClipboard, &QCheckBox::toggled, this, &ServerConfigDialog::toggleClipboard);
 
   connect(ui->btnBrowseConfigFile, &QPushButton::clicked, this, &ServerConfigDialog::browseConfigFile);
+  connect(ui->lineConfigFile, &QLineEdit::textChanged, this, &ServerConfigDialog::setServerConfig);
 
   ui->groupExternalConfig->setChecked(serverConfig().useExternalConfig());
   ui->widgetExternalConfigControls->setEnabled(ui->groupExternalConfig->isChecked());
@@ -196,6 +198,11 @@ void ServerConfigDialog::accept()
     if (selectedButton != QMessageBox::Ok || !browseConfigFile()) {
       return;
     }
+  }
+
+  if (m_originalServerConfig.clipboardSharing() != serverConfig().clipboardSharing()) {
+    Settings::setValue(Settings::Server::XdpRestoreToken, QString());
+    Settings::setValue(Settings::Server::XdpClipboardRetried, false);
   }
 
   // now that the dialog has been accepted, copy the new server config to the
@@ -488,12 +495,17 @@ bool ServerConfigDialog::browseConfigFile()
 
   if (!fileName.isEmpty()) {
     ui->lineConfigFile->setText(fileName);
-    serverConfig().setConfigFile(ui->lineConfigFile->text());
-    onChange();
+    setServerConfig();
     return true;
   }
 
   return false;
+}
+
+void ServerConfigDialog::setServerConfig()
+{
+  serverConfig().setConfigFile(ui->lineConfigFile->text());
+  onChange();
 }
 
 bool ServerConfigDialog::addComputer(const QString &clientName, bool doSilent)

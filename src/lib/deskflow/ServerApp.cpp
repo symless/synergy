@@ -516,7 +516,14 @@ int ServerApp::mainLoop()
   }
 
   // start server, etc
-  appUtil().startNode();
+  try {
+    appUtil().startNode();
+  } catch (...) {
+    // a fatal startup failure exits by throwing, skipping the cleanup below;
+    // tear down here so the screen's worker threads don't outlive the app.
+    cleanupServer();
+    throw;
+  }
 
   // handle hangup signal by reloading the server's configuration
   ARCH->setSignalHandler(Arch::ThreadSignal::Hangup, &reloadSignalHandler, nullptr);

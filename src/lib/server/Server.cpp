@@ -126,10 +126,19 @@ Server::Server(ServerConfig &config, PrimaryClient *primaryClient, deskflow::Scr
   // set initial configuration
   setConfig(config);
 
+  // If we are using libportal, we need to set the primary client first.
+  // This enables the rules of the primary client. The hotkeys are then enabled in EiScreen.cpp after the rules
+  // registered them.
+#if WINAPI_LIBPORTAL
   // enable primary client
+  m_inputFilter->setPrimaryClient(m_primaryClient);
+  m_primaryClient->enable();
+  // If we are on Mac, X11 or Windows, we need a key map, which is created in screen->enable().
+  // So we need to enable the screen first, then enable the primary client.
+#else
   m_primaryClient->enable();
   m_inputFilter->setPrimaryClient(m_primaryClient);
-
+#endif
   // Determine if scroll lock is already set. If so, lock the cursor to the
   // primary screen (unless the user has disabled lock to screen in config)
   if (!m_disableLockToScreen && (m_primaryClient->getToggleMask() & KeyModifierScrollLock)) {
@@ -175,12 +184,22 @@ Server::~Server()
     delete client;
   }
 
-  // remove input filter
-  m_inputFilter->setPrimaryClient(nullptr);
-
+  // See at Server::Server for why we do this in this order.
+#if WINAPI_LIBPORTAL
   // disable and disconnect primary client
   m_primaryClient->disable();
+  // remove input filter
+  m_inputFilter->setPrimaryClient(nullptr);
+#else
+  m_inputFilter->setPrimaryClient(nullptr);
+  m_primaryClient->disable();
+#endif
   removeClient(m_primaryClient);
+}
+
+size_t Server::getMaximumClipboardSizeBytes() const
+{
+  return m_maximumClipboardSize * 1024;
 }
 
 bool Server::setConfig(const ServerConfig &config)
@@ -1179,12 +1198,12 @@ void Server::handleClipboardGrabbed(const Event &event, BaseClientProxy *grabber
   // screen to grab.
   ClipboardInfo &clipboard = m_clipboards[info->m_id];
   if (grabber != m_primaryClient && info->m_sequenceNumber < clipboard.m_clipboardSeqNum) {
-    LOG_INFO("ignored screen \"%s\" grab of clipboard %d", getName(grabber).c_str(), info->m_id);
+    LOG_DEBUG("ignored screen \"%s\" grab of clipboard %d", getName(grabber).c_str(), info->m_id);
     return;
   }
 
   // mark screen as owning clipboard
-  LOG_INFO(
+  LOG_DEBUG(
       "screen \"%s\" grabbed clipboard %d from \"%s\"", getName(grabber).c_str(), info->m_id,
       clipboard.m_clipboardOwner.c_str()
   );
@@ -1210,7 +1229,7 @@ void Server::handleClipboardGrabbed(const Event &event, BaseClientProxy *grabber
   }
 
   if (grabber == m_primaryClient && m_active != m_primaryClient) {
-    LOG_INFO("clipboard grabbed while active screen was changed, resending clipboard data");
+    LOG_DEBUG("clipboard grabbed while active screen was changed, resending clipboard data");
     onClipboardChanged(m_primaryClient, info->m_id, clipboard.m_clipboardSeqNum);
   }
 }
