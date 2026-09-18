@@ -23,7 +23,7 @@ public:
   PortalRemoteDesktop(EiScreen *screen, IEventQueue *events);
   ~PortalRemoteDesktop();
 
-  void claimClipboard();
+  void claimClipboard() const;
 
 private:
   void glibThread(const void *);
@@ -32,8 +32,8 @@ private:
   void handleInitSession(GObject *object, GAsyncResult *res);
   void handleSessionStarted(GObject *object, GAsyncResult *res);
   void handleSessionClosed(XdpSession *session);
-  void handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial);
-  void handleSelectionOwnerChanged(XdpSession *session, char **mimeTypes, gboolean isOwner);
+  void handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial) const;
+  void handleSelectionOwnerChanged(XdpSession *session, char **mimeTypes, gboolean isOwner) const;
   void reconnect(unsigned int timeout = 1000);
 
   static void handleSessionClosedCallback(XdpSession *session, gpointer data)

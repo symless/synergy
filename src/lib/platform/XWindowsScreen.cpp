@@ -400,6 +400,10 @@ void XWindowsScreen::resetOptions()
 
 void XWindowsScreen::setOptions(const OptionsList &options)
 {
+  if (options.size() % 2 != 0) {
+    LOG_ERR("options are the incorrect size, can not process them");
+    return;
+  }
   for (uint32_t i = 0, n = options.size(); i < n; i += 2) {
     if (options[i] == kOptionXTestXineramaUnaware) {
       m_xtestIsXineramaUnaware = (options[i + 1] != 0);
@@ -1897,6 +1901,11 @@ void XWindowsScreen::refreshKeyboard(XEvent *event)
       // we tend to get a bunch of these in a row.
       return;
     }
+  }
+
+  // a later key up after the refresh doesn't properly release modifiers
+  if (!m_isPrimary) {
+    m_keyState->fakeAllKeysUp();
   }
 
   // keyboard mapping changed

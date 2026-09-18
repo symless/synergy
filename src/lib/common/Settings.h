@@ -41,6 +41,7 @@ public:
     inline static const auto XScrollScale = QStringLiteral("client/xScrollScale");
     inline static const auto LanguageSync = QStringLiteral("client/languageSync");
     inline static const auto RemoteHost = QStringLiteral("client/remoteHost");
+    inline static const auto XdpClipboardRetried = QStringLiteral("client/xdpClipboardRetried");
     inline static const auto XdpRestoreToken = QStringLiteral("client/xdpRestoreToken");
   };
   struct Core
@@ -102,9 +103,11 @@ public:
   };
   struct Server
   {
+    inline static const auto ClipboardSize = QStringLiteral("server/clipboardSize");
     inline static const auto ExternalConfig = QStringLiteral("server/externalConfig");
     inline static const auto ExternalConfigFile = QStringLiteral("server/externalConfigFile");
     inline static const auto Protocol = QStringLiteral("server/protocol");
+    inline static const auto XdpClipboardRetried = QStringLiteral("server/xdpClipboardRetried");
     inline static const auto XdpRestoreToken = QStringLiteral("server/xdpRestoreToken");
   };
 
@@ -196,6 +199,7 @@ private:
     , Settings::Client::RemoteHost
     , Settings::Client::YScrollScale
     , Settings::Client::XScrollScale
+    , Settings::Client::XdpClipboardRetried
     , Settings::Client::XdpRestoreToken
     , Settings::Core::CoreMode
     , Settings::Core::Interface
@@ -237,9 +241,11 @@ private:
     , Settings::Security::CheckPeers
     , Settings::Security::KeySize
     , Settings::Security::TlsEnabled
+    , Settings::Server::ClipboardSize
     , Settings::Server::ExternalConfig
     , Settings::Server::ExternalConfigFile
     , Settings::Server::Protocol
+    , Settings::Server::XdpClipboardRetried
     , Settings::Server::XdpRestoreToken
   };
 
@@ -275,7 +281,11 @@ private:
   };
 
   // Settings saved in our State file
-  inline static const QStringList m_stateKeys = { Settings::Gui::WindowGeometry };
+  inline static const QStringList m_stateKeys = {
+      Settings::Gui::WindowGeometry
+    , Settings::Client::XdpClipboardRetried
+    , Settings::Server::XdpClipboardRetried
+  };
 
   // Contains settings keys to be upgraded.
   inline static const QMap<QString, QString> m_upgradedMap = {

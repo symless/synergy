@@ -199,6 +199,9 @@ QVariant Settings::defaultValue(const QString &key)
   if (key == Core::Port)
     return 24800;
 
+  if (key == Server::ClipboardSize)
+    return 3; // MiB
+
   if (key == Core::ProcessMode) {
 #ifdef Q_OS_WIN
     if (!Settings::isPortableMode())

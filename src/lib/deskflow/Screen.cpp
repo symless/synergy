@@ -78,7 +78,7 @@ Screen::~Screen()
   // Perhaps it indicates that the cursor is still being controlled on the
   // client while it's shutting down? i.e. the screen is entered and is not the
   // server, or the screen is not entered and is the server.
-  if (m_entered == m_isPrimary) {
+  if (m_entered != m_isPrimary) {
     LOG(
         (CLOG_DEBUG "current screen: entered=%s, primary=%s", //
          m_entered ? "yes" : "no", m_isPrimary ? "yes" : "no")
@@ -281,6 +281,11 @@ void Screen::resetOptions()
 
 void Screen::setOptions(const OptionsList &options)
 {
+  if (options.size() % 2 != 0) {
+    LOG_ERR("options are the incorrect size, can not process them");
+    return;
+  }
+
   // update options
   for (uint32_t i = 0, n = (uint32_t)options.size(); i < n; i += 2) {
     if (options[i] == kOptionHalfDuplexCapsLock) {

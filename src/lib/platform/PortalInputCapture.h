@@ -10,6 +10,7 @@
 
 #include "mt/Thread.h"
 #include "platform/EiScreen.h"
+#include "platform/XDGSessionMonitor.h"
 
 #include <QByteArray>
 
@@ -19,6 +20,7 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -47,6 +49,9 @@ private:
   void glibThread(const void *);
   gboolean timeoutHandler() const;
   gboolean initSession();
+  void scheduleInit(unsigned int delayMs);
+  void retryInit();
+  void clearSessionState();
   void setupSession(XdpInputCaptureSession *session);
   void handleStart(GObject *object, GAsyncResult *res);
   void handleInitSession(GObject *object, GAsyncResult *res);
@@ -58,9 +63,9 @@ private:
   handleDeactivated(const XdpInputCaptureSession *session, const std::uint32_t activationId, const GVariant *options);
   void handleZonesChanged(XdpInputCaptureSession *session, const GVariant *options);
 
-  void handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial);
-  void readClipboardSelection(XdpSession *session);
-  void claimClipboardOwnership(XdpSession *session);
+  void handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial) const;
+  void readClipboardSelection(XdpSession *session) const;
+  void claimClipboardOwnership(XdpSession *session) const;
 
   /// g_signal_connect callback wrapper
   static void sessionClosed(XdpSession *session, const gpointer data)
@@ -93,7 +98,6 @@ private:
     static_cast<PortalInputCapture *>(data)->handleSelectionTransfer(session, mimeType, serial);
   }
 
-private:
   enum class Signal : uint8_t
   {
     SessionClosed,
@@ -168,6 +172,11 @@ private:
   bool m_enabled = false;
   bool m_isActive = false;
   std::uint32_t m_activationId = 0;
+
+  std::unique_ptr<XDGSessionMonitor> m_sessionMonitor;
+  guint m_initSource = 0;
+  unsigned int m_retryDelay = 0;
+  bool m_initDeferred = false;
 
   std::vector<XdpInputCapturePointerBarrier *> m_barriers;
   std::vector<BarrierInfo> m_barrierInfo;

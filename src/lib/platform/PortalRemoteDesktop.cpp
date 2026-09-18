@@ -92,36 +92,49 @@ void PortalRemoteDesktop::handleSessionStarted(GObject *object, GAsyncResult *re
   g_autoptr(GError) error = nullptr;
   auto session = XDP_SESSION(object);
   if (!xdp_session_start_finish(session, res, &error)) {
-    LOG_ERR("failed to start portal remote desktop session, quitting: %s", error->message);
-    g_main_loop_quit(m_glibMainLoop);
-    m_events->addEvent(Event(EventTypes::Quit));
+    if (m_sessionIteration <= 1) {
+      LOG_ERR("failed to start portal remote desktop session, quitting: %s", error->message);
+      g_main_loop_quit(m_glibMainLoop);
+      m_events->addEvent(Event(EventTypes::Quit));
+      return;
+    }
+    LOG_DEBUG("failed to start portal remote desktop session, retrying: %s", error->message);
+    g_clear_object(&m_session);
+    reconnect(1000);
     return;
   }
 
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   if (!xdp_session_is_clipboard_enabled(session)) {
-    LOG_WARN("clipboard not enabled on remote desktop session, discarding restore token to force a fresh session");
-    Settings::setValue(Settings::Client::XdpRestoreToken, QString());
-    free(m_sessionRestoreToken);
-    m_sessionRestoreToken = nullptr;
-    if (m_selectionTransferSignalId) {
-      g_signal_handler_disconnect(session, m_selectionTransferSignalId);
-      m_selectionTransferSignalId = 0;
+    if (Settings::value(Settings::Client::XdpClipboardRetried).toBool()) {
+      // some backends never report clipboard enabled even when granted; don't loop forever
+      LOG_DEBUG("clipboard still not enabled on remote desktop session after one retry, continuing without it");
+    } else {
+      LOG_WARN("clipboard not enabled on remote desktop session, discarding restore token to force a fresh session");
+      Settings::setValue(Settings::Client::XdpRestoreToken, QString());
+      Settings::setValue(Settings::Client::XdpClipboardRetried, true);
+      free(m_sessionRestoreToken);
+      m_sessionRestoreToken = nullptr;
+      if (m_selectionTransferSignalId) {
+        g_signal_handler_disconnect(session, m_selectionTransferSignalId);
+        m_selectionTransferSignalId = 0;
+      }
+      if (m_selectionOwnerChangedSignalId) {
+        g_signal_handler_disconnect(session, m_selectionOwnerChangedSignalId);
+        m_selectionOwnerChangedSignalId = 0;
+      }
+      if (m_sessionSignalId) {
+        g_signal_handler_disconnect(session, m_sessionSignalId);
+        m_sessionSignalId = 0;
+      }
+      g_clear_object(&m_session);
+      reconnect(0);
+      return;
     }
-    if (m_selectionOwnerChangedSignalId) {
-      g_signal_handler_disconnect(session, m_selectionOwnerChangedSignalId);
-      m_selectionOwnerChangedSignalId = 0;
-    }
-    if (m_sessionSignalId) {
-      g_signal_handler_disconnect(session, m_sessionSignalId);
-      m_sessionSignalId = 0;
-    }
-    g_clear_object(&m_session);
-    reconnect(0);
-    return;
   }
 #endif
 
+  free(m_sessionRestoreToken);
   m_sessionRestoreToken = xdp_session_get_restore_token(session);
   if (m_sessionRestoreToken) {
     Settings::setValue(Settings::Client::XdpRestoreToken, QString(m_sessionRestoreToken));
@@ -219,7 +232,7 @@ void PortalRemoteDesktop::glibThread(const void *)
   }
 }
 
-void PortalRemoteDesktop::claimClipboard()
+void PortalRemoteDesktop::claimClipboard() const
 {
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   if (!m_session) {
@@ -227,14 +240,14 @@ void PortalRemoteDesktop::claimClipboard()
     return;
   }
   if (!xdp_session_is_clipboard_enabled(m_session)) {
-    LOG_WARN("portal remote desktop clipboard not enabled on session, cannot claim");
+    LOG_DEBUG("portal remote desktop clipboard not enabled on session, cannot claim");
     return;
   }
   PortalClipboard::claimOwnership(m_screen->getClipboardCache(), m_session);
 #endif
 }
 
-void PortalRemoteDesktop::handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial)
+void PortalRemoteDesktop::handleSelectionTransfer(XdpSession *session, const char *mimeType, uint32_t serial) const
 {
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   PortalClipboard::serveSelectionTransfer(m_screen->getClipboardCache(), session, mimeType, serial);
@@ -245,7 +258,7 @@ void PortalRemoteDesktop::handleSelectionTransfer(XdpSession *session, const cha
 #endif
 }
 
-void PortalRemoteDesktop::handleSelectionOwnerChanged(XdpSession *session, char **mimeTypes, gboolean isOwner)
+void PortalRemoteDesktop::handleSelectionOwnerChanged(XdpSession *session, char **mimeTypes, gboolean isOwner) const
 {
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   if (isOwner) {

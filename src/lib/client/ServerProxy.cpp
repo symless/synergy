@@ -55,6 +55,7 @@ ServerProxy::~ServerProxy()
 {
   setKeepAliveRate(-1.0);
   m_events->removeHandler(EventTypes::StreamInputReady, m_stream->getEventTarget());
+  m_events->removeHandler(EventTypes::ClipboardSending, this);
 }
 
 void ServerProxy::resetKeepAliveAlarm()
@@ -85,7 +86,7 @@ void ServerProxy::handleData()
     // verify we got an entire code
     if (n != 4) {
       LOG_ERR("incomplete message from server: %d bytes", n);
-      m_client->disconnect("incomplete message from server");
+      requestDisconnect("incomplete message from server");
       return;
     }
 
@@ -111,7 +112,7 @@ void ServerProxy::handleData()
     } catch (const BadClientException &e) {
       LOG_ERR("protocol error from server: %s", e.what());
       ProtocolUtil::writef(m_stream, kMsgEBad);
-      m_client->disconnect("invalid message from server");
+      requestDisconnect("invalid message from server");
       return;
     }
 
@@ -166,7 +167,7 @@ ServerProxy::ConnectionResult ServerProxy::parseHandshakeMessage(const uint8_t *
   else if (memcmp(code, kMsgCClose, 4) == 0) {
     // server wants us to hangup
     LOG_VERBOSE("recv close");
-    m_client->disconnect(nullptr);
+    requestDisconnect(nullptr);
     return Disconnect;
   }
 
@@ -175,25 +176,25 @@ ServerProxy::ConnectionResult ServerProxy::parseHandshakeMessage(const uint8_t *
     int32_t minor;
     ProtocolUtil::readf(m_stream, kMsgEIncompatible + 4, &major, &minor);
     LOG_ERR("server has incompatible version %d.%d", major, minor);
-    m_client->refuseConnection(IncompatibleVersion, "server has incompatible version");
+    requestRefuseConnection(IncompatibleVersion, "server has incompatible version");
     return Disconnect;
   }
 
   else if (memcmp(code, kMsgEBusy, 4) == 0) {
     LOG_ERR("server already has a connected client with name \"%s\"", m_client->getName().c_str());
-    m_client->refuseConnection(AlreadyConnected, "server already has a connected client with our name");
+    requestRefuseConnection(AlreadyConnected, "server already has a connected client with our name");
     return Disconnect;
   }
 
   else if (memcmp(code, kMsgEUnknown, 4) == 0) {
     LOG_ERR("server refused client with name \"%s\"", m_client->getName().c_str());
-    m_client->refuseConnection(UnknownClient, "server refused client with our name");
+    requestRefuseConnection(UnknownClient, "server refused client with our name");
     return Disconnect;
   }
 
   else if (memcmp(code, kMsgEBad, 4) == 0) {
     LOG_ERR("server disconnected due to a protocol error");
-    m_client->refuseConnection(ProtocolError, "server reported a protocol error");
+    requestRefuseConnection(ProtocolError, "server reported a protocol error");
     return Disconnect;
   } else if (memcmp(code, kMsgDLanguageSynchronisation, 4) == 0) {
     setServerLanguages();
@@ -311,11 +312,11 @@ ServerProxy::ConnectionResult ServerProxy::parseMessage(const uint8_t *code)
   else if (memcmp(code, kMsgCClose, 4) == 0) {
     // server wants us to hangup
     LOG_VERBOSE("recv close");
-    m_client->disconnect(nullptr);
+    requestDisconnect(nullptr);
     return Disconnect;
   } else if (memcmp(code, kMsgEBad, 4) == 0) {
     LOG_ERR("server disconnected due to a protocol error");
-    m_client->disconnect("server reported a protocol error");
+    requestDisconnect("server reported a protocol error");
     return Disconnect;
   } else {
     return Unknown;
@@ -336,7 +337,22 @@ ServerProxy::ConnectionResult ServerProxy::parseMessage(const uint8_t *code)
 void ServerProxy::handleKeepAliveAlarm()
 {
   LOG_INFO("server is dead");
-  m_client->disconnect("server is not responding");
+  requestDisconnect("server is not responding");
+}
+
+void ServerProxy::requestDisconnect(const char *message)
+{
+  m_events->addEvent(Event(
+      EventTypes::ClientDisconnectRequested, m_stream->getEventTarget(),
+      new Client::DisconnectRequest(Client::DisconnectRequest::Kind::Disconnect, message)
+  ));
+}
+
+void ServerProxy::requestRefuseConnection(deskflow::core::ConnectionRefusal reason, const char *message)
+{
+  m_events->addEvent(Event(
+      EventTypes::ClientDisconnectRequested, m_stream->getEventTarget(), new Client::DisconnectRequest(reason, message)
+  ));
 }
 
 void ServerProxy::onInfoChanged()
@@ -527,24 +543,29 @@ void ServerProxy::leave()
 void ServerProxy::setClipboard()
 {
   // parse
-  static std::string dataCached;
   ClipboardID id;
   uint32_t seq;
 
-  auto r = ClipboardChunk::assemble(m_stream, dataCached, id, seq);
+  auto r = ClipboardChunk::assemble(
+      m_stream, m_clipboardDataCached, id, seq, m_clipboardChunkState, m_client->getMaximumClipboardReceiveSizeBytes()
+  );
 
   if (r == TransferState::Started) {
-    size_t size = ClipboardChunk::getExpectedSize();
-    LOG_DEBUG("receiving clipboard %d size=%d", id, size);
+    size_t size = ClipboardChunk::getExpectedSize(m_clipboardChunkState);
+    LOG_DEBUG("receiving clipboard %d size=%zu", id, size);
   } else if (r == TransferState::Finished) {
-    LOG_DEBUG("received clipboard %d size=%d", id, dataCached.size());
+    LOG_DEBUG("received clipboard %d size=%zu", id, m_clipboardDataCached.size());
 
     // forward
     Clipboard clipboard;
-    clipboard.unmarshall(dataCached, 0);
+    clipboard.unmarshall(m_clipboardDataCached, 0);
     m_client->setClipboard(id, &clipboard);
+    m_clipboardDataCached.clear();
+    m_clipboardDataCached.shrink_to_fit();
 
     LOG_INFO("clipboard was updated");
+  } else if (r == TransferState::Error) {
+    requestDisconnect("invalid clipboard data from server");
   }
 }
 
@@ -772,6 +793,11 @@ void ServerProxy::setOptions()
   ProtocolUtil::readf(m_stream, kMsgDSetOptions + 4, &options);
   LOG_VERBOSE("recv set options size=%d", options.size());
 
+  if (options.size() % 2 != 0) {
+    LOG_ERR("options are the incorrect size, can not process them");
+    return;
+  }
+
   // forward
   m_client->setOptions(options);
 
@@ -796,7 +822,7 @@ void ServerProxy::setOptions()
     }
 
     if (id != kKeyModifierIDNull) {
-      m_modifierTranslationTable[id] = options[i + 1];
+      m_modifierTranslationTable[id] = std::clamp<KeyModifierMask>(options[i + 1], 0, kKeyModifierIDLast - 1);
       LOG_VERBOSE("modifier %d mapped to %d", id, m_modifierTranslationTable[id]);
     }
   }

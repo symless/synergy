@@ -9,6 +9,47 @@
 
 #include "base/Log.h"
 
+#include <QtEndian>
+
+#include <cstdlib>
+#include <limits>
+
+namespace {
+bool normaliseMalformedMacDib(const std::string &data, std::string &normalisedData)
+{
+  if (data.size() < sizeof(BITMAPINFOHEADER)) {
+    return false;
+  }
+
+  const auto *header = reinterpret_cast<const BITMAPINFOHEADER *>(data.data());
+  if (header->biWidth <= 0) {
+    return false;
+  }
+
+  const auto width = static_cast<size_t>(header->biWidth);
+  const auto height = static_cast<size_t>(std::abs(static_cast<int64_t>(header->biHeight)));
+  if (height == 0 || width > (std::numeric_limits<size_t>::max() - sizeof(BITMAPINFOHEADER)) / 4 / height) {
+    return false;
+  }
+  const auto expectedSize = sizeof(BITMAPINFOHEADER) + width * height * 4;
+
+  // macOS can describe an INFOHEADER-sized 32-bit pixel payload as a V5 DIB.
+  // Windows then interprets the first pixels as V5 colour masks. The pixel
+  // bytes are ordinary BGRA, so publish a canonical BI_RGB DIB instead.
+  if (header->biSize <= sizeof(BITMAPINFOHEADER) || header->biPlanes != 1 || header->biBitCount != 32 ||
+      header->biCompression != BI_BITFIELDS || expectedSize != data.size()) {
+    return false;
+  }
+
+  normalisedData = data.substr(0, sizeof(BITMAPINFOHEADER));
+  qToLittleEndian<quint32>(sizeof(BITMAPINFOHEADER), reinterpret_cast<quint8 *>(&normalisedData[0]));
+  qToLittleEndian<quint32>(BI_RGB, reinterpret_cast<quint8 *>(&normalisedData[0]) + 16);
+  normalisedData += data.substr(sizeof(BITMAPINFOHEADER));
+  LOG_INFO("normalised malformed macOS clipboard image to BI_RGB");
+  return true;
+}
+} // namespace
+
 //
 // MSWindowsClipboardBitmapConverter
 //
@@ -26,13 +67,19 @@ UINT MSWindowsClipboardBitmapConverter::getWin32Format() const
 HANDLE
 MSWindowsClipboardBitmapConverter::fromIClipboard(const std::string &data) const
 {
+  std::string normalisedData;
+  const auto *clipboardData = &data;
+  if (normaliseMalformedMacDib(data, normalisedData)) {
+    clipboardData = &normalisedData;
+  }
+
   // copy to memory handle
-  HGLOBAL gData = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, data.size());
+  HGLOBAL gData = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, clipboardData->size());
   if (gData != nullptr) {
     // get a pointer to the allocated memory
     char *dst = (char *)GlobalLock(gData);
     if (dst != nullptr) {
-      memcpy(dst, data.data(), data.size());
+      memcpy(dst, clipboardData->data(), clipboardData->size());
       GlobalUnlock(gData);
     } else {
       GlobalFree(gData);
@@ -72,6 +119,7 @@ std::string MSWindowsClipboardBitmapConverter::toIClipboard(HANDLE data) const
   BITMAPINFOHEADER info;
   LONG w = bitmap->bmiHeader.biWidth;
   LONG h = bitmap->bmiHeader.biHeight;
+  const LONG absHeight = (h < 0) ? -h : h;
   info.biSize = sizeof(BITMAPINFOHEADER);
   info.biWidth = w;
   info.biHeight = h;
@@ -85,6 +133,12 @@ std::string MSWindowsClipboardBitmapConverter::toIClipboard(HANDLE data) const
   info.biClrImportant = 0;
   HDC dc = GetDC(nullptr);
   HBITMAP dst = CreateDIBSection(dc, (BITMAPINFO *)&info, DIB_RGB_COLORS, &raw, nullptr, 0);
+  if (dst == nullptr || raw == nullptr) {
+    LOG_WARN("failed to allocate destination bitmap for clipboard image");
+    ReleaseDC(nullptr, dc);
+    GlobalUnlock(data);
+    return std::string();
+  }
 
   // find the start of the pixel data
   const char *srcBits = (const char *)bitmap + bitmap->bmiHeader.biSize;
@@ -103,14 +157,14 @@ std::string MSWindowsClipboardBitmapConverter::toIClipboard(HANDLE data) const
   // copy source image to destination image
   HDC dstDC = CreateCompatibleDC(dc);
   HGDIOBJ oldBitmap = SelectObject(dstDC, dst);
-  SetDIBitsToDevice(dstDC, 0, 0, w, h, 0, 0, 0, h, srcBits, bitmap, DIB_RGB_COLORS);
+  SetDIBitsToDevice(dstDC, 0, 0, w, absHeight, 0, 0, 0, absHeight, srcBits, bitmap, DIB_RGB_COLORS);
   SelectObject(dstDC, oldBitmap);
   DeleteDC(dstDC);
   GdiFlush();
 
   // extract data
   std::string image((const char *)&info, info.biSize);
-  image.append((const char *)raw, 4 * w * h);
+  image.append((const char *)raw, static_cast<size_t>(4) * static_cast<size_t>(w) * static_cast<size_t>(absHeight));
 
   // clean up GDI
   DeleteObject(dst);

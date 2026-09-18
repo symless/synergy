@@ -28,6 +28,8 @@
 #include <QMutexLocker>
 #include <QRegularExpression>
 
+#include <memory>
+
 namespace deskflow::gui {
 
 const int kRetryDelay = 1000;
@@ -107,7 +109,6 @@ CoreProcess::CoreProcess(const ServerConfig &serverConfig)
   m_appPath = QStringLiteral("%1/%2").arg(QCoreApplication::applicationDirPath(), kCoreBinName);
   if (!QFile::exists(m_appPath)) {
     qCritical("core server binary does not exist");
-    return;
   }
 
   connect(m_daemonIpcClient, &ipc::DaemonIpcClient::connected, this, &CoreProcess::daemonIpcClientConnected);
@@ -217,7 +218,7 @@ void CoreProcess::startForegroundProcess(const QStringList &args)
   using enum ProcessState;
 
   if (m_processState != Starting) {
-    qCritical("core process must be in starting state");
+    qCritical("not starting core desktop process, unexpected process state");
     return;
   }
 
@@ -249,7 +250,7 @@ void CoreProcess::startForegroundProcess(const QStringList &args)
 void CoreProcess::startProcessFromDaemon()
 {
   if (m_processState != ProcessState::Starting) {
-    qCritical("core process must be in starting state");
+    qCritical("not starting core process from daemon, unexpected process state");
     return;
   }
 
@@ -284,23 +285,48 @@ void CoreProcess::startProcessFromDaemon()
   }
 }
 
-void CoreProcess::stopForegroundProcess() const
+void CoreProcess::stopForegroundProcess()
 {
   if (m_processState != ProcessState::Stopping) {
-    qCritical("core process must be in stopping state");
+    qCritical("not stopping core desktop process, unexpected process state");
     return;
   }
 
   if (!m_process) {
-    qCritical("process not set, cannot stop");
+    qCritical("not stopping core desktop process, no process to stop");
     return;
   }
 
   qInfo("stopping core desktop process");
+  if (m_coreIpcClient && m_coreIpcClient->isConnected()) {
+    qDebug("sending stop command to core process");
+    m_coreIpcClient->sendStop();
+
+    // Fallback: if the core doesn't confirm shutdown via IPC within the
+    // timeout, force-terminate it so we never hang in the Stopping state.
+    QTimer::singleShot(kRetryDelay, this, [this] {
+      if (m_processState != ProcessState::Stopping) {
+        return;
+      }
+
+      qWarning("core process did not confirm graceful stop in time, forcing terminate");
+
+      if (m_coreIpcClient) {
+        m_coreIpcClient->disconnectFromServer();
+        m_coreIpcClient->deleteLater();
+        m_coreIpcClient = nullptr;
+      }
+
+      if (m_process && m_process->state() == QProcess::ProcessState::Running) {
+        m_process->terminate();
+      }
+    });
+    return;
+  }
 
   if (m_process->state() == QProcess::ProcessState::Running) {
-    qDebug("process is running, closing");
-    m_process->close();
+    qDebug("process is running, terminating");
+    m_process->terminate();
   } else {
     qDebug("process is not running, skipping terminate");
   }
@@ -309,7 +335,7 @@ void CoreProcess::stopForegroundProcess() const
 void CoreProcess::stopProcessFromDaemon()
 {
   if (m_processState != ProcessState::Stopping) {
-    qCritical("core process must be in stopping state");
+    qCritical("not stopping core process from daemon, unexpected process state");
     return;
   }
 
@@ -378,12 +404,12 @@ void CoreProcess::handleLogLines(const QString &text)
 void CoreProcess::start(std::optional<ProcessMode> processModeOption)
 {
   if (m_processState == ProcessState::Started) {
-    qCritical("core process already started");
+    qCritical("not starting core process, already started");
     return;
   }
 
   if (m_mode == Settings::CoreMode::None) {
-    qCritical("core mode is not set, skipping core start");
+    qCritical("not starting core process, no core mode set");
     return;
   }
 
@@ -431,7 +457,10 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
   if (m_mode == Settings::CoreMode::Server) {
     const auto [hasNeededPermissions, configFilename] = persistServerConfig();
     if (configFilename.isEmpty()) {
-      qCritical("config file name empty for server args");
+      qCritical("not starting core process, no server config file");
+      setProcessState(ProcessState::Stopped);
+      setConnectionState(ConnectionState::Disconnected);
+      Q_EMIT error(Error::StartFailed);
       return;
     }
     if (!hasNeededPermissions) {
@@ -468,6 +497,12 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
             return;
           }
 
+          if (m_coreIpcClient) {
+            m_coreIpcClient->disconnectFromServer();
+            m_coreIpcClient->deleteLater();
+            m_coreIpcClient = nullptr;
+          }
+
           m_coreIpcClient = new ipc::CoreIpcClient(this);
           connect(m_coreIpcClient, &ipc::CoreIpcClient::commandReceived, this, &CoreProcess::onCoreIpcMessageReceived);
           connect(m_coreIpcClient, &ipc::CoreIpcClient::connected, this, [] {
@@ -476,8 +511,11 @@ void CoreProcess::start(std::optional<ProcessMode> processModeOption)
           connect(m_coreIpcClient, &ipc::CoreIpcClient::connectionFailed, this, [] {
             qWarning("failed to establish core ipc connection");
           });
-          connect(m_coreIpcClient, &ipc::CoreIpcClient::serverShutdown, this, [] {
+          connect(m_coreIpcClient, &ipc::CoreIpcClient::serverShutdown, this, [this, client = m_coreIpcClient] {
             qDebug("core ipc server shut down cleanly");
+            client->deleteLater();
+            if (m_coreIpcClient == client)
+              m_coreIpcClient = nullptr;
           });
 
           m_coreIpcClient->connectToServer();
@@ -508,7 +546,7 @@ void CoreProcess::stop(std::optional<ProcessMode> processModeOption)
 
   qInfo("stopping core process (%s mode)", qPrintable(processModeToString(processMode)));
 
-  if (m_coreIpcClient) {
+  if (m_coreIpcClient && processMode != ProcessMode::Desktop) {
     m_coreIpcClient->disconnectFromServer();
     m_coreIpcClient->deleteLater();
     m_coreIpcClient = nullptr;
@@ -539,6 +577,34 @@ void CoreProcess::restart()
 
   const auto processMode = Settings::value(Settings::Core::ProcessMode).value<ProcessMode>();
 
+  const bool waitForProcess = m_process && m_process->state() != QProcess::ProcessState::NotRunning;
+
+  if (waitForProcess) {
+    qInfo("waiting for current desktop core to exit before restarting");
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    connect(
+        m_process, &QProcess::finished, this,
+        [this](int, QProcess::ExitStatus) {
+          qInfo("desktop core exited, restarting");
+          start();
+        },
+        Qt::SingleShotConnection
+    );
+#else
+    auto connection = std::make_shared<QMetaObject::Connection>();
+    *connection = connect(
+        m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+        [this, connection](int, QProcess::ExitStatus) {
+          disconnect(*connection);
+          qInfo("desktop core exited, restarting");
+          start();
+        },
+        Qt::QueuedConnection
+    );
+#endif
+  }
+
   if (m_lastProcessMode != std::nullopt && m_lastProcessMode != processMode) {
     const auto debugMessage =
         QStringLiteral("process mode changed to %1, stopping %2 process")
@@ -552,7 +618,9 @@ void CoreProcess::restart()
     stop();
   }
 
-  start();
+  if (!waitForProcess) {
+    start();
+  }
 }
 
 void CoreProcess::cleanup()
@@ -701,7 +769,7 @@ void CoreProcess::clearSettings()
   }
 
   if (processMode != ProcessMode::Service) {
-    qCritical("invalid process mode");
+    qCritical("not clearing core settings, unexpected process mode");
     return;
   }
 
