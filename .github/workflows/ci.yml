@@ -434,6 +434,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Each leg builds in its distro's own container against that distro's libraries, so
+        # the package matches what users have installed. Legs without libei or libportal
+        # >= 0.8 build X11-only. Drop a leg once its distro is EOL (Ubuntu 22.04: 2027-06).
         target:
           - name: "debian-13-x86_64"
             runs-on: ubuntu-latest
@@ -502,13 +505,13 @@ jobs:
             runs-on: ubuntu-latest
             container: rockylinux:8
             like: "rhel"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF -DQT_VERSION_OVERRIDE=5.13 -DOPENSSL_VERSION_OVERRIDE=1.1.1"
 
           - name: "rocky-9-x86_64"
             runs-on: ubuntu-latest
             container: rockylinux:9
             like: "rhel"
-            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF -DQT_VERSION_OVERRIDE=5.13 -DOPENSSL_VERSION_OVERRIDE=1.1.1"
 
           - name: "opensuse-x86_64"
             runs-on: ubuntu-latest
@@ -527,6 +530,18 @@ jobs:
             container: archlinux:latest
             like: "arch"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_DEV_DOCS=ON"
+
+          - name: "ubuntu-22.04-x86_64"
+            runs-on: ubuntu-latest
+            container: ubuntu:22.04
+            like: "debian"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DQT_VERSION_OVERRIDE=6.2.0"
+
+          - name: "ubuntu-22.04-arm64"
+            runs-on: ubuntu-24.04-arm
+            container: ubuntu:22.04
+            like: "debian"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF -DQT_VERSION_OVERRIDE=6.2.0"
 
           - name: "ubuntu-24.04-x86_64"
             runs-on: ubuntu-latest

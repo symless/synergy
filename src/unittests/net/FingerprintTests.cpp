@@ -128,7 +128,7 @@ void FingerprintTests::test_fromDbLine()
   actual = Fingerprint::fromDbLine(
       "23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23:23"
   );
-  QCOMPARE_NE(actual, expected);
+  QVERIFY(actual != expected);
 
   // V2 SHA1 Test
   expected.type = QCryptographicHash::Sha1;
@@ -139,7 +139,7 @@ void FingerprintTests::test_fromDbLine()
 
   // V2 SHA1 Invalid Input
   actual = Fingerprint::fromDbLine("v2:sha1:23232323232323232323232323232323232323");
-  QCOMPARE_NE(actual, expected);
+  QVERIFY(actual != expected);
 
   // V2 SHA256 Test
   expected.type = QCryptographicHash::Sha256;
@@ -153,7 +153,7 @@ void FingerprintTests::test_fromDbLine()
 
   // V2 SHA256 Invalid Input
   actual = Fingerprint::fromDbLine("v2:sha256:232323232323232323232323232323232323232323232323232323");
-  QCOMPARE_NE(actual, expected);
+  QVERIFY(actual != expected);
 }
 
 void FingerprintTests::test_typeToString()

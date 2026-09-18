@@ -21,13 +21,6 @@ macro(configure_libs)
 
   find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets Network)
 
-  # RHEL 8.10 (the only Qt5 target) ships Qt 5.13 and OpenSSL 1.1.1, below the Qt 6.4 /
-  # OpenSSL 3.0 floors the Qt6 build assumes.
-  if(QT_VERSION_MAJOR EQUAL 5)
-    set(REQUIRED_QT_VERSION 5.13)
-    set(REQUIRED_OPENSSL_VERSION 1.1.1)
-  endif()
-
   find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS Core Widgets Network)
   if(UNIX AND NOT APPLE)
       find_package(Qt${QT_VERSION_MAJOR} ${REQUIRED_QT_VERSION} REQUIRED COMPONENTS DBus Xml)
