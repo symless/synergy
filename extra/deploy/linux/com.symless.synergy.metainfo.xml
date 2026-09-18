@@ -35,6 +35,17 @@
 	</branding>
 	<content_rating type="oars-1.0" />
 	<releases>
+		<release version="1.21.1" date="2026-06-22" urgency="medium">
+			<description>
+				<p>Highlights since the previous release:</p>
+				<ul>
+					<li>Clipboard sharing now works on Wayland, using the desktop portals.</li>
+					<li>The version shown in the interface no longer repeats the commit hash.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
+			</description>
+			<url>https://symless.com/synergy/download</url>
+		</release>
 		<release version="1.21.0" date="2026-06-02" urgency="medium">
 			<description>
 				<p>
