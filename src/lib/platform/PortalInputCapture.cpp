@@ -20,6 +20,7 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <limits>
 #include <poll.h>
@@ -35,6 +36,20 @@
 #include <QtEndian>
 
 namespace deskflow {
+
+namespace {
+
+// GNOME needs a moment after unlock or resume before the portal backend can restore a session.
+const guint kReadySettleMs = 500;
+
+// The clipboard upgrade in setupSession() recreates the session without its restore token. A
+// session restored during a background reconnect can lack the clipboard only transiently, and
+// discarding the token then costs the user a fresh permission prompt on unlock, so the upgrade is
+// only attempted on the first session of the process. The capture object is recreated on every
+// EIS disconnect, hence process scope rather than a member.
+std::atomic<bool> s_pastFirstSession{false};
+
+} // namespace
 
 const char *PortalInputCapture::barrierSideName(BarrierSide side)
 {
@@ -180,13 +195,19 @@ PortalInputCapture::PortalInputCapture(EiScreen *screen, IEventQueue *events)
   auto tMethodJob = new TMethodJob<PortalInputCapture>(this, &PortalInputCapture::glibThread);
   m_glibThread = new Thread(tMethodJob);
 
-  auto captureCallback = [](gpointer data) { return static_cast<PortalInputCapture *>(data)->initSession(); };
-
-  g_idle_add(captureCallback, this);
+  scheduleInit(0);
 }
 
 PortalInputCapture::~PortalInputCapture()
 {
+  if (m_initSource) {
+    g_source_remove(m_initSource);
+  }
+  if (m_enableSource) {
+    g_source_remove(m_enableSource);
+  }
+  m_sessionMonitor.reset();
+
   if (g_main_loop_is_running(m_glibMainLoop))
     g_main_loop_quit(m_glibMainLoop);
 
@@ -239,12 +260,15 @@ gboolean PortalInputCapture::timeoutHandler() const
 
 void PortalInputCapture::handleSessionClosed(XdpSession *session)
 {
-  LOG_ERR("portal input capture session was closed, exiting");
-  g_main_loop_quit(m_glibMainLoop);
-  m_events->addEvent(Event(EventTypes::Quit));
+  LOG_WARN("portal input capture session was closed, reconnecting");
 
   g_signal_handler_disconnect(session, m_signals.at(Signal::SessionClosed));
   m_signals.at(Signal::SessionClosed) = 0;
+
+  // Tag the event so a replaced capture object cannot trigger a second reconnect
+  m_events->addEvent(
+      Event(EventTypes::EISessionClosed, m_screen->getEventTarget(), this, Event::EventFlags::DontFreeData)
+  );
 }
 
 void PortalInputCapture::claimClipboardOwnership([[maybe_unused]] XdpSession *session) const
@@ -294,8 +318,11 @@ void PortalInputCapture::setupSession(XdpInputCaptureSession *session)
   XdpSession *parentSession = xdp_input_capture_session_get_session(session);
 
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
+  const bool firstSession = !s_pastFirstSession.exchange(true);
   if (!xdp_session_is_clipboard_enabled(parentSession) && m_portalVersion > 1) {
-    if (Settings::value(Settings::Server::XdpClipboardRetried).toBool()) {
+    if (!firstSession) {
+      LOG_DEBUG("clipboard not enabled on reconnected session, continuing without it");
+    } else if (Settings::value(Settings::Server::XdpClipboardRetried).toBool()) {
       // some backends never report clipboard enabled even when granted; don't loop forever
       LOG_DEBUG("clipboard still not enabled on session after one retry, continuing without it");
     } else {
@@ -306,7 +333,7 @@ void PortalInputCapture::setupSession(XdpInputCaptureSession *session)
       Settings::setValue(Settings::Server::XdpClipboardRetried, true);
       g_object_unref(m_session);
       m_session = nullptr;
-      g_idle_add([](gpointer data) { return static_cast<PortalInputCapture *>(data)->initSession(); }, this);
+      scheduleInit(0);
       return;
     }
   }
@@ -560,8 +587,40 @@ void PortalInputCapture::addBarrier(
   m_barrierInfo.push_back({id, side, zoneX, zoneY, zoneWidth, zoneHeight, x1, y1, x2, y2});
 }
 
+void PortalInputCapture::scheduleInit(guint delayMs)
+{
+  if (m_initSource) {
+    g_source_remove(m_initSource);
+  }
+
+  auto callback = [](gpointer data) -> gboolean {
+    auto self = static_cast<PortalInputCapture *>(data);
+    self->m_initSource = 0;
+    return self->initSession();
+  };
+  m_initSource = delayMs > 0 ? g_timeout_add(delayMs, callback, this) : g_idle_add(callback, this);
+}
+
 gboolean PortalInputCapture::initSession()
 {
+  // Created here, on the GLib context this callback runs on, rather than in the
+  // constructor, which runs on a thread whose context nothing iterates
+  if (!m_sessionMonitor) {
+    m_sessionMonitor = std::make_unique<XDGSessionMonitor>([this] {
+      if (m_initDeferred) {
+        m_initDeferred = false;
+        LOG_INFO("desktop is unlocked and awake, setting up input capture session");
+        scheduleInit(kReadySettleMs);
+      }
+    });
+  }
+
+  if (!m_sessionMonitor->isReady()) {
+    LOG_INFO("input capture session deferred until the desktop is unlocked and awake");
+    m_initDeferred = true;
+    return false;
+  }
+
   LOG_DEBUG("setting up input capture session");
   XdpInputCaptureSession *session;
 #ifdef HAVE_LIBPORTAL_INPUTCAPTURE_RESTORE
@@ -686,10 +745,15 @@ void PortalInputCapture::handleDisabled(const XdpInputCaptureSession *, const GV
   // will), so we just assume that the zones will change or something and we
   // can re-enable again
   // ... very soon
-  g_timeout_add(
+  if (m_enableSource) {
+    g_source_remove(m_enableSource);
+  }
+  m_enableSource = g_timeout_add(
       1000,
       [](gpointer data) -> gboolean {
-        static_cast<PortalInputCapture *>(data)->enable();
+        auto self = static_cast<PortalInputCapture *>(data);
+        self->m_enableSource = 0;
+        self->enable();
         return false;
       },
       this

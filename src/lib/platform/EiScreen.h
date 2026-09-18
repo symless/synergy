@@ -129,6 +129,7 @@ private:
 
   void handleConnectedToEisEvent(const Event &event);
   void handlePortalSessionClosed();
+  void recreatePortalInputCapture();
   void ensureEmulating() const;
   void stopEmulating() const;
   void cancelIdleEmulationTimer() const;

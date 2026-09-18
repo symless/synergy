@@ -58,6 +58,13 @@ EiScreen::EiScreen(bool isPrimary, IEventQueue *events, bool usePortal)
     m_events->addHandler(EventTypes::EIConnected, getEventTarget(), [this](const auto &e) {
       handleConnectedToEisEvent(e);
     });
+    m_events->addHandler(EventTypes::EISessionClosed, getEventTarget(), [this](const auto &e) {
+      if (m_isPrimary && e.getData() != nullptr && e.getData() != m_portalInputCapture) {
+        LOG_DEBUG("ignoring session closed from a replaced portal input capture");
+        return;
+      }
+      handlePortalSessionClosed();
+    });
     if (isPrimary) {
       // Portal input capture manages its own clipboard
       m_portalInputCapture = new PortalInputCapture(this, m_events);
@@ -65,9 +72,6 @@ EiScreen::EiScreen(bool isPrimary, IEventQueue *events, bool usePortal)
       m_portalGlobalShortcuts = new PortalGlobalShortcuts(this, m_events);
 #endif
     } else {
-      m_events->addHandler(EventTypes::EISessionClosed, getEventTarget(), [this](const auto &) {
-        handlePortalSessionClosed();
-      });
       m_portalRemoteDesktop = new PortalRemoteDesktop(this, m_events);
       // Create clipboard for remote desktop (secondary screen)
       m_clipboard = new EiClipboard(kClipboardClipboard);
@@ -944,8 +948,27 @@ void EiScreen::handlePortalSessionClosed()
   // Portal may or may not EI_EVENT_DISCONNECT us before sending the DBus Closed
   // signal. Let's clean up either way.
   LOG_DEBUG("eis screen handling portal session closed");
+  if (m_isPrimary) {
+    recreatePortalInputCapture();
+  }
   cleanupEi();
   initEi();
+}
+
+// We must release the xdg-portal InputCapture in case it is still active
+// so that the cursor is usable and not stuck on the deskflow server.
+void EiScreen::recreatePortalInputCapture()
+{
+  if (!m_portalInputCapture) {
+    return;
+  }
+
+  LOG_DEBUG("re-allocating portal input capture connection and releasing active captures");
+  if (m_portalInputCapture->isActive()) {
+    m_portalInputCapture->release();
+  }
+  delete m_portalInputCapture;
+  m_portalInputCapture = new PortalInputCapture(this, m_events);
 }
 
 void EiScreen::handleSystemEvent(const Event &)
@@ -995,20 +1018,7 @@ void EiScreen::handleSystemEvent(const Event &)
     case EI_EVENT_DISCONNECT:
       // We're using libei which emulates the various seat/device remove events
       // so by the time we get here our EiScreen should be in a neutral state.
-      //
-      // We must release the xdg-portal InputCapture in case it is still active
-      // so that the cursor is usable and not stuck on the deskflow server.
       LOG_WARN("disconnected from eis, will afterwards commence attempt to reconnect");
-      if (m_isPrimary) {
-        LOG_DEBUG("re-allocating portal input capture connection and releasing active captures");
-        if (m_portalInputCapture) {
-          if (m_portalInputCapture->isActive()) {
-            m_portalInputCapture->release();
-          }
-          delete m_portalInputCapture;
-          m_portalInputCapture = new PortalInputCapture(this, this->m_events);
-        }
-      }
       this->handlePortalSessionClosed();
       break;
     case EI_EVENT_DEVICE_PAUSED:
