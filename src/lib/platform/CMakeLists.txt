@@ -161,6 +161,8 @@ elseif(UNIX)
         PortalInputCapture.h
         PortalRemoteDesktop.cpp
         PortalRemoteDesktop.h
+        XDGSessionMonitor.cpp
+        XDGSessionMonitor.h
       )
       if(HAVE_LP_CLIPBOARD)
         list(APPEND PLATFORM_SOURCES
