@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: (C) 2024 - 2025 Deskflow Developers
-# SPDX-FileCopyrightText: (C) 2024 Symless Ltd
+# SPDX-FileCopyrightText: (C) 2024 Synergy App Ltd
 # SPDX-License-Identifier: MIT
 
 macro(configure_libs)
