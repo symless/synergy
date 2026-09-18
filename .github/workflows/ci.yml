@@ -116,6 +116,22 @@ jobs:
         id: get-version
         uses: ./.github/actions/get-version
 
+      # Nothing consumes the metainfo changelog at build time, so a release can ship without
+      # its entry and software centres keep advertising the previous version. Compare against
+      # GitHub releases rather than git tags: the tree also carries Deskflow's upstream tags.
+      - name: Check metainfo covers the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          metainfo=extra/deploy/linux/com.symless.synergy.metainfo.xml
+          tag=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName')
+          version=$(echo "$tag" | sed -E 's/^v//; s/-.*$//')
+          if ! grep -q "<release version=\"$version\"" "$metainfo"; then
+            echo "::error::$metainfo has no <release> entry for $version (latest release $tag)"
+            exit 1
+          fi
+          echo "metainfo covers $version"
+
   build-windows:
     needs: [lint-clang, get-version]
     if: ${{ inputs.platform == '' || inputs.platform == 'windows' }}
