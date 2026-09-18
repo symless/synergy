@@ -39,7 +39,6 @@ const auto kUrlPersonalUpgrade = QString("%1/purchase/upgrade?%2").arg(kUrlWebsi
 const auto kUrlContact = QString("%1/contact?%2").arg(kUrlWebsite, kUrlSourceQuery);
 const auto kUrlAccount = QString("%1/account?%2").arg(kUrlWebsite, kUrlSourceQuery);
 
-constexpr auto kLicenseGracePeriod = std::chrono::days{14};
-constexpr auto kRemoteCheckInterval = std::chrono::hours{24};
+constexpr auto kUsageReportInterval = std::chrono::hours{24};
 
 } // namespace synergy::gui

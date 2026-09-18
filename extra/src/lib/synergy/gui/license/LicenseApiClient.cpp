@@ -27,9 +27,13 @@
 
 namespace synergy::gui::license {
 
+namespace {
+
 constexpr auto kPropRequestKind = "requestKind";
-constexpr auto kPropActivationIntent = "activationIntent";
-constexpr auto kPropCheckIntent = "checkIntent";
+
+// Opts the app into slot-limited, activate-at-core-start semantics on the website; without it
+// the request falls through to the legacy unmetered path and nothing is enforced.
+constexpr int kActivationProtocolVersion = 1;
 
 QString apiBaseUrl()
 {
@@ -42,10 +46,12 @@ QString activateUrl()
   return QStringLiteral("%1/product/activate").arg(apiBaseUrl());
 }
 
-QString checkUrl()
+QString usageUrl()
 {
-  return QStringLiteral("%1/product/check").arg(apiBaseUrl());
+  return QStringLiteral("%1/product/usage").arg(apiBaseUrl());
 }
+
+} // namespace
 
 LicenseApiClient::LicenseApiClient()
 {
@@ -56,170 +62,98 @@ LicenseApiClient::LicenseApiClient()
   connect(&m_manager, &QNetworkAccessManager::finished, this, &LicenseApiClient::handleResponse);
 }
 
-void LicenseApiClient::activate(Data data, ActivationIntent intent, bool takeover)
+void LicenseApiClient::activate(const Data &data)
 {
-  post(RequestKind::kActivate, QUrl(activateUrl()), data, intent, CheckIntent::kPoll, takeover);
-}
+  auto requestData = baseRequestData(data);
+  if (requestData.isEmpty()) {
+    return;
+  }
+  requestData["isServer"] = data.isServer;
+  requestData["activationProtocolVersion"] = kActivationProtocolVersion;
 
-void LicenseApiClient::check(Data data, CheckIntent intent)
-{
-  post(RequestKind::kCheck, QUrl(checkUrl()), data, ActivationIntent::kCoreStart, intent);
-}
-
-void LicenseApiClient::validate(Data data)
-{
-  post(RequestKind::kValidate, QUrl(checkUrl()), data);
-}
-
-void LicenseApiClient::post(
-    RequestKind kind, const QUrl &url, const Data &data, ActivationIntent intent, CheckIntent checkIntent,
-    std::optional<bool> takeover
-)
-{
   m_isBusy = true;
+  post(RequestKind::kActivate, QUrl(activateUrl()), QJsonDocument(requestData).toJson());
+}
 
+void LicenseApiClient::reportUsage(const Data &data)
+{
+  const auto requestData = baseRequestData(data);
+  if (requestData.isEmpty()) {
+    return;
+  }
+  post(RequestKind::kUsage, QUrl(usageUrl()), QJsonDocument(requestData).toJson());
+}
+
+void LicenseApiClient::post(RequestKind kind, const QUrl &url, const QByteArray &body)
+{
   qDebug().noquote() << "license api request:" << url.toString();
 
   auto request = QNetworkRequest(url);
   request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-  auto *reply = m_manager.post(request, getRequestData(data, takeover));
+  auto *reply = m_manager.post(request, body);
   reply->setProperty(kPropRequestKind, static_cast<int>(kind));
-  reply->setProperty(kPropActivationIntent, static_cast<int>(intent));
-  reply->setProperty(kPropCheckIntent, static_cast<int>(checkIntent));
 }
 
 void LicenseApiClient::handleResponse(QNetworkReply *reply)
 {
-  m_isBusy = false;
-
   if (!reply) {
     qWarning("no license api reply");
     return;
   }
 
   const auto kind = static_cast<RequestKind>(reply->property(kPropRequestKind).toInt());
-  const auto intent = static_cast<ActivationIntent>(reply->property(kPropActivationIntent).toInt());
-  const auto checkIntent = static_cast<CheckIntent>(reply->property(kPropCheckIntent).toInt());
-
-  const auto emitFailed = [this, kind, intent](const QString &message) {
-    if (kind == RequestKind::kActivate) {
-      Q_EMIT activationFailed(intent, message);
-    } else if (kind == RequestKind::kValidate) {
-      Q_EMIT validateFailed(message);
+  if (kind == RequestKind::kUsage) {
+    if (reply->error() != QNetworkReply::NoError) {
+      qDebug().noquote() << "usage report failed:" << reply->errorString();
     } else {
-      Q_EMIT checkFailed(message);
+      qDebug("usage report sent");
     }
-  };
+    reply->deleteLater();
+    return;
+  }
 
-  const auto emitSucceeded = [this, kind, intent] {
-    if (kind == RequestKind::kActivate) {
-      Q_EMIT activationSucceeded(intent);
-    } else if (kind == RequestKind::kValidate) {
-      Q_EMIT validateSucceeded();
-    } else {
-      Q_EMIT checkSucceeded();
-    }
-  };
+  m_isBusy = false;
+  handleActivationResponse(reply);
+  reply->deleteLater();
+}
 
-  // A transport failure is not a license verdict; activation tolerates it and retries
-  // later, while the check path owns the grace period. Key entry can't validate offline,
-  // so it proceeds and lets the runtime check catch a bad key later.
-  const auto emitUnreachable = [this, kind, intent](const QString &message) {
-    if (kind == RequestKind::kActivate) {
-      Q_EMIT activationUnreachable(intent);
-    } else if (kind == RequestKind::kValidate) {
-      Q_EMIT validateSucceeded();
-    } else {
-      Q_EMIT checkFailed(message);
-    }
-  };
-
+void LicenseApiClient::handleActivationResponse(QNetworkReply *reply)
+{
   const auto response = reply->readAll();
 
+  // A transport failure is not a license verdict; the core starts and the next core start retries.
   if (reply->error() != QNetworkReply::NoError) {
     const auto kLimit = 200;
     const auto responseSliced = response.length() > kLimit ? response.left(kLimit) + "..." : response;
     qWarning().noquote() << "license api error:" << reply->error() << reply->errorString() << responseSliced;
-    emitUnreachable("License request failed, there was a network error.");
-    reply->deleteLater();
+    Q_EMIT activationUnreachable();
     return;
   }
 
   qDebug().noquote() << "license api response:" << response;
-  const auto jsonDoc = QJsonDocument::fromJson(response);
   if (response.isNull()) {
     qWarning("empty license api response");
-    emitUnreachable("License request failed, the server sent an empty response.");
-    reply->deleteLater();
+    Q_EMIT activationUnreachable();
     return;
   }
 
-  const auto json = jsonDoc.object();
-  if (json["status"].toString() != "success") {
-    const auto status = json["status"].toString();
-    const auto message = json["message"].toString();
+  const auto json = QJsonDocument::fromJson(response).object();
+  const auto status = json["status"].toString();
+  const auto reference = json["reference"].toString();
 
-    // Not a failure: the license is valid, another computer just holds the server activation.
-    if (status == "deactivated") {
-      qWarning("license api found this machine deactivated");
-      if (kind == RequestKind::kActivate) {
-        Q_EMIT activationDeactivated(intent, message);
-      } else if (kind == RequestKind::kValidate) {
-        Q_EMIT validateDeactivated(message);
-      } else {
-        Q_EMIT checkDeactivated(checkIntent, message);
-      }
-      reply->deleteLater();
-      return;
-    }
-
-    // The license is valid but this machine has no activation row. At key entry that is
-    // expected (the row appears once the role is known); at runtime the app must (re)claim it.
-    if (status == "notActivated") {
-      if (kind == RequestKind::kValidate) {
-        Q_EMIT validateSucceeded();
-        reply->deleteLater();
-        return;
-      }
-      if (kind == RequestKind::kCheck) {
-        Q_EMIT checkNotActivated();
-        reply->deleteLater();
-        return;
-      }
-    }
-
-    if (!status.isEmpty()) {
-      qWarning().noquote() << "license api status:" << status;
-    } else {
-      qWarning("license api status was empty");
-    }
-
-    if (!message.isEmpty()) {
-      qWarning().noquote() << "license api message:" << message;
-    } else {
-      qWarning("license api message was empty");
-    }
-
-    // An explicit disable gets the grace window like any other failure, not an abrupt cutoff.
-    if (!message.isEmpty()) {
-      emitFailed(message);
-    } else if (status == "disabled") {
-      emitFailed("License has been disabled.");
-    } else {
-      emitFailed("License request failed, unknown error.");
-    }
-
-    reply->deleteLater();
+  if (status == "success") {
+    qInfo("license activation successful");
+    Q_EMIT activationSucceeded();
     return;
   }
 
-  qInfo().noquote() << "license api request successful";
-  emitSucceeded();
-  reply->deleteLater();
+  const auto message = json["message"].toString();
+  qWarning().noquote() << "license activation failed, status:" << status << "message:" << message;
+  Q_EMIT activationFailed(message.isEmpty() ? tr("License activation failed, unknown error.") : message, reference);
 }
 
-QByteArray LicenseApiClient::getRequestData(const Data &data, std::optional<bool> takeover) const
+QJsonObject LicenseApiClient::baseRequestData(const Data &data) const
 {
   if (data.machineSignature.isEmpty()) {
     qCritical("cannot create license request, no machine id");
@@ -252,12 +186,7 @@ QByteArray LicenseApiClient::getRequestData(const Data &data, std::optional<bool
   requestData["serialKey"] = data.serialKey;
   requestData["appVersion"] = data.appVersion;
   requestData["osName"] = data.osName;
-  requestData["isServer"] = data.isServer;
-  if (takeover.has_value()) {
-    requestData["takeover"] = takeover.value();
-  }
-
-  return QJsonDocument(requestData).toJson();
+  return requestData;
 }
 
 }; // namespace synergy::gui::license

@@ -20,8 +20,7 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 
-#include <optional>
-
+class QJsonObject;
 class QNetworkReply;
 
 namespace synergy::gui::license {
@@ -41,48 +40,24 @@ public:
     bool isServer;
   };
 
-  /// @brief Why an activation was requested, which decides whether its result starts the core.
-  enum class ActivationIntent
-  {
-    kKeyEntry,
-    kCoreStart
-  };
-
-  /// @brief Why a check was requested. A core start asks the takeover question on a deactivated
-  /// verdict regardless of how far the process has got; the recurring poll only acts on a server
-  /// that is actually running.
-  enum class CheckIntent
-  {
-    kPoll,
-    kCoreStart
-  };
-
   explicit LicenseApiClient();
 
-  void activate(Data data, ActivationIntent intent, bool takeover = false);
-  void check(Data data, CheckIntent intent = CheckIntent::kPoll);
+  /// @brief Activates this machine in the given role. Emits one of the activation signals.
+  void activate(const Data &data);
 
-  // Validates a serial key without activating, for business key entry where the role is not yet
-  // known. Hits the check endpoint but stays out of the grace-period machinery the poll owns.
-  void validate(Data data);
+  /// @brief Fire-and-forget usage report. Never emits; failures are logged at debug and ignored.
+  void reportUsage(const Data &data);
 
-  bool isBusy()
+  /// @brief True while an activation is in flight. Usage reports never count as busy.
+  bool isBusy() const
   {
     return m_isBusy;
   }
 
 Q_SIGNALS:
-  void activationFailed(ActivationIntent intent, const QString &message);
-  void activationSucceeded(ActivationIntent intent);
-  void activationUnreachable(ActivationIntent intent);
-  void activationDeactivated(ActivationIntent intent, const QString &message);
-  void checkFailed(const QString &message);
-  void checkSucceeded();
-  void checkDeactivated(CheckIntent intent, const QString &message);
-  void checkNotActivated();
-  void validateFailed(const QString &message);
-  void validateSucceeded();
-  void validateDeactivated(const QString &message);
+  void activationSucceeded();
+  void activationFailed(const QString &message, const QString &reference);
+  void activationUnreachable();
 
 private Q_SLOTS:
   void handleResponse(QNetworkReply *reply);
@@ -91,15 +66,12 @@ private:
   enum class RequestKind
   {
     kActivate,
-    kCheck,
-    kValidate
+    kUsage
   };
 
-  void post(
-      RequestKind kind, const QUrl &url, const Data &data, ActivationIntent intent = ActivationIntent::kCoreStart,
-      CheckIntent checkIntent = CheckIntent::kPoll, std::optional<bool> takeover = std::nullopt
-  );
-  QByteArray getRequestData(const Data &data, std::optional<bool> takeover) const;
+  void post(RequestKind kind, const QUrl &url, const QByteArray &body);
+  void handleActivationResponse(QNetworkReply *reply);
+  QJsonObject baseRequestData(const Data &data) const;
 
   QNetworkAccessManager m_manager;
   bool m_isBusy = false;

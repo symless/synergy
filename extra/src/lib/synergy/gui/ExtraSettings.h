@@ -21,11 +21,18 @@
 
 namespace synergy::gui {
 
-// Synergy license state (serial key, activation, grace period). Stored as
+// Synergy license state (serial key, activation). Stored as
 // synergy/* keys in the upstream Settings file via the new static Settings API.
 class ExtraSettings
 {
 public:
+  enum class ActivatedMode
+  {
+    kNone,
+    kServer,
+    kClient
+  };
+
   ExtraSettings() = default;
 
   void load();
@@ -40,31 +47,14 @@ public:
     m_serialKey = serialKey;
   }
 
-  bool activated() const
+  /// @brief The role this machine last activated in, or none if it has never activated.
+  ActivatedMode activatedMode() const
   {
-    return m_activated;
+    return m_activatedMode;
   }
-  void setActivated(bool activated)
+  void setActivatedMode(ActivatedMode mode)
   {
-    m_activated = activated;
-  }
-
-  bool holdsServerActivation() const
-  {
-    return m_holdsServerActivation;
-  }
-  void setHoldsServerActivation(bool holdsServerActivation)
-  {
-    m_holdsServerActivation = holdsServerActivation;
-  }
-
-  qint64 graceStartEpochSecs() const
-  {
-    return m_graceStartEpochSecs;
-  }
-  void setGraceStartEpochSecs(qint64 epochSecs)
-  {
-    m_graceStartEpochSecs = epochSecs;
+    m_activatedMode = mode;
   }
 
   QString offlineActivationResponse() const
@@ -81,9 +71,7 @@ public:
 
 private:
   QString m_serialKey;
-  bool m_activated = false;
-  bool m_holdsServerActivation = false;
-  qint64 m_graceStartEpochSecs = 0;
+  ActivatedMode m_activatedMode = ActivatedMode::kNone;
   QString m_offlineActivationResponse;
 };
 
