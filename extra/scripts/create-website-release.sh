@@ -1,33 +1,19 @@
 #!/usr/bin/env bash
-# Tells the website about a release the workflow has just published, so the
-# download page gets its rows without anybody creating them by hand. The website
-# writes the notes from the changes sent here and then holds the release for a
-# person to approve, so this call never publishes anything itself.
+# Tells the website about a release the workflow has just published, so its
+# download page gets rows without anybody making them by hand. The website writes
+# the notes and holds the release for approval, so this publishes nothing itself.
 #
-# The changes come from the issues fixed in this version, which are written for
-# a customer and say what a change is for, not just what it is. Where Jira has
-# nothing for the version, the commit subjects since the previous tag are used
-# instead, so a release is never blocked on issue housekeeping.
+# Why it works the way it does: .claude/docs/design/release-notification.md
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-# Personal and Business are the same build listed twice in the website's
-# catalog, so one tag here creates a release under both. Enterprise is a
-# genuinely different package, built by symless/synergy-ee into
-# synergy1/enterprise, and is not ours to create.
 file_codes=("synergy-personal-v1" "synergy-business-v1")
 sub_path="synergy/api/releases"
-
-# Where the issues fixed in a version are read from.
 jira_base="https://symless.atlassian.net"
 jira_project="S1"
 
-# The version is cmake's, not the tag's. Version.cmake is the only thing that
-# names a build, and the packages, the archive folder they upload to and the
-# folder the website copies them into are all named from it. The tag is a
-# separate act that can disagree with it, so check rather than assume: a tag
-# that does not match would point the website at an archive folder that was
-# never written.
+# cmake names the build and the tag is a separate act that can disagree with it.
+# A tag that does would point the website at an archive folder nobody wrote.
 version="${SYNERGY_VERSION:-}"
 if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
 	echo "a version shaped like 1.2.3 is required, got: ${version:-<empty>}" >&2
@@ -74,13 +60,14 @@ if [[ -n "${JIRA_API_TOKEN:-}" && -n "${JIRA_USER_EMAIL:-}" ]]; then
 	jira_status="${jira_response##*$'\n'}"
 	jira_json="${jira_response%$'\n'*}"
 
+	# A failed read is not a reason to fall back: it would quietly write worse
+	# notes with nothing to say why.
 	if [[ "$jira_status" != "200" ]]; then
 		echo "could not read the issues fixed in $version (HTTP $jira_status): $jira_json" >&2
 		exit 1
 	fi
 
-	# A description is rich text, so take every run of text in it. The wording is
-	# what grounds the notes; its formatting is not.
+	# A description is rich text, so take every run of text in it in order.
 	changes="$(jq '[.issues[]
 		| .fields.summary as $summary
 		| ([.fields.description? // {} | .. | objects | select(.type == "text") | .text] | join(" ")) as $body
@@ -89,9 +76,6 @@ fi
 
 count="$(jq 'length' <<<"$changes")"
 
-# Nothing in Jira carries this version, so fall back to what was committed. A
-# release with notes written from commit subjects beats one held up by an
-# unticked field.
 if [[ "$count" -eq 0 ]]; then
 	if [[ "$asked_jira" == true ]]; then
 		echo "no issues carry the fix version $version, using the commit subjects instead" >&2
@@ -113,26 +97,8 @@ if [[ "$count" -eq 0 ]]; then
 	exit 1
 fi
 
-# The operating system a package is for is a row in the website's catalog, and
-# a package's name says what it was built on, so this is the seam between the
-# two. Two things about it read as typos and are not: the catalog's slug keeps
-# the dot that the file name replaces with a hyphen (ubuntu-24.04 against
-# ubuntu-24-04), and Rocky's token carries its point release, because
-# PackageFileName.cmake builds it from VERSION_ID, which is 9.8 today and moves
-# on every point release. Nothing here can check that a row still exists, so a
-# name the website does not recognize comes back refused, naming the ones it did
-# not know. Anything built that is not listed here stops the release rather than
-# being left out quietly, because a release missing a download is worse than one
-# nobody made.
-#
-# A file can be listed under more than one row. Raspberry Pi OS is Debian, and
-# the catalog row for it used to be filled by an Ubuntu 22.04 arm64 build that is
-# no longer made, so it takes the Debian 12 arm64 package, which is the release
-# current Pi OS is built on.
-# One Enterprise Linux build, listed under two names. Business customers run Red
-# Hat and the personal side runs the free rebuilds, so the same rpm is filed
-# under Red Hat for Business and Rocky for Personal. The package is named after
-# neither, because it is neither.
+# One rpm under two names: Business customers run Red Hat, Personal runs the free
+# rebuilds. The package is named after neither, because it is neither.
 el_row_for() {
 	local major="$1" file_code="$2"
 	case "$file_code" in
@@ -141,6 +107,9 @@ el_row_for() {
 	esac
 }
 
+# Two entries below read as typos and are not: a catalog slug keeps the dot the
+# file name replaces (ubuntu-24.04 against ubuntu-24-04), and the Debian 12 arm64
+# deb also fills Raspberry Pi OS, which is Debian and whose own build is gone.
 package_rows_for() {
 	case "$1" in
 	*_windows_x64.msi) echo "windows-10 X64" ;;
@@ -172,13 +141,11 @@ package_rows_for() {
 	esac
 }
 
-# The installers somebody downloads, which is what the website lists. The
-# portable Windows archive is beside them and is not: the download page has no
-# button for it, and listing it against the same row as the msi would hide one
-# of the two behind the other.
 package_list() {
 	local dir="$1" file_code="$2" out="[]" name rows row os arch
 	while IFS= read -r name; do
+		# The download page has no button for the portable archive, and listing it
+		# against the msi's row would hide one of the two behind the other.
 		case "$name" in
 		*-portable.7z) continue ;;
 		esac
@@ -201,18 +168,9 @@ url="${base%/}/$sub_path"
 
 echo "Telling the website about $version, built from $count changes taken from $source"
 
-# A release that already exists is not worth failing over, because this creates
-# two of them and a run that got one in before something went wrong has to be
-# safe to repeat. Re-running the job is the recovery, so the second attempt
-# passes over what the first one managed and finishes the rest.
 for file_code in "${file_codes[@]}"; do
-	# What a release consists of is whatever was built, read off the packages the
-	# workflow produced rather than a list kept here, which would be a second copy
-	# of names the packaging scripts already choose and would drift the first time
-	# one of them changed. It is read per edition because the same rpm is filed
-	# under a different row for each. Sending nothing leaves the website deciding
-	# from its own template, which is the answer when this runs somewhere the
-	# packages are not to hand.
+	# Read per edition, because the same rpm is filed under a different row for
+	# each. Sending none leaves the website deciding from its own template.
 	packages="[]"
 	if [[ -n "${SYNERGY_PACKAGE_DIR:-}" && -d "$SYNERGY_PACKAGE_DIR" ]]; then
 		packages="$(package_list "$SYNERGY_PACKAGE_DIR" "$file_code")"
@@ -241,6 +199,8 @@ for file_code in "${file_codes[@]}"; do
 
 	case "$status" in
 	200) echo "The website is holding $version of $file_code for review: $body" ;;
+	# This creates two releases, so a run that got one in before failing has to be
+	# safe to repeat; re-running the job is the recovery.
 	409) echo "$file_code already has a release for $version, so it was left alone: $body" >&2 ;;
 	*)
 		echo "the website refused $file_code $version (HTTP $status): $body" >&2
