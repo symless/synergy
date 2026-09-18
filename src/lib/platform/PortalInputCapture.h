@@ -49,7 +49,9 @@ private:
   void glibThread(const void *);
   gboolean timeoutHandler() const;
   gboolean initSession();
-  void scheduleInit(guint delayMs);
+  void scheduleInit(unsigned int delayMs);
+  void retryInit();
+  void clearSessionState();
   void setupSession(XdpInputCaptureSession *session);
   void handleStart(GObject *object, GAsyncResult *res);
   void handleInitSession(GObject *object, GAsyncResult *res);
@@ -173,7 +175,7 @@ private:
 
   std::unique_ptr<XDGSessionMonitor> m_sessionMonitor;
   guint m_initSource = 0;
-  guint m_enableSource = 0;
+  unsigned int m_retryDelay = 0;
   bool m_initDeferred = false;
 
   std::vector<XdpInputCapturePointerBarrier *> m_barriers;

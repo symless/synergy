@@ -8,8 +8,6 @@
 
 #include "base/Log.h"
 
-#include <unistd.h>
-
 namespace deskflow {
 
 namespace {
@@ -19,6 +17,7 @@ const auto kLogindPath = "/org/freedesktop/login1";
 const auto kManagerInterface = "org.freedesktop.login1.Manager";
 const auto kSessionInterface = "org.freedesktop.login1.Session";
 const auto kPropertiesInterface = "org.freedesktop.DBus.Properties";
+const auto kAutoSessionPath = "/org/freedesktop/login1/session/auto";
 
 GVariant *getProperty(GDBusConnection *bus, const std::string &path, const char *name)
 {
@@ -86,46 +85,31 @@ bool XDGSessionMonitor::isReady() const
   return !m_locked && !m_sleeping;
 }
 
-// GNOME and KDE launch apps in systemd scopes outside the login session cgroup, so
-// GetSessionByPID fails and XDG_SESSION_ID is unset for them. Pick the caller's
-// active seated session from the full list instead.
+// Desktops launch apps in systemd scopes outside the login session cgroup, so
+// GetSessionByPID fails and XDG_SESSION_ID is unset. The "auto" alias resolves to the
+// caller's session, or the user's display session, but signals are emitted on the real
+// path, so resolve that once here.
 void XDGSessionMonitor::findSession()
 {
-  g_autoptr(GError) error = nullptr;
-  g_autoptr(GVariant) reply = g_dbus_connection_call_sync(
-      m_bus, kLogindName, kLogindPath, kManagerInterface, "ListSessions", nullptr, G_VARIANT_TYPE("(a(susso))"),
-      G_DBUS_CALL_FLAGS_NONE, -1, nullptr, &error
-  );
-  if (!reply) {
-    LOG_DEBUG("cannot list logind sessions: %s", error->message);
+  g_autoptr(GVariant) id = getProperty(m_bus, kAutoSessionPath, "Id");
+  if (!id) {
     return;
   }
 
-  const auto uid = static_cast<guint32>(getuid());
-  std::string seated;
-  g_autoptr(GVariantIter) sessions = nullptr;
-  g_variant_get(reply, "(a(susso))", &sessions);
-
-  const gchar *id = nullptr;
-  guint32 sessionUid = 0;
-  const gchar *user = nullptr;
-  const gchar *seat = nullptr;
-  const gchar *path = nullptr;
-  while (g_variant_iter_loop(sessions, "(&su&s&s&o)", &id, &sessionUid, &user, &seat, &path)) {
-    if (sessionUid != uid || seat == nullptr || *seat == '\0') {
-      continue;
-    }
-    if (seated.empty()) {
-      seated = path;
-    }
-    g_autoptr(GVariant) active = getProperty(m_bus, path, "Active");
-    if (active && g_variant_get_boolean(active)) {
-      m_sessionPath = path;
-      return;
-    }
+  g_autoptr(GError) error = nullptr;
+  g_autoptr(GVariant) reply = g_dbus_connection_call_sync(
+      m_bus, kLogindName, kLogindPath, kManagerInterface, "GetSession",
+      g_variant_new("(s)", g_variant_get_string(id, nullptr)), G_VARIANT_TYPE("(o)"), G_DBUS_CALL_FLAGS_NONE, -1,
+      nullptr, &error
+  );
+  if (!reply) {
+    LOG_DEBUG("cannot resolve the logind session path: %s", error->message);
+    return;
   }
 
-  m_sessionPath = seated;
+  const gchar *path = nullptr;
+  g_variant_get(reply, "(&o)", &path);
+  m_sessionPath = path;
 }
 
 bool XDGSessionMonitor::readLockedHint() const

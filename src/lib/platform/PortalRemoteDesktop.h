@@ -9,14 +9,11 @@
 
 #include "mt/Thread.h"
 #include "platform/EiScreen.h"
-#include "platform/XDGSessionMonitor.h"
 
 #include <glib.h>
 #include <libportal/portal.h>
 
 #include <QByteArray>
-
-#include <memory>
 
 namespace deskflow {
 
@@ -71,11 +68,6 @@ private:
 
   /// The number of successful sessions we've had already
   guint m_sessionIteration = 0;
-
-  std::unique_ptr<XDGSessionMonitor> m_sessionMonitor;
-  guint m_reconnectSource = 0;
-  unsigned int m_reconnectDelay = 0;
-  bool m_initDeferred = false;
 };
 
 } // namespace deskflow

@@ -16,24 +16,12 @@
 #include "platform/PortalClipboard.h"
 #endif
 
-#include <algorithm>
-
 namespace deskflow {
-
-namespace {
-
-// GNOME needs a moment after unlock or resume before the portal backend can restore a session.
-const unsigned int kReadySettleMs = 500;
-const unsigned int kReconnectDelayMs = 1000;
-const unsigned int kMaxReconnectDelayMs = 60000;
-
-} // namespace
 
 PortalRemoteDesktop::PortalRemoteDesktop(EiScreen *screen, IEventQueue *events)
     : m_screen{screen},
       m_events{events},
-      m_portal{xdp_portal_new()},
-      m_reconnectDelay{kReconnectDelayMs}
+      m_portal{xdp_portal_new()}
 {
   m_glibMainLoop = g_main_loop_new(nullptr, true);
 
@@ -45,11 +33,6 @@ PortalRemoteDesktop::PortalRemoteDesktop(EiScreen *screen, IEventQueue *events)
 
 PortalRemoteDesktop::~PortalRemoteDesktop()
 {
-  if (m_reconnectSource) {
-    g_source_remove(m_reconnectSource);
-  }
-  m_sessionMonitor.reset();
-
   if (g_main_loop_is_running(m_glibMainLoop))
     g_main_loop_quit(m_glibMainLoop);
 
@@ -83,20 +66,12 @@ gboolean PortalRemoteDesktop::timeoutHandler() const
 
 void PortalRemoteDesktop::reconnect(unsigned int timeout)
 {
-  if (m_reconnectSource) {
-    g_source_remove(m_reconnectSource);
-  }
-
-  auto initCallback = [](gpointer data) -> gboolean {
-    auto self = static_cast<PortalRemoteDesktop *>(data);
-    self->m_reconnectSource = 0;
-    return self->initSession();
-  };
+  auto initCallback = [](gpointer data) { return static_cast<PortalRemoteDesktop *>(data)->initSession(); };
 
   if (timeout > 0)
-    m_reconnectSource = g_timeout_add(timeout, initCallback, this);
+    g_timeout_add(timeout, initCallback, this);
   else
-    m_reconnectSource = g_idle_add(initCallback, this);
+    g_idle_add(initCallback, this);
 }
 
 void PortalRemoteDesktop::handleSessionClosed(XdpSession *session)
@@ -117,21 +92,21 @@ void PortalRemoteDesktop::handleSessionStarted(GObject *object, GAsyncResult *re
   g_autoptr(GError) error = nullptr;
   auto session = XDP_SESSION(object);
   if (!xdp_session_start_finish(session, res, &error)) {
-    LOG_ERR("failed to start portal remote desktop session, quitting: %s", error->message);
-    g_main_loop_quit(m_glibMainLoop);
-    m_events->addEvent(Event(EventTypes::Quit));
+    if (m_sessionIteration <= 1) {
+      LOG_ERR("failed to start portal remote desktop session, quitting: %s", error->message);
+      g_main_loop_quit(m_glibMainLoop);
+      m_events->addEvent(Event(EventTypes::Quit));
+      return;
+    }
+    LOG_DEBUG("failed to start portal remote desktop session, retrying: %s", error->message);
+    g_clear_object(&m_session);
+    reconnect(1000);
     return;
   }
 
-  m_reconnectDelay = kReconnectDelayMs;
-
 #ifdef HAVE_LIBPORTAL_CLIPBOARD
   if (!xdp_session_is_clipboard_enabled(session)) {
-    if (m_sessionIteration > 1) {
-      // a session restored on a background reconnect can lack the clipboard only transiently, and
-      // discarding the token then costs the user a fresh permission prompt on unlock
-      LOG_DEBUG("clipboard not enabled on reconnected remote desktop session, continuing without it");
-    } else if (Settings::value(Settings::Client::XdpClipboardRetried).toBool()) {
+    if (Settings::value(Settings::Client::XdpClipboardRetried).toBool()) {
       // some backends never report clipboard enabled even when granted; don't loop forever
       LOG_DEBUG("clipboard still not enabled on remote desktop session after one retry, continuing without it");
     } else {
@@ -194,9 +169,7 @@ void PortalRemoteDesktop::handleInitSession(GObject *object, GAsyncResult *res)
       g_main_loop_quit(m_glibMainLoop);
       m_events->addEvent(Event(EventTypes::Quit));
     } else {
-      LOG_DEBUG("retrying remote desktop session in %u ms", m_reconnectDelay);
-      this->reconnect(m_reconnectDelay);
-      m_reconnectDelay = std::min(m_reconnectDelay * 2, kMaxReconnectDelayMs);
+      this->reconnect(1000);
     }
     return;
   }
@@ -230,24 +203,6 @@ void PortalRemoteDesktop::handleInitSession(GObject *object, GAsyncResult *res)
 
 gboolean PortalRemoteDesktop::initSession()
 {
-  // Created here, on the GLib context this callback runs on, rather than in the
-  // constructor, which runs on a thread whose context nothing iterates
-  if (!m_sessionMonitor) {
-    m_sessionMonitor = std::make_unique<XDGSessionMonitor>([this] {
-      if (m_initDeferred) {
-        m_initDeferred = false;
-        LOG_INFO("desktop is unlocked and awake, setting up remote desktop session");
-        reconnect(kReadySettleMs);
-      }
-    });
-  }
-
-  if (!m_sessionMonitor->isReady()) {
-    LOG_INFO("remote desktop session deferred until the desktop is unlocked and awake");
-    m_initDeferred = true;
-    return false;
-  }
-
   if (auto sessionToken = Settings::value(Settings::Client::XdpRestoreToken).toByteArray(); !sessionToken.isEmpty()) {
     free(m_sessionRestoreToken);
     m_sessionRestoreToken = strdup(sessionToken.data());
