@@ -604,6 +604,17 @@ jobs:
         with:
           like: ${{ matrix.target.like }}
 
+      # Jammy's default GCC 11 has no std::make_shared<T[]> (C++20; libstdc++ gained it in
+      # GCC 12). g++-12 is in jammy's own archive and its libstdc++6 runtime is already
+      # what the distro ships, so the package still links only 22.04's libraries.
+      - name: Use GCC 12 (Ubuntu 22.04)
+        if: startsWith(matrix.target.name, 'ubuntu-22.04')
+        shell: bash
+        run: |
+          apt-get install -y -qq g++-12
+          echo "CC=gcc-12" >> "$GITHUB_ENV"
+          echo "CXX=g++-12" >> "$GITHUB_ENV"
+
       # 24.04's system libportal (0.7.x) lacks the input-capture portal the code needs
       # (>= 0.8.0), and that LTS's libs are frozen. Build a newer libportal and static-link
       # it so the shipped binary carries no runtime dependency on a >= 0.8 system libportal
