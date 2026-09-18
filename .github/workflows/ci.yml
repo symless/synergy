@@ -805,8 +805,48 @@ jobs:
           echo "Uploading to AWS S3: $url"
           aws s3 cp ./dist/ "$url" --recursive
 
-  report:
+  # Tell the website about the release, so its download page gets rows without
+  # anybody creating them by hand. The website writes the notes and holds the
+  # release as a draft until a person approves it, so this never publishes.
+  # Unlike s3-upload there is deliberately no always(): a build that failed must
+  # take this with it, so a release is never created half true. s3-upload is a
+  # dependency for ordering as much as for safety, because the website starts
+  # copying the packages out of the bucket as soon as it is told about them.
+  website:
     needs: [get-version, build-windows, build-macos, build-linux, build-flatpak, s3-upload]
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # The commit subjects the notes fall back to are the range between two
+          # tags, which the default shallow checkout has neither of.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create website release
+        shell: bash
+        env:
+          SYNERGY_VERSION: ${{ needs.get-version.outputs.version }}
+          SYNERGY_RELEASE_TAG: ${{ github.ref_name }}
+          SYNERGY_PACKAGE_DIR: ${{ github.workspace }}/dist
+          WEBSITE_API_TOKEN: ${{ secrets.WEBSITE_API_TOKEN }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: bash extra/scripts/create-website-release.sh
+
+  report:
+    needs: [get-version, build-windows, build-macos, build-linux, build-flatpak, s3-upload, website]
     if: ${{ !cancelled() && github.event_name != 'pull_request' && contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -826,6 +866,7 @@ jobs:
             [ "${{ needs.build-linux.result }}" = "failure" ] && echo "• Linux build failed"
             [ "${{ needs.build-flatpak.result }}" = "failure" ] && echo "• Flatpak build failed"
             [ "${{ needs.s3-upload.result }}" = "failure" ] && echo "• S3 upload failed"
+            [ "${{ needs.website.result }}" = "failure" ] && echo "• Website release failed"
             echo "<$link|View workflow>"
             echo "EOF"
           } >> $GITHUB_OUTPUT
