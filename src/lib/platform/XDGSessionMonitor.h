@@ -27,6 +27,10 @@ namespace deskflow {
  * context that should receive them; a Qt worker thread pushes a private context
  * that nothing else iterates. Without a system bus or a logind session it
  * reports ready, so nothing waits.
+ *
+ * A sandboxed build is such a case and is meant to be: Flathub rejects the
+ * system bus permission this needs, so do not add it back to the Flatpak
+ * manifests. Those builds keep the portal recovery but not the waiting.
  */
 class XDGSessionMonitor
 {

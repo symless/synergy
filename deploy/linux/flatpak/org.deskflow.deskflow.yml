@@ -10,7 +10,6 @@ finish-args:
   - --share=network
   - --device=dri
   - --talk-name=org.kde.StatusNotifierWatcher
-  - --system-talk-name=org.freedesktop.login1
 cleanup:
   - /include
   - "*.a"
