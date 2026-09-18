@@ -2,8 +2,6 @@
 # Tells the website about a release the workflow has just published, so its
 # download page gets rows without anybody making them by hand. The website writes
 # the notes and holds the release for approval, so this publishes nothing itself.
-#
-# Why it works the way it does: .claude/docs/design/release-notification.md
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
