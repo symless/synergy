@@ -582,7 +582,7 @@ void LicenseHandler::handleActivationSucceeded()
   resumeCore();
 }
 
-void LicenseHandler::handleActivationFailed(const QString &message, const QString &reference)
+void LicenseHandler::handleActivationFailed(const QString &message, const QString &reason, const QString &reference)
 {
   m_pendingMode = ActivatedMode::kNone;
 
@@ -590,16 +590,35 @@ void LicenseHandler::handleActivationFailed(const QString &message, const QStrin
     return;
   }
 
-  // The website already words the reason (limit reached, license not found); the app only adds
-  // the way out, which is always the account page, and the reference support asks for.
-  auto text = tr("<p>%1</p>"
-                 R"(<p>Manage your activations on your <a href="%2">account page</a>. )"
-                 R"(If you need help, please <a href="%3">contact us</a>.</p>)")
-                  .arg(message.toHtmlEscaped(), kUrlAccount, kUrlContact);
+  // The website words the cause, the app adds the way out. Both are fixed from the account page
+  // and either can turn out to be the wrong key in hand, so the account link and the serial key
+  // button are offered whatever the website says, or fails to say.
+  const bool limitReached = reason == QLatin1String("limitReached");
+
+  auto text = QStringLiteral("<p>%1</p>").arg(message.toHtmlEscaped());
+  if (limitReached) {
+    text +=
+        tr(R"(<p>Free an activation on your <a href="%1">account page</a>, then start again.</p>)").arg(kUrlAccount);
+  } else {
+    text += tr(R"(<p>Check your license and serial key on your <a href="%1">account page</a>.</p>)").arg(kUrlAccount);
+  }
+  text += tr(R"(<p>If you need help, please <a href="%1">contact us</a>.</p>)").arg(kUrlContact);
   if (!reference.isEmpty()) {
     text += tr("<p>License reference: <code>%1</code></p>").arg(reference.toHtmlEscaped());
   }
-  QMessageBox::warning(m_pMainWindow, tr("Activation failed"), text);
+
+  QMessageBox box(QMessageBox::Warning, tr("Activation failed"), text, QMessageBox::Close, m_pMainWindow);
+  auto *changeSerialKey = box.addButton(tr("Change serial key"), QMessageBox::ActionRole);
+  if (limitReached) {
+    box.setDefaultButton(QMessageBox::Close);
+  } else {
+    box.setDefaultButton(changeSerialKey);
+  }
+  box.exec();
+
+  if (box.clickedButton() == changeSerialKey) {
+    showSerialKeyDialog();
+  }
 }
 
 void LicenseHandler::handleActivationUnreachable()

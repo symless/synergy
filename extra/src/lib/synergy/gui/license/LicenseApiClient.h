@@ -56,7 +56,9 @@ public:
 
 Q_SIGNALS:
   void activationSucceeded();
-  void activationFailed(const QString &message, const QString &reference);
+  /// @param reason Machine-readable cause from the website, e.g. "limitReached" or
+  /// "licenseNotFound"; empty when the website did not say.
+  void activationFailed(const QString &message, const QString &reason, const QString &reference);
   void activationUnreachable();
 
 private Q_SLOTS:

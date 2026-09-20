@@ -149,8 +149,12 @@ void LicenseApiClient::handleActivationResponse(QNetworkReply *reply)
   }
 
   const auto message = json["message"].toString();
-  qWarning().noquote() << "license activation failed, status:" << status << "message:" << message;
-  Q_EMIT activationFailed(message.isEmpty() ? tr("License activation failed, unknown error.") : message, reference);
+  const auto reason = json["reason"].toString();
+  qWarning().noquote() << "license activation failed, status:" << status << "reason:" << reason
+                       << "message:" << message;
+  Q_EMIT activationFailed(
+      message.isEmpty() ? tr("License activation failed, unknown error.") : message, reason, reference
+  );
 }
 
 QJsonObject LicenseApiClient::baseRequestData(const Data &data) const

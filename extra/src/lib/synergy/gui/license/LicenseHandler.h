@@ -97,7 +97,7 @@ private:
   bool isOfflineActivated() const;
   bool check();
   void handleActivationSucceeded();
-  void handleActivationFailed(const QString &message, const QString &reference);
+  void handleActivationFailed(const QString &message, const QString &reason, const QString &reference);
   void handleActivationUnreachable();
   void resumeCore();
   void reportUsage();
