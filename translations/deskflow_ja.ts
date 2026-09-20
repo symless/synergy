@@ -759,6 +759,11 @@ Additionally, check you are able to %1 the server config file: %2</source>
         <translation>証明書ファイルから RSA キーを読み取ることができませんでした: %1</translation>
     </message>
     <message>
+        <source>failed to create directory for tls certificate: %1</source>
+        <extracomment>%1 will be replaced by the directory the certificate would be written to</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is already running</source>
         <translation>%1 は既に起動中です</translation>
     </message>
