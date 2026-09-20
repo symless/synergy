@@ -20,12 +20,16 @@
 #include "common/Constants.h"
 #include "common/Settings.h"
 #include "synergy/gui/SettingsScope.h"
+#include "synergy/gui/styles.h"
 
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QMainWindow>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
+#include <QStatusBar>
 #include <QStringLiteral>
 
 #include <optional>
@@ -37,6 +41,7 @@ namespace {
 
 const auto kSchemaKey = QStringLiteral("migration/schemaVersion");
 const auto kNotifiedKey = QStringLiteral("migration/notifiedFor");
+const auto kBackupPathKey = QStringLiteral("migration/backupPath");
 const auto kLegacySystemScopeKey = QStringLiteral("systemScope");
 const auto kLegacySerialKey = QStringLiteral("serialKey");
 const auto kExtraSerialKey = QStringLiteral("license/serialKey");
@@ -69,6 +74,21 @@ void writeNotifiedVersion(int version)
 {
   QSettings ini(extraFile(), QSettings::IniFormat);
   ini.setValue(kNotifiedKey, version);
+  ini.sync();
+}
+
+// Persisted so the notice survives a launch the customer did not acknowledge it on, and so a
+// fresh install, which also records a schema version, is not mistaken for one that migrated.
+QString storedBackupPath()
+{
+  QSettings ini(extraFile(), QSettings::IniFormat);
+  return ini.value(kBackupPathKey).toString();
+}
+
+void writeBackupPath(const QString &path)
+{
+  QSettings ini(extraFile(), QSettings::IniFormat);
+  ini.setValue(kBackupPathKey, path);
   ini.sync();
 }
 
@@ -307,6 +327,9 @@ bool migrateIfNeeded()
 
   s_migrationRanThisLaunch = runLegacyMigration();
   writeSchemaVersion(kCurrentSchemaVersion);
+  if (s_migrationRanThisLaunch) {
+    writeBackupPath(s_lastBackupPath);
+  }
   return s_migrationRanThisLaunch;
 }
 
@@ -315,20 +338,44 @@ void showNoticeIfPending(QWidget *parent)
   if (notifiedSchemaVersion() >= kCurrentSchemaVersion) {
     return;
   }
-  if (!s_migrationRanThisLaunch) {
+
+  const auto backupPath = storedBackupPath();
+  if (backupPath.isEmpty()) {
     writeNotifiedVersion(kCurrentSchemaVersion);
     return;
   }
 
-  QMessageBox::information(
-      parent, QObject::tr("Settings updated"),
-      QObject::tr("<p>We've migrated your settings to a new format used by this version of Synergy.</p>"
-                  "<p>Your previous settings have been backed up to:</p>"
-                  "<p><code>%1</code></p>"
-                  "<p>If anything looks different, please contact us.</p>")
-          .arg(s_lastBackupPath)
-  );
-  writeNotifiedVersion(kCurrentSchemaVersion);
+  auto *mainWindow = qobject_cast<QMainWindow *>(parent);
+  auto *statusBar = mainWindow != nullptr ? mainWindow->statusBar() : nullptr;
+  if (statusBar == nullptr) {
+    qWarning("settings migration: no status bar, notice not shown");
+    return;
+  }
+
+  // A status bar pill rather than a dialog. Startup already raises the serial key dialog,
+  // activation, and the first-server-start message once the core is up, and Qt leaves two dialogs
+  // at once fighting over input: the one in front can be the one that ignores the mouse. Nothing
+  // here blocks use of the product, so it waits to be asked.
+  auto *pill = new QPushButton(QObject::tr("Settings migrated"), statusBar);
+  pill->setFlat(true);
+  pill->setStyleSheet(kStyleNoticeLabel);
+  pill->setToolTip(QObject::tr("Your settings were migrated to a new format"));
+  statusBar->addPermanentWidget(pill);
+
+  QObject::connect(pill, &QPushButton::clicked, pill, [pill, mainWindow, backupPath] {
+    QMessageBox::information(
+        mainWindow, QObject::tr("Settings updated"),
+        QObject::tr(
+            "<p>We've migrated your settings to a new format used by this version of Synergy.</p>"
+            "<p>Your previous settings have been backed up to:</p>"
+            "<p><code>%1</code></p>"
+            "<p>If anything looks different, please contact us.</p>"
+        )
+            .arg(backupPath)
+    );
+    writeNotifiedVersion(kCurrentSchemaVersion);
+    pill->deleteLater();
+  });
 }
 
 } // namespace synergy::gui::migration

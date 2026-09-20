@@ -38,11 +38,13 @@ constexpr int kCurrentSchemaVersion = 1;
 bool migrateIfNeeded();
 
 /**
- * @brief Modal one-time notice shown after MainWindow is open.
+ * @brief Adds a status bar pill telling the customer their settings were migrated, which
+ * opens the full notice when clicked. Never a dialog of its own: startup raises several,
+ * and two at once leave the window unusable.
  *
- * No-op unless a migration ran since the last call. Marks
- * migration/notifiedFor=schemaVersion when dismissed so a new migration
- * (bumped schema version) shows the popup again.
+ * No-op unless a migration has run and not yet been acknowledged. Marks
+ * migration/notifiedFor=schemaVersion once the customer has seen it, so a later migration
+ * (bumped schema version) shows the pill again.
  */
 void showNoticeIfPending(QWidget *parent);
 

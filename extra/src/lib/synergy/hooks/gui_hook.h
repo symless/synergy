@@ -59,8 +59,14 @@ inline void onPreInit()
   }
 }
 
+// The migration notice is shown at the end of onAppStart rather than here, so it cannot compete
+// with a dialog raised later in startup; this is how it gets the window to parent itself to.
+inline QMainWindow *s_mainWindow = nullptr;
+
 inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
 {
+  s_mainWindow = mainWindow;
+
   // Qt's default link color is unreadable on the dark theme; setting the palette link role
   // once colors every anchor, so dialog copy never needs inline link styles.
   auto palette = QGuiApplication::palette();
@@ -69,7 +75,6 @@ inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *co
 
   LicenseHandler::instance().handleMainWindow(mainWindow, coreProcess);
   FeatureHandler::instance().handleMainWindow(mainWindow);
-  synergy::gui::migration::showNoticeIfPending(mainWindow);
 }
 
 inline void onTitleApplied(QMainWindow *mainWindow)
@@ -81,7 +86,13 @@ inline void onTitleApplied(QMainWindow *mainWindow)
 inline bool onAppStart()
 {
   FeatureHandler::instance().handleAppStart();
-  return LicenseHandler::instance().handleAppStart();
+  if (!LicenseHandler::instance().handleAppStart()) {
+    return false;
+  }
+
+  // Last, so every other dialog startup can raise has been dealt with by the time it appears.
+  synergy::gui::migration::showNoticeIfPending(s_mainWindow);
+  return true;
 }
 
 inline void onSettings(QDialog *parent)
