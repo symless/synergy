@@ -67,6 +67,14 @@ inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *co
 {
   s_mainWindow = mainWindow;
 
+  // Upstream asks, on first launch, whether to check for updates, which Debian packaging policy
+  // wants and Synergy does not need. Writing the value before the main window opens means the
+  // question never gets asked; anyone who has already answered it, here or in an older release
+  // the settings migration carried forward, keeps their answer.
+  if (!Settings::value(Settings::Gui::AutoUpdateCheck).isValid()) {
+    Settings::setValue(Settings::Gui::AutoUpdateCheck, true);
+  }
+
   // Qt's default link color is unreadable on the dark theme; setting the palette link role
   // once colors every anchor, so dialog copy never needs inline link styles.
   auto palette = QGuiApplication::palette();
