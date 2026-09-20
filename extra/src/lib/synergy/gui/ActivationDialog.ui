@@ -29,7 +29,7 @@
    <item>
     <widget class="QLabel" name="label_5">
      <property name="text">
-      <string>&lt;p&gt;Your serial key is on your &lt;a href=&quot;https://synergyapp.io/account?utm_source=gui-s1&quot; style=&quot;color:#4285f4;&quot;&gt;account&lt;/a&gt; page.&lt;br/&gt;Don't have a license? &lt;a href=&quot;https://synergyapp.io/purchase?utm_source=gui-s1&quot; style=&quot;color:#4285f4;&quot;&gt;Purchase&lt;/a&gt; today.&lt;/p&gt;&lt;p&gt;Already have a license but need to use Synergy on an offline or air-gapped network?&lt;br/&gt;&lt;a href=&quot;https://synergyapp.io/contact?utm_source=gui-s1&quot; style=&quot;color:#4285f4;&quot;&gt;Contact us&lt;/a&gt; to request an offline serial key for your license.&lt;/p&gt;</string>
+      <string>&lt;p&gt;Your serial key is on your &lt;a href=&quot;https://synergyapp.io/account?utm_source=gui-s1&quot; style=&quot;color:#4285f4;&quot;&gt;account&lt;/a&gt; page.&lt;br/&gt;Don't have a license? &lt;a href=&quot;https://synergyapp.io/purchase?utm_source=gui-s1&quot; style=&quot;color:#4285f4;&quot;&gt;Purchase&lt;/a&gt; today.&lt;/p&gt;&lt;p&gt;Have a license and an air‑gapped network? &lt;a href=&quot;https://synergyapp.io/contact?utm_source=gui-s1&quot; style=&quot;color:#4285f4;&quot;&gt;Request an offline key&lt;/a&gt;&lt;/p&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
