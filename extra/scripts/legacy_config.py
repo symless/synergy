@@ -1,0 +1,688 @@
+#!/usr/bin/env python3
+# Synergy -- mouse and keyboard sharing utility
+# Copyright (C) 2026 Synergy App Ltd
+#
+# This package is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# found in the file LICENSE that should have accompanied this file.
+#
+# This package is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Put a machine into the settings state an older Synergy release left behind.
+
+Synergy carries a customer's settings forward, however old they are. An upgrade that
+loses a screen layout, a server config, a TLS setting or a serial key is a support
+ticket and a refund request, so the migration has to be tested against every settings
+shape still in the field, which goes back years.
+
+This is one of the real differences between Synergy and Deskflow upstream, and it comes
+from who each one is for rather than from one project caring more than the other.
+Deskflow's users track the newest build and rarely complain about setting something up
+again when it changes, so carrying every old settings format forward would cost that
+project complexity it can spend better elsewhere, and it reasonably does not. Synergy
+is bought by people who may be upgrading from a version several years old and who expect
+an upgrade to simply work. They are not looking to set anything up again afterwards, and
+having paid for the software they have no reason to expect to. Synergy takes on the
+migration code, and the work of testing it, because that expectation is part of what was
+paid for.
+
+Doing QA on it used to mean installing an old release, configuring it, and installing
+the new build over the top, per release and per operating system. This writes the config
+that release would have written instead, on Linux, macOS and Windows.
+
+  legacy_config.py list                     what eras exist and whether config is saved
+  legacy_config.py save                     move the live config aside
+  legacy_config.py apply 1.20               write that era's config as the live config
+  legacy_config.py show                     print the config as it stands now
+  legacy_config.py restore                  put the saved config back
+  legacy_config.py capture 1.20             save the live config as this era's fixture
+  legacy_config.py clear                    remove the live config (fresh install)
+
+Typical run:
+
+  legacy_config.py apply 1.20      (saves the machine's own config first, on its own)
+  <launch Synergy, check every setting came through>
+  legacy_config.py show            (what the new build made of it)
+  legacy_config.py restore
+
+Each era carries a full config rather than a minimal one, so what is being tested is the
+whole migration and not just the part that broke last time. A fixture captured from a
+real install of that release is used when one exists; where none does, the era is
+reconstructed from what that release's source wrote, which is a good guess and no more.
+`capture` on a real install replaces the guess and the warning goes away.
+"""
+
+import argparse
+import json
+import os
+import plistlib
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+APP = "Synergy"
+IS_WINDOWS = sys.platform == "win32"
+IS_MACOS = sys.platform == "darwin"
+PLATFORM = "windows" if IS_WINDOWS else "macos" if IS_MACOS else "linux"
+
+FIXTURES = Path(__file__).resolve().parent / "legacy_config"
+REGISTRY_KEY = rf"Software\{APP}\{APP}"
+
+# A path no user can create, for reproducing what the app does with a certificate path it cannot
+# use. Only written when apply is asked for it.
+UNUSABLE_CERT_PATH = "/nonexistent/Synergy/tls/synergy.pem"
+
+# An era that turns on the external server config has to leave a real file behind, or the core
+# refuses to start and the run stalls on something the migration had nothing to do with. The name
+# is ours, so clear can remove it again without touching anything of the developer's.
+SERVER_CONFIG_NAME = "legacy-config.sgc"
+
+# Settings shapes, oldest first. Each is one way a release left the machine, not one
+# release: every version up to 1.20 wrote flat keys into the native store, so the only
+# differences that matter are which keys are there and what they were called.
+#
+# Each era carries a whole config, the settings a customer actually set and would notice
+# losing, plus a few keys that no longer exist, so a run shows both what the migration
+# carries and what it drops.
+#
+# "native" is what the release wrote through QSettings' native backend (an ini file on
+# Linux, a plist on macOS, the registry on Windows). "conf" and "extra" are the files the
+# 1.21 line uses. "plist" is the file name the macOS native store had at the time, which
+# follows the organisation domain the app was built with and therefore changes with it.
+ERAS = {
+    "1.14": {
+        "summary": "Up to 1.14. The oldest key names still in the field.",
+        "verified": False,
+        "plist": "com.http-symless-com.Synergy.plist",
+        "native": {
+            "screenName": "legacy-1-14",
+            "port": "24801",
+            "interface": "192.168.1.10",
+            "logLevel2": "2",
+            "logToFile": "true",
+            "logFilename": "/tmp/synergy-1-14.log",
+            "startedBefore": "true",
+            "groupServerChecked": "true",
+            "groupClientChecked": "false",
+            "useExternalConfig": "true",
+            "configFile": "@SERVERCONFIG@",
+            "serverHostname": "old-server.local",
+            "cryptoEnabled": "true",
+            "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
+            "tlsKeyLength": "2048",
+            "elevateMode": "true",
+            "autoHide": "true",
+            "preventSleep": "true",
+            "languageSync": "true",
+            "invertScrollDirection": "true",
+            "serialKey": "@SERIAL_KEY@",
+            "activationHasRun": "true",
+            "lastVersion": "1.14.5",
+            # Gone by the current release; these must be dropped, not carried.
+            "edition": "2",
+            "language": "en",
+            "autoConfig": "false",
+            "eliteBackersUrl": "https://symless.com/backers",
+        },
+    },
+    "1.17": {
+        "summary": "1.15 to 1.17. Elevate mode became an enum and several keys were retired.",
+        "verified": False,
+        "plist": "com.symless.Synergy.plist",
+        "native": {
+            "screenName": "legacy-1-17",
+            "port": "24802",
+            "interface": "192.168.1.11",
+            "logLevel2": "1",
+            "logToFile": "false",
+            "logFilename": "/tmp/synergy-1-17.log",
+            "startedBefore": "true",
+            "groupServerChecked": "false",
+            "groupClientChecked": "true",
+            "useExternalConfig": "false",
+            "configFile": "@SERVERCONFIG@",
+            "serverHostname": "old-server.local",
+            "cryptoEnabled": "true",
+            "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
+            "tlsKeyLength": "2048",
+            "elevateModeEnum": "1",
+            "autoHide": "false",
+            "preventSleep": "false",
+            "languageSync": "true",
+            "invertScrollDirection": "false",
+            "closeToTray": "true",
+            "showCloseReminder": "false",
+            "enableUpdateCheck": "true",
+            "serialKey": "@SERIAL_KEY@",
+            "activated": "true",
+            "lastVersion": "1.17.1",
+        },
+    },
+    "1.20": {
+        "summary": "1.18 to 1.20. What most customers upgrade from; adds service and tray keys.",
+        "verified": False,
+        "plist": "com.symless.Synergy.plist",
+        "native": {
+            "screenName": "legacy-1-20",
+            "port": "24803",
+            "interface": "192.168.1.12",
+            "logLevel2": "3",
+            "logToFile": "true",
+            "logFilename": "/tmp/synergy-1-20.log",
+            "startedBefore": "true",
+            "groupServerChecked": "true",
+            "groupClientChecked": "false",
+            "useExternalConfig": "true",
+            "configFile": "@SERVERCONFIG@",
+            "serverHostname": "old-server.local",
+            "cryptoEnabled": "true",
+            # The certificate moved out of SSL/ into tls/ in 1.17.2, so anything from 1.18 on
+            # points at the new one.
+            "tlsCertPath": "@HOME@/.config/Synergy/tls/synergy.pem",
+            "tlsKeyLength": "4096",
+            "elevateModeEnum": "2",
+            "autoHide": "true",
+            "preventSleep": "true",
+            "languageSync": "false",
+            "invertScrollDirection": "true",
+            "enableService": "true",
+            "closeToTray": "true",
+            "showCloseReminder": "true",
+            "enableUpdateCheck": "false",
+            "serialKey": "@SERIAL_KEY@",
+            "activated": "true",
+            "graceStartEpochSecs": "0",
+            "lastVersion": "1.20.4",
+        },
+    },
+    "1.21-beta": {
+        "summary": "The 1.21 betas. Settings already in the current layout and file.",
+        "verified": False,
+        "plist": None,
+        "conf": {
+            "core/coreMode": "1",
+            "core/computerName": "legacy-1-21",
+            "core/port": "24804",
+            "core/preventSleep": "true",
+            "core/lastVersion": "1.21.1",
+            "client/remoteHost": "old-server.local",
+            "client/languageSync": "true",
+            "server/externalConfig": "true",
+            "server/externalConfigFile": "@SERVERCONFIG@",
+            "security/tlsEnabled": "true",
+            "security/keySize": "4096",
+            "gui/autoStartCore": "true",
+            "gui/closeToTray": "true",
+            "gui/enableUpdateCheck": "true",
+            "log/level": "3",
+        },
+        "extra": {
+            "license/serialKey": "@SERIAL_KEY@",
+            "license/activated": "true",
+            "license/holdsServerActivation": "true",
+            "license/graceStartEpochSecs": "0",
+            "migration/schemaVersion": "1",
+            "migration/notifiedFor": "1",
+        },
+    },
+}
+
+
+def user_dir():
+    home = Path.home()
+    if IS_WINDOWS:
+        return home / "AppData" / "Roaming" / APP
+    if IS_MACOS:
+        return home / "Library" / APP
+    return home / ".config" / APP
+
+
+def conf_file():
+    return user_dir() / f"{APP}.conf"
+
+
+def extra_file():
+    return user_dir() / f"{APP}.extra.conf"
+
+
+def native_ini_file():
+    # Only Linux keeps the native store in a file with a predictable name; it is the same
+    # path as the current settings file, which is why the migration tells the two apart
+    # by the keys inside rather than by the file being there.
+    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / APP / f"{APP}.conf"
+
+
+def plist_file(name):
+    return Path.home() / "Library" / "Preferences" / name
+
+
+def server_config_file():
+    return user_dir() / SERVER_CONFIG_NAME
+
+
+def write_server_config(screen_name):
+    path = server_config_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "section: screens\n"
+        f"\t{screen_name}:\n"
+        "end\n\n"
+        "section: links\n"
+        "end\n\n"
+        "section: options\n"
+        "\tswitchCorners = none\n"
+        "end\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def backup_dir():
+    return Path.home() / ".synergy-legacy-config-backup"
+
+
+def write_ini(path, values):
+    """Write a QSettings ini. Keys are "group/name"; a bare name is top level."""
+    groups = {}
+    for key, value in values.items():
+        group, _, name = key.rpartition("/")
+        groups.setdefault(group, {})[name] = value
+
+    lines = []
+    for name, value in sorted(groups.pop("", {}).items()):
+        lines.append(f"{name}={value}")
+    for group in sorted(groups):
+        if lines:
+            lines.append("")
+        lines.append(f"[{group}]")
+        for name, value in sorted(groups[group].items()):
+            lines.append(f"{name}={value}")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def read_ini(path):
+    """Read a QSettings ini back into "group/name" keys."""
+    if not path.exists():
+        return None
+    values, group = {}, ""
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith(";") or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            group = line[1:-1]
+            continue
+        name, sep, value = line.partition("=")
+        if not sep:
+            continue
+        key = f"{group}/{name.strip()}" if group else name.strip()
+        values[key] = value.strip()
+    return values
+
+
+def write_registry(values):
+    import winreg
+
+    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY) as key:
+        for name, value in values.items():
+            winreg.SetValueEx(key, name.replace("/", "\\"), 0, winreg.REG_SZ, str(value))
+
+
+def read_registry():
+    import winreg
+
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY)
+    except FileNotFoundError:
+        return None
+    values = {}
+    with key:
+        index = 0
+        while True:
+            try:
+                name, value, _ = winreg.EnumValue(key, index)
+            except OSError:
+                break
+            values[name] = str(value)
+            index += 1
+    return values
+
+
+def delete_registry():
+    import winreg
+
+    try:
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY)
+    except FileNotFoundError:
+        pass
+
+
+def flush_macos_prefs():
+    # cfprefsd caches preference files, so a plist written behind its back is not seen
+    # until it is restarted.
+    subprocess.run(["killall", "-u", os.environ.get("USER", ""), "cfprefsd"], capture_output=True, check=False)
+
+
+def write_native(era, values):
+    if IS_WINDOWS:
+        write_registry(values)
+        return f"registry {REGISTRY_KEY}"
+    if IS_MACOS:
+        name = era.get("plist") or f"com.symless.{APP}.plist"
+        path = plist_file(name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("wb") as handle:
+            plistlib.dump({k.replace("/", "."): v for k, v in values.items()}, handle)
+        flush_macos_prefs()
+        return str(path)
+    path = native_ini_file()
+    write_ini(path, values)
+    return str(path)
+
+
+def read_native(era):
+    if IS_WINDOWS:
+        return read_registry()
+    if IS_MACOS:
+        name = era.get("plist") or f"com.symless.{APP}.plist"
+        path = plist_file(name)
+        if not path.exists():
+            return None
+        with path.open("rb") as handle:
+            return {k: str(v) for k, v in plistlib.load(handle).items()}
+    return read_ini(native_ini_file())
+
+
+def live_paths():
+    """Every file this script may touch, for saving and clearing."""
+    paths = [conf_file(), extra_file(), server_config_file()]
+    if IS_MACOS:
+        seen = {e.get("plist") for e in ERAS.values() if e.get("plist")}
+        paths += [plist_file(name) for name in sorted(seen)]
+    elif not IS_WINDOWS:
+        paths.append(native_ini_file())
+    return [p for p in dict.fromkeys(paths)]
+
+
+def serial_key_from_test_conf():
+    """Reuse the key in Synergy.test.conf so fixtures never have to carry one."""
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / f"{APP}.test.conf"
+        if candidate.exists():
+            values = read_ini(candidate) or {}
+            return values.get("test/serialKey") or None
+    return None
+
+
+def cmd_list(args):
+    saved = backup_dir().exists()
+    print(f"platform: {PLATFORM}")
+    print(f"settings: {user_dir()}")
+    print(f"saved config: {'yes, ' + str(backup_dir()) if saved else 'no'}")
+    print()
+    for name, era in ERAS.items():
+        captured = fixture_path(name).exists()
+        source = "captured" if captured else "synthesised"
+        print(f"  {name:<12} {source:<12} {era['summary']}")
+    return 0
+
+
+def fixture_path(name):
+    return FIXTURES / f"{name}.{PLATFORM}.json"
+
+
+def cmd_save(args):
+    target = backup_dir()
+    if target.exists() and not args.force:
+        print(f"already saved to {target}; restore or pass --force to overwrite", file=sys.stderr)
+        return 1
+    if target.exists():
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+
+    manifest = {"platform": PLATFORM, "files": {}}
+    for path in live_paths():
+        if path.exists():
+            stored = target / path.name
+            shutil.move(str(path), stored)
+            manifest["files"][str(path)] = stored.name
+            print(f"saved {path}")
+    if IS_WINDOWS:
+        values = read_registry()
+        if values is not None:
+            manifest["registry"] = values
+            delete_registry()
+            print(f"saved registry {REGISTRY_KEY}")
+
+    (target / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    if not manifest["files"] and "registry" not in manifest:
+        print("nothing to save, the machine had no config")
+    return 0
+
+
+def cmd_restore(args):
+    target = backup_dir()
+    manifest_file = target / "manifest.json"
+    if not manifest_file.exists():
+        print(f"nothing saved at {target}", file=sys.stderr)
+        return 1
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+
+    cmd_clear(args, quiet=True)
+    for original, stored in manifest["files"].items():
+        path = Path(original)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(target / stored), path)
+        print(f"restored {path}")
+    if "registry" in manifest:
+        write_registry(manifest["registry"])
+        print(f"restored registry {REGISTRY_KEY}")
+    if IS_MACOS:
+        flush_macos_prefs()
+
+    if not manifest["files"] and "registry" not in manifest:
+        print("the saved config was empty, so the machine is back to having none")
+    shutil.rmtree(target)
+    return 0
+
+
+def cmd_clear(args, quiet=False):
+    for path in live_paths():
+        if path.exists():
+            path.unlink()
+            if not quiet:
+                print(f"removed {path}")
+    if IS_WINDOWS:
+        delete_registry()
+        if not quiet:
+            print(f"removed registry {REGISTRY_KEY}")
+    if IS_MACOS:
+        flush_macos_prefs()
+    return 0
+
+
+def cmd_show(args):
+    """Print the config as it stands, so a tester can see what an upgrade made of it."""
+    shown = False
+    for label, values in (
+        ("native store", read_native(next(iter(ERAS.values())))),
+        (str(conf_file()), read_ini(conf_file())),
+        (str(extra_file()), read_ini(extra_file())),
+    ):
+        if not values:
+            continue
+        # On Linux the native store and the current settings file are the same file, so
+        # printing both would print it twice.
+        if shown and label == str(conf_file()) and conf_file() == native_ini_file():
+            continue
+        shown = True
+        print(f"[{label}]")
+        for key, value in sorted(values.items()):
+            if "serialKey" in key and value:
+                value = f"{value[:8]}... ({len(value)} chars)"
+            print(f"  {key} = {value}")
+        print()
+    if not shown:
+        print("no config on this machine")
+    return 0
+
+
+def cmd_apply(args):
+    args.unusable_cert_path = getattr(args, "unusable_cert_path", False)
+    era = ERAS.get(args.era)
+    if era is None:
+        print(f"unknown era {args.era}; try list", file=sys.stderr)
+        return 1
+
+    if not backup_dir().exists():
+        print("saving the current config first")
+        if cmd_save(args) != 0:
+            return 1
+    cmd_clear(args, quiet=True)
+
+    serial_key = args.serial_key or serial_key_from_test_conf()
+    captured = fixture_path(args.era)
+    if captured.exists():
+        data = json.loads(captured.read_text(encoding="utf-8"))
+        print(f"using the fixture captured from a real {args.era} install")
+    else:
+        data = {k: v for k, v in era.items() if k in ("native", "conf", "extra")}
+        if not era["verified"]:
+            print(f"warning: no fixture for {args.era} on {PLATFORM}, synthesising from what that")
+            print("         release's source wrote. Capture a real one to be sure of this test.")
+
+    def fill(values):
+        if "@SERIAL_KEY@" in json.dumps(values) and not serial_key:
+            print("no serial key: pass --serial-key, or put one in Synergy.test.conf", file=sys.stderr)
+            sys.exit(1)
+
+        filled = {}
+        for key, value in values.items():
+            if value == "@SERIAL_KEY@":
+                value = serial_key
+            elif value == "@SERVERCONFIG@":
+                value = str(server_config_file())
+            elif isinstance(value, str) and "@HOME@" in value:
+                value = value.replace("@HOME@", str(Path.home()))
+            if args.unusable_cert_path and key in ("tlsCertPath", "security/certificate"):
+                value = UNUSABLE_CERT_PATH
+            filled[key] = value
+        return filled
+
+    screen_name = (data.get("native") or {}).get("screenName") or (data.get("conf") or {}).get(
+        "core/computerName", "legacy"
+    )
+    if "@SERVERCONFIG@" in json.dumps(data):
+        print(f"wrote {write_server_config(screen_name)}")
+
+    if data.get("native"):
+        print(f"wrote {write_native(era, fill(data['native']))}")
+    if data.get("conf"):
+        write_ini(conf_file(), fill(data["conf"]))
+        print(f"wrote {conf_file()}")
+    if data.get("extra"):
+        write_ini(extra_file(), fill(data["extra"]))
+        print(f"wrote {extra_file()}")
+
+    print()
+    print(f"the machine now looks like a {args.era} install; launch Synergy to test the upgrade")
+    print("run restore when done")
+    return 0
+
+
+def cmd_capture(args):
+    era = ERAS.get(args.era)
+    if era is None:
+        print(f"unknown era {args.era}; try list", file=sys.stderr)
+        return 1
+
+    # A saved config means the live one was written by apply, and capturing that would
+    # turn a guess into a fixture that claims to have come from a real install.
+    if backup_dir().exists():
+        print("refusing to capture: this config came from apply, not from a real install", file=sys.stderr)
+        print("restore first, then capture on a machine running that release", file=sys.stderr)
+        return 1
+
+    data = {}
+    native = read_native(era)
+    if native:
+        data["native"] = native
+    # On Linux the native store is the same file as the current settings, so reading both
+    # would record one file twice.
+    conf = None if conf_file() == native_ini_file() and native else read_ini(conf_file())
+    if conf:
+        data["conf"] = conf
+    extra = read_ini(extra_file())
+    if extra:
+        data["extra"] = extra
+    if not data:
+        print("found no config to capture; is this machine running that release?", file=sys.stderr)
+        return 1
+
+    redacted = 0
+    for store in data.values():
+        for key in store:
+            if "serialKey" in key and store[key]:
+                store[key] = "@SERIAL_KEY@"
+                redacted += 1
+
+    FIXTURES.mkdir(parents=True, exist_ok=True)
+    path = fixture_path(args.era)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(f"wrote {path}")
+    if redacted:
+        print(f"replaced {redacted} serial key value(s) with a placeholder; commit this file")
+    return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser("list", help="show the eras and whether a config is saved")
+
+    save = sub.add_parser("save", help="move the live config aside")
+    save.add_argument("--force", action="store_true", help="overwrite an existing saved config")
+
+    sub.add_parser("show", help="print the config as it stands now")
+    sub.add_parser("restore", help="put the saved config back")
+    sub.add_parser("clear", help="remove the live config, as if never installed")
+
+    apply_cmd = sub.add_parser("apply", help="write an era's config as the live config")
+    apply_cmd.add_argument("era", help="an era from list")
+    apply_cmd.add_argument("--serial-key", help="key to write; defaults to the one in Synergy.test.conf")
+    apply_cmd.add_argument("--force", action="store_true", help="overwrite an existing saved config")
+    apply_cmd.add_argument(
+        "--unusable-cert-path",
+        action="store_true",
+        help="point the tls certificate at a directory that cannot be created, to reproduce that error",
+    )
+
+    capture = sub.add_parser("capture", help="save the live config as this era's fixture")
+    capture.add_argument("era", help="an era from list")
+
+    args = parser.parse_args()
+    handlers = {
+        "list": cmd_list,
+        "save": cmd_save,
+        "show": cmd_show,
+        "restore": cmd_restore,
+        "clear": cmd_clear,
+        "apply": cmd_apply,
+        "capture": cmd_capture,
+    }
+    return handlers[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
