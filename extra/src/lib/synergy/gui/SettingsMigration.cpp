@@ -38,6 +38,8 @@ namespace {
 const auto kSchemaKey = QStringLiteral("migration/schemaVersion");
 const auto kNotifiedKey = QStringLiteral("migration/notifiedFor");
 const auto kLegacySystemScopeKey = QStringLiteral("systemScope");
+const auto kLegacySerialKey = QStringLiteral("serialKey");
+const auto kExtraSerialKey = QStringLiteral("license/serialKey");
 
 QString extraFile()
 {
@@ -205,6 +207,28 @@ int migrateOneScope(QSettings &legacy, const QString &newPath)
   return migrated;
 }
 
+// The serial key does not belong in Synergy.conf, where cleanSettings() would strip it; it goes
+// to the extra file the license code reads. A key already there wins, so a key entered into a
+// newer build is never overwritten by a stale one. Activation state is deliberately left behind:
+// the next core start re-activates against the current endpoint.
+void migrateSerialKey(const QSettings &legacy, const char *scopeLabel)
+{
+  const auto serialKey = legacy.value(kLegacySerialKey).toString();
+  if (serialKey.isEmpty()) {
+    return;
+  }
+
+  QSettings extra(extraFile(), QSettings::IniFormat);
+  if (!extra.value(kExtraSerialKey).toString().isEmpty()) {
+    qDebug("settings migration: %s legacy serial key ignored, extra settings already hold one", scopeLabel);
+    return;
+  }
+
+  extra.setValue(kExtraSerialKey, serialKey);
+  extra.sync();
+  qInfo("settings migration: %s legacy serial key carried to extra settings", scopeLabel);
+}
+
 bool s_migrationRanThisLaunch = false;
 QString s_lastBackupPath;
 
@@ -249,6 +273,7 @@ bool runLegacyMigration()
       any = true;
       applyMasterCompatDefaults(Settings::UserSettingFile);
     }
+    migrateSerialKey(legacyUser, "user-scope");
     maybeClearLegacy(legacyUser, Settings::UserSettingFile, "user-scope");
   }
 
@@ -261,6 +286,7 @@ bool runLegacyMigration()
       any = true;
       applyMasterCompatDefaults(Settings::SystemSettingFile);
     }
+    migrateSerialKey(legacySystem, "system-scope");
     maybeClearLegacy(legacySystem, Settings::SystemSettingFile, "system-scope");
   }
 
