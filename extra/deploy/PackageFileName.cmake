@@ -28,6 +28,14 @@ elseif(UNIX)
   set(_ver "")
   if("${_distro}" STREQUAL "arch")
     set(_distro "arch-linux")           # os-release ID is "arch"
+  elseif("${DISTRO_LIKE}" MATCHES "rhel" OR "${_distro}" STREQUAL "rhel")
+    # One Enterprise Linux build serves the whole family, and the downloads page
+    # lists it under Red Hat for Business and Rocky for Personal, so it is named
+    # after neither: el-9, the way rpm itself names the family. The point release
+    # in VERSION_ID (9.8) would also move the name on every Rocky respin.
+    string(REGEX REPLACE "\\..*$" "" _el_major "${DISTRO_VERSION_ID}")
+    set(_distro "el")
+    set(_ver "-${_el_major}")
   elseif("${_distro}" STREQUAL "opensuse")
     set(_ver "-${DISTRO_CODENAME}")     # rolling: codename (tumbleweed), not the ISO date
   elseif(NOT "${DISTRO_VERSION_ID}" STREQUAL "")
