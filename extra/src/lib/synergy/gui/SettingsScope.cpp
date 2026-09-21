@@ -54,13 +54,15 @@ void SettingsScope::setPreferSystem(bool prefer)
   extra.sync();
 }
 
-bool SettingsScope::isSystemWritable()
+namespace {
+
+bool isPathWritable(const QString &path)
 {
-  const QFileInfo info(Settings::SystemSettingFile);
+  const QFileInfo info(path);
   if (info.exists()) {
     return info.isWritable();
   }
-  QFileInfo dir(QFileInfo(Settings::SystemSettingFile).absolutePath());
+  QFileInfo dir(QFileInfo(path).absolutePath());
   if (dir.exists()) {
     return dir.isWritable();
   }
@@ -68,6 +70,18 @@ bool SettingsScope::isSystemWritable()
   while (!cursor.exists() && cursor.cdUp()) {
   }
   return QFileInfo(cursor.absolutePath()).isWritable();
+}
+
+} // namespace
+
+bool SettingsScope::isSystemWritable()
+{
+  // The settings file is not all this scope writes: TLS material lands beside it, and a packaged
+  // install can leave that directory owned by root while the settings directory is writable. A
+  // scope that can hold the settings but not the fingerprint database looks healthy until a client
+  // connects, and the core is then stopped for a failure the user cannot act on.
+  return isPathWritable(Settings::SystemSettingFile) &&
+         isPathWritable(QStringLiteral("%1/tls").arg(Settings::SystemDir));
 }
 
 bool SettingsScope::switchTo(QDialog *parent, bool toSystem)
