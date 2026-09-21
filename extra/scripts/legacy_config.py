@@ -63,6 +63,7 @@ import json
 import os
 import plistlib
 import shutil
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -79,8 +80,13 @@ REGISTRY_KEY = rf"Software\{APP}\{APP}"
 # use. Only written when apply is asked for it.
 UNUSABLE_CERT_PATH = "/nonexistent/Synergy/tls/synergy.pem"
 
-# An era that turns on the external server config has to leave a real file behind, or the core
-# refuses to start and the run stalls on something the migration had nothing to do with. The name
+# Any fixture value naming something outside the config has to be real on the machine the era is
+# applied to, or the run stalls on something the migration had nothing to do with: a certificate
+# directory that cannot be created, a server config that does not exist, an address that cannot be
+# bound. Paths use @HOME@ or @SERVERCONFIG@, the interface is the loopback, and log files go to a
+# writable temporary directory.
+#
+# An era that turns on the external server config has to leave a real file behind. The name
 # is ours, so clear can remove it again without touching anything of the developer's.
 SERVER_CONFIG_NAME = "legacy-config.sgc"
 
@@ -104,7 +110,7 @@ ERAS = {
         "native": {
             "screenName": "legacy-1-14",
             "port": "24801",
-            "interface": "192.168.1.10",
+            "interface": "127.0.0.1",
             "logLevel2": "2",
             "logToFile": "true",
             "logFilename": "/tmp/synergy-1-14.log",
@@ -113,7 +119,7 @@ ERAS = {
             "groupClientChecked": "false",
             "useExternalConfig": "true",
             "configFile": "@SERVERCONFIG@",
-            "serverHostname": "old-server.local",
+            "serverHostname": "localhost",
             "cryptoEnabled": "true",
             "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
             "tlsKeyLength": "2048",
@@ -139,7 +145,7 @@ ERAS = {
         "native": {
             "screenName": "legacy-1-17",
             "port": "24802",
-            "interface": "192.168.1.11",
+            "interface": "127.0.0.1",
             "logLevel2": "1",
             "logToFile": "false",
             "logFilename": "/tmp/synergy-1-17.log",
@@ -148,7 +154,7 @@ ERAS = {
             "groupClientChecked": "true",
             "useExternalConfig": "false",
             "configFile": "@SERVERCONFIG@",
-            "serverHostname": "old-server.local",
+            "serverHostname": "localhost",
             "cryptoEnabled": "true",
             "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
             "tlsKeyLength": "2048",
@@ -172,7 +178,7 @@ ERAS = {
         "native": {
             "screenName": "legacy-1-20",
             "port": "24803",
-            "interface": "192.168.1.12",
+            "interface": "127.0.0.1",
             "logLevel2": "3",
             "logToFile": "true",
             "logFilename": "/tmp/synergy-1-20.log",
@@ -181,14 +187,17 @@ ERAS = {
             "groupClientChecked": "false",
             "useExternalConfig": "true",
             "configFile": "@SERVERCONFIG@",
-            "serverHostname": "old-server.local",
+            "serverHostname": "localhost",
             "cryptoEnabled": "true",
             # The certificate moved out of SSL/ into tls/ in 1.17.2, so anything from 1.18 on
             # points at the new one.
             "tlsCertPath": "@HOME@/.config/Synergy/tls/synergy.pem",
             "tlsKeyLength": "4096",
+            # Left off deliberately, unlike the older eras: this is the one run every release and
+            # checked by eye, and auto-hide migrating correctly means the window is not there to
+            # check. The true case is covered by 1.14.
+            "autoHide": "false",
             "elevateModeEnum": "2",
-            "autoHide": "true",
             "preventSleep": "true",
             "languageSync": "false",
             "invertScrollDirection": "true",
@@ -212,7 +221,7 @@ ERAS = {
             "core/port": "24804",
             "core/preventSleep": "true",
             "core/lastVersion": "1.21.1",
-            "client/remoteHost": "old-server.local",
+            "client/remoteHost": "localhost",
             "client/languageSync": "true",
             "server/externalConfig": "true",
             "server/externalConfigFile": "@SERVERCONFIG@",
@@ -221,7 +230,7 @@ ERAS = {
             "gui/autoStartCore": "true",
             "gui/closeToTray": "true",
             "gui/enableUpdateCheck": "true",
-            "log/level": "3",
+            "log/level": "Debug",
         },
         "extra": {
             "license/serialKey": "@SERIAL_KEY@",
@@ -594,10 +603,80 @@ def cmd_apply(args):
         write_ini(extra_file(), fill(data["extra"]))
         print(f"wrote {extra_file()}")
 
+    written = {}
+    for store in ("native", "conf", "extra"):
+        if data.get(store):
+            written.update(fill(data[store]))
+
+    problems = check_launchable(written, args.unusable_cert_path)
     print()
+    if problems:
+        print("this config will not launch cleanly:")
+        for problem in problems:
+            print(f"  {problem}")
+        print()
+        print("fix the era rather than working around it here; a run that stalls on one of these")
+        print("looks like a defect and is not one")
+        return 1
+
     print(f"the machine now looks like a {args.era} install; launch Synergy to test the upgrade")
     print("run restore when done")
     return 0
+
+
+def check_launchable(values, allow_unusable_cert):
+    """Report anything in a written config that would stop the app launching.
+
+    An era names things that live outside the config: a certificate directory, a server config
+    file, an address to bind. If any of those is not real on this machine, the run stalls on
+    something the migration had nothing to do with, which is worse than useless because it looks
+    like a defect. Better to say so here than to spend a launch finding out.
+    """
+    problems = []
+
+    def value_of(*keys):
+        for key in keys:
+            if values.get(key):
+                return values[key]
+        return None
+
+    cert = value_of("tlsCertPath", "security/certificate")
+    if cert and not (allow_unusable_cert and cert == UNUSABLE_CERT_PATH):
+        directory = Path(cert).parent
+        if not directory.exists():
+            try:
+                directory.mkdir(parents=True, exist_ok=True)
+            except OSError as error:
+                problems.append(f"certificate directory cannot be created: {directory} ({error})")
+
+    server_config = value_of("configFile", "server/externalConfigFile")
+    if server_config and not Path(server_config).exists():
+        problems.append(f"server config file does not exist: {server_config}")
+
+    log_file = value_of("logFilename", "log/file")
+    if log_file and not Path(log_file).parent.exists():
+        problems.append(f"log directory does not exist: {Path(log_file).parent}")
+
+    interface = value_of("interface", "core/interface")
+    port = value_of("port", "core/port")
+    if interface or port:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind((interface or "", int(port or 0)))
+        except OSError as error:
+            problems.append(f"cannot bind {interface or 'any address'} port {port or 'any'}: {error}")
+        finally:
+            probe.close()
+
+    host = value_of("serverHostname", "client/remoteHost")
+    if host:
+        try:
+            socket.getaddrinfo(host, None)
+        except OSError:
+            problems.append(f"server hostname does not resolve: {host}")
+
+    return problems
 
 
 def cmd_capture(args):
