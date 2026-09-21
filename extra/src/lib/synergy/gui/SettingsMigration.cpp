@@ -18,6 +18,7 @@
 #include "SettingsMigration.h"
 
 #include "common/Constants.h"
+#include "common/LogLevel.h"
 #include "common/Settings.h"
 #include "synergy/gui/SettingsScope.h"
 #include "synergy/gui/styles.h"
@@ -32,6 +33,7 @@
 #include <QStatusBar>
 #include <QStringLiteral>
 
+#include <algorithm>
 #include <optional>
 #include <utility>
 
@@ -104,7 +106,16 @@ std::optional<std::pair<QString, QVariant>> mapKey(const QString &oldKey, const 
     return std::make_pair(Settings::Core::Interface, value);
   }
   if (oldKey == "logLevel2") {
-    return std::make_pair(Settings::Log::Level, value);
+    // The old value is an index into {INFO, DEBUG, DEBUG1, DEBUG2}; the current one is the name of
+    // a level on a scale that starts at FATAL, so the number means something else entirely and
+    // passing it through leaves a value the app rejects and replaces with its default. There is
+    // nothing between DEBUG and the most detailed level any more, so both old debug levels above
+    // the first land there: somebody who asked for more detail should not quietly get less.
+    static const QList<LogLevel::Level> levels = {
+        LogLevel::Level::Info, LogLevel::Level::Debug, LogLevel::Level::Verbose, LogLevel::Level::Verbose
+    };
+    const auto index = std::clamp(value.toInt(), 0, static_cast<int>(levels.size()) - 1);
+    return std::make_pair(Settings::Log::Level, LogLevel::toOption(static_cast<int>(levels.at(index))));
   }
   if (oldKey == "logToFile") {
     return std::make_pair(Settings::Log::ToFile, value);
