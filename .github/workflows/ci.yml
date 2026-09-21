@@ -31,7 +31,7 @@ on:
           - macos
           - linux
   push:
-    branches: [beta]
+    branches: [master*]
   pull_request:
   release:
     types: [published]
@@ -51,7 +51,7 @@ env:
 
   # Release shape, propagated to cmake (Synergy.cmake reads these as options).
   # Release events + explicit "release" workflow_dispatch input → release build.
-  # Push to beta + schedule + explicit "snapshot" dispatch → snapshot build.
+  # Push to a master branch + schedule + explicit "snapshot" dispatch → snapshot build.
   # PRs and "dev" dispatch fall through to dev (the cmake default).
   SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'release') }}
   SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'snapshot') }}
