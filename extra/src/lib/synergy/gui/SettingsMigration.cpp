@@ -161,8 +161,15 @@ std::optional<std::pair<QString, QVariant>> mapKey(const QString &oldKey, const 
     return std::make_pair(Settings::Client::InvertYScroll, value);
   }
   if (oldKey == "enableService") {
+#ifdef Q_OS_WIN
     const auto mode = value.toBool() ? Settings::Service : Settings::Desktop;
     return std::make_pair(Settings::Core::ProcessMode, QVariant(mode));
+#else
+    // The daemon is only built on Windows, so carrying this anywhere else puts the core into a
+    // mode with nothing to talk to: it fails to start, and the only explanation offered is a
+    // dialog about UAC and the Windows services program. The platform default is correct here.
+    return std::nullopt;
+#endif
   }
   if (oldKey == "closeToTray") {
     return std::make_pair(Settings::Gui::CloseToTray, value);
