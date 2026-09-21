@@ -56,6 +56,14 @@ env:
   SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'release') }}
   SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'snapshot') }}
 
+  # Product values, set per repository so a fork building this code (synergy-ee)
+  # ships as itself. Every one of these must reach cmake on the configure lines
+  # below: a value declared here and read by nothing builds the wrong product
+  # without failing anything.
+  SYNERGY_PRODUCT_NAME: ${{ vars.SYNERGY_PRODUCT_NAME }}
+  SYNERGY_ENABLE_ACTIVATION: ${{ vars.SYNERGY_ENABLE_ACTIVATION || 'ON' }}
+  SYNERGY_VERSION_CHECK: ${{ vars.SYNERGY_VERSION_CHECK || 'ON' }}
+
 jobs:
   # Quality gate to allow PR merge, used in the branch protection rules.
   ci-passed:
@@ -189,7 +197,7 @@ jobs:
         run: echo "C:\Program Files\doxygen\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Configure
-        run: ${{ env.CMAKE_CONFIGURE }} -G Ninja ${{ steps.get-deps.outputs.vcpkg-cmake-config }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DSYNERGY_PACKAGE_PREFIX=${{ env.PACKAGE_PREFIX }}
+        run: ${{ env.CMAKE_CONFIGURE }} -G Ninja ${{ steps.get-deps.outputs.vcpkg-cmake-config }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DSYNERGY_PACKAGE_PREFIX=${{ env.PACKAGE_PREFIX }} -DSYNERGY_PRODUCT_NAME="${{ env.SYNERGY_PRODUCT_NAME }}" -DSYNERGY_ENABLE_ACTIVATION=${{ env.SYNERGY_ENABLE_ACTIVATION }} -DSYNERGY_VERSION_CHECK=${{ env.SYNERGY_VERSION_CHECK }}
 
       - name: Build
         shell: bash
@@ -331,7 +339,7 @@ jobs:
           qt-version: ${{ matrix.target.qt-version }}
 
       - name: Configure
-        run: ${{ env.CMAKE_CONFIGURE }} ${{ matrix.target.config-args }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DSYNERGY_PACKAGE_PREFIX=${{ env.PACKAGE_PREFIX }} -DAPPLE_CODESIGN_ID="${{ secrets.APPLE_CODESIGN_ID }}"
+        run: ${{ env.CMAKE_CONFIGURE }} ${{ matrix.target.config-args }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DSYNERGY_PACKAGE_PREFIX=${{ env.PACKAGE_PREFIX }} -DSYNERGY_PRODUCT_NAME="${{ env.SYNERGY_PRODUCT_NAME }}" -DSYNERGY_ENABLE_ACTIVATION=${{ env.SYNERGY_ENABLE_ACTIVATION }} -DSYNERGY_VERSION_CHECK=${{ env.SYNERGY_VERSION_CHECK }} -DAPPLE_CODESIGN_ID="${{ secrets.APPLE_CODESIGN_ID }}"
 
       - name: Build
         shell: bash
@@ -660,7 +668,7 @@ jobs:
           ldconfig
 
       - name: Configure
-        run: ${{ env.CMAKE_CONFIGURE }} ${{ matrix.target.config-args }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DSYNERGY_PACKAGE_PREFIX=${{ env.PACKAGE_PREFIX }}
+        run: ${{ env.CMAKE_CONFIGURE }} ${{ matrix.target.config-args }} -DSYNERGY_VERSION_RELEASE=${{ env.SYNERGY_VERSION_RELEASE }} -DSYNERGY_VERSION_SNAPSHOT=${{ env.SYNERGY_VERSION_SNAPSHOT }} -DSYNERGY_PACKAGE_PREFIX=${{ env.PACKAGE_PREFIX }} -DSYNERGY_PRODUCT_NAME="${{ env.SYNERGY_PRODUCT_NAME }}" -DSYNERGY_ENABLE_ACTIVATION=${{ env.SYNERGY_ENABLE_ACTIVATION }} -DSYNERGY_VERSION_CHECK=${{ env.SYNERGY_VERSION_CHECK }}
 
       - name: Build
         shell: bash
@@ -731,11 +739,19 @@ jobs:
       - name: Set version flags
         run: |
           manifest=extra/deploy/linux/flatpak/com.symless.synergy.yml
-          grep -q -- '-DSYNERGY_VERSION_RELEASE=' "$manifest" \
-            && grep -q -- '-DSYNERGY_VERSION_SNAPSHOT=' "$manifest" \
-            || { echo "::error::version flags missing from $manifest"; exit 1; }
-          sed -i "s|-DSYNERGY_VERSION_RELEASE=[a-zA-Z]*|-DSYNERGY_VERSION_RELEASE=$SYNERGY_VERSION_RELEASE|" "$manifest"
-          sed -i "s|-DSYNERGY_VERSION_SNAPSHOT=[a-zA-Z]*|-DSYNERGY_VERSION_SNAPSHOT=$SYNERGY_VERSION_SNAPSHOT|" "$manifest"
+          set -- \
+            "SYNERGY_VERSION_RELEASE=$SYNERGY_VERSION_RELEASE" \
+            "SYNERGY_VERSION_SNAPSHOT=$SYNERGY_VERSION_SNAPSHOT" \
+            "SYNERGY_PRODUCT_NAME=$SYNERGY_PRODUCT_NAME" \
+            "SYNERGY_ENABLE_ACTIVATION=$SYNERGY_ENABLE_ACTIVATION" \
+            "SYNERGY_VERSION_CHECK=$SYNERGY_VERSION_CHECK"
+          for pair in "$@"; do
+            flag=${pair%%=*}
+            grep -q -- "-D$flag=" "$manifest" \
+              || { echo "::error::$flag missing from $manifest"; exit 1; }
+            # Value runs to the closing quote, so a product name with spaces survives.
+            sed -i "s|-D$flag=[^\"]*|-D$pair|" "$manifest"
+          done
 
       - name: Lint appsteam
         run: flatpak-builder-lint appstream extra/deploy/linux/com.symless.synergy.metainfo.xml

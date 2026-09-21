@@ -31,7 +31,9 @@ void VersionChecker::checkLatest() const
 {
   QString url = Settings::value(Settings::Gui::UpdateCheckUrl).toString();
 #ifdef SYNERGY_EXTRA_HEADER
-  synergy::hooks::onVersionCheck(url);
+  if (!synergy::hooks::onVersionCheck(url)) {
+    return;
+  }
 #endif
   qDebug("checking for updates at: %s", qPrintable(url));
   auto request = QNetworkRequest(url);

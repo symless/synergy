@@ -29,10 +29,15 @@
 
 #include "synergy/gui/styles.h"
 
+#include <QBoxLayout>
+#include <QCheckBox>
 #include <QColor>
+#include <QCoreApplication>
 #include <QDialog>
+#include <QFont>
 #include <QGuiApplication>
 #include <QIcon>
+#include <QLabel>
 #include <QMainWindow>
 #include <QPalette>
 #include <QSize>
@@ -76,9 +81,15 @@ inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *co
   // wants and Synergy does not need. Writing the value before the main window opens means the
   // question never gets asked; anyone who has already answered it, here or in an older release
   // the settings migration carried forward, keeps their answer.
+#ifdef SYNERGY_VERSION_CHECK
   if (!Settings::value(Settings::Gui::AutoUpdateCheck).isValid()) {
     Settings::setValue(Settings::Gui::AutoUpdateCheck, true);
   }
+#else
+  // Overwritten rather than defaulted: a settings file migrated from an edition that had the
+  // check would otherwise switch it back on in a build that ships without it.
+  Settings::setValue(Settings::Gui::AutoUpdateCheck, false);
+#endif
 
   LicenseHandler::instance().handleMainWindow(mainWindow, coreProcess);
   FeatureHandler::instance().handleMainWindow(mainWindow);
@@ -107,6 +118,12 @@ inline void onSettings(QDialog *parent)
   LicenseHandler::instance().handleSettings(parent);
   FeatureHandler::instance().handleSettings(parent);
   synergy::gui::LockedSettings::instance().applyToDialog(parent);
+
+#ifndef SYNERGY_VERSION_CHECK
+  if (auto *const autoUpdate = parent->findChild<QCheckBox *>(QStringLiteral("cbAutoUpdate"))) {
+    autoUpdate->hide();
+  }
+#endif
 }
 
 inline void onServerConfig(QDialog *parent)
@@ -116,14 +133,39 @@ inline void onServerConfig(QDialog *parent)
 
 inline void onAbout(QDialog *parent)
 {
+  // The dialog names the product with the logo wordmark alone, which carries the brand but not the
+  // edition, so every flavor's About dialog would otherwise look identical. Reuses the .ui's own
+  // translated title string rather than restating it, so there is only one copy to translate.
+  parent->setWindowTitle(QCoreApplication::translate("AboutDialog", "About %1").arg(synergy::kDisplayName));
+
   FeatureHandler::instance().handleAbout(parent);
   LicenseHandler::instance().handleAbout(parent);
+
+  // After the handlers, so the product name sits directly under the logo and above any license
+  // section they inserted at the same anchor.
+  auto *const mainLayout = qobject_cast<QBoxLayout *>(parent->layout());
+  auto *const anchor = parent->findChild<QWidget *>(QStringLiteral("frameLogo"));
+  if (mainLayout == nullptr || anchor == nullptr) {
+    qWarning("about: no frameLogo anchor, skipping product name");
+    return;
+  }
+
+  auto *const productName = new QLabel(QString::fromUtf8(synergy::kDisplayName), parent);
+  QFont font = productName->font();
+  font.setBold(true);
+  productName->setFont(font);
+  mainLayout->insertWidget(mainLayout->indexOf(anchor) + 1, productName);
 }
 
-inline void onVersionCheck(QString &versionUrl)
+inline bool onVersionCheck([[maybe_unused]] QString &versionUrl)
 {
+#ifndef SYNERGY_VERSION_CHECK
+  return false;
+#else
   LicenseHandler::instance().handleVersionCheck(versionUrl);
   synergy::gui::UpdateChannel::applyToVersionCheckUrl(versionUrl);
+  return true;
+#endif
 }
 
 inline bool onCoreStart()

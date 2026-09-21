@@ -12,12 +12,17 @@ set(CMAKE_PROJECT_DOMAIN "synergyapp.io")
 set(CMAKE_PROJECT_HOMEPAGE_URL "https://synergyapp.io")
 
 # Display brand. "Synergy 1" is the default user-facing name (window title,
-# About dialog). When building as the Core, flip to "Synergy Core" so the 
+# About dialog). When building as the Core, flip to "Synergy Core" so the
 # same codebase ships under a different product label.
 # Distinct from CMAKE_PROJECT_PROPER_NAME, which stays "Synergy" to keep file paths
 # (~/.config/Synergy/, Synergy.conf) and Windows globals space-free.
+# A fork shipping this code as its own product names itself with
+# SYNERGY_PRODUCT_NAME, which wins over the flavor default.
 option(SYNERGY_CORE_FLAVOR "Build as Synergy Core" OFF)
-if(SYNERGY_CORE_FLAVOR)
+set(SYNERGY_PRODUCT_NAME "" CACHE STRING "User-facing product name")
+if(SYNERGY_PRODUCT_NAME)
+  set(SYNERGY_DISPLAY_NAME "${SYNERGY_PRODUCT_NAME}")
+elseif(SYNERGY_CORE_FLAVOR)
   set(SYNERGY_DISPLAY_NAME "Synergy Core")
 else()
   set(SYNERGY_DISPLAY_NAME "Synergy 1")
@@ -103,9 +108,24 @@ if(NOT SYNERGY_VERSION_RELEASE AND NOT SYNERGY_VERSION_SNAPSHOT)
   add_compile_definitions(SYNERGY_VERSION_DEV)
 endif()
 
-# Compile activation in for distributable builds only; dev builds opt in at
-# runtime via Synergy.test.conf (licensing=true) so local iteration isn't gated
-# on a serial key.
+# Build mode picks the default only: distributable builds compile activation in,
+# dev builds opt in at runtime via Synergy.test.conf (licensing=true) so local
+# iteration isn't gated on a serial key. A keyless flavor passes
+# -DSYNERGY_ENABLE_ACTIVATION=OFF, and option() leaves an already-cached value
+# alone, so build mode cannot undo it.
 if(SYNERGY_VERSION_RELEASE OR SYNERGY_VERSION_SNAPSHOT)
+  option(SYNERGY_ENABLE_ACTIVATION "Compile in serial key activation" ON)
+else()
+  option(SYNERGY_ENABLE_ACTIVATION "Compile in serial key activation" OFF)
+endif()
+if(SYNERGY_ENABLE_ACTIVATION)
   add_compile_definitions(SYNERGY_ENABLE_ACTIVATION)
+endif()
+
+# A flavor that ships without telemetry compiles the update check out rather than
+# defaulting its setting off, because a settings file migrated from another
+# edition can carry the setting forward as enabled.
+option(SYNERGY_VERSION_CHECK "Compile in the GUI update check" ON)
+if(SYNERGY_VERSION_CHECK)
+  add_compile_definitions(SYNERGY_VERSION_CHECK)
 endif()
