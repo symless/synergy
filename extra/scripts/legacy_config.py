@@ -124,6 +124,9 @@ ERAS = {
             "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
             "tlsKeyLength": "2048",
             "elevateMode": "true",
+            # 1.14 wrote both, and only the enum is carried forward. 2 is never elevate, which
+            # is the value that used to arrive inverted.
+            "elevateModeEnum": "2",
             "autoHide": "true",
             "preventSleep": "true",
             "languageSync": "true",

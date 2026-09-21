@@ -124,7 +124,12 @@ std::optional<std::pair<QString, QVariant>> mapKey(const QString &oldKey, const 
     return std::make_pair(Settings::Log::File, value);
   }
   if (oldKey == "elevateModeEnum") {
-    return std::make_pair(Settings::Daemon::Elevate, value);
+    // The old value was an enum, 0 automatic, 1 always, 2 never, and the current setting is a
+    // boolean read with toBool(), so passing the number through inverts the one choice that
+    // matters: never elevate arrives as true. Automatic meant elevate when required, which is
+    // what the boolean's true means and what it defaults to.
+    constexpr int kElevateNever = 2;
+    return std::make_pair(Settings::Daemon::Elevate, QVariant(value.toInt() != kElevateNever));
   }
   if (oldKey == "cryptoEnabled") {
     return std::make_pair(Settings::Security::TlsEnabled, value);
