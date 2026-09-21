@@ -42,7 +42,7 @@ namespace {
 const unsigned int kRetryDelayMs = 1000;
 const unsigned int kMaxRetryDelayMs = 5000;
 
-// The compositor needs a moment after unlock before it will hand back a session
+// The compositor needs a moment after an unlock or a wake before it will hand back a session
 const unsigned int kUnlockSettleMs = 500;
 
 // A compositor that closes the session on screen lock refuses to open a new one until the screen
@@ -647,20 +647,24 @@ gboolean PortalInputCapture::initSession()
     m_sessionMonitor = std::make_unique<XDGSessionMonitor>([this] {
       if (m_initDeferred) {
         m_initDeferred = false;
-        LOG_INFO("desktop is unlocked and awake, setting up input capture session");
+        LOG_INFO("screen is back and the desktop is unlocked, setting up input capture session");
         m_retryDelay = 0;
         scheduleInit(kUnlockSettleMs);
       }
     });
   }
 
-  // Asking for a session while locked does not merely fail, it costs the permission the
-  // compositor is holding for this process, and the next attempt prompts the user again.
+  // Asking for a session the compositor will not serve does not merely fail, it costs the
+  // permission it is holding for this process, and the next attempt prompts the user again. The
+  // session closing and the signal saying why arrive separately, so read the state again here.
+  m_sessionMonitor->refresh();
   if (!m_sessionMonitor->isReady()) {
-    LOG_INFO("input capture session deferred until the desktop is unlocked and awake");
+    LOG_INFO("input capture session deferred until the screen is back and the desktop is unlocked");
     m_initDeferred = true;
     return false;
   }
+
+  m_initDeferred = false;
 
   LOG_DEBUG("setting up input capture session");
   XdpInputCaptureSession *session;
