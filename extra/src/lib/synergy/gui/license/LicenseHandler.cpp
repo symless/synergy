@@ -428,6 +428,12 @@ bool LicenseHandler::applyOfflineActivationResponse(const QString &responseCode)
 
 void LicenseHandler::updateWindowTitle() const
 {
+  // The build names the product; the license only refines that name for editions that have one.
+  // Without this a keyless build would fall back to the licensed default instead of its own name.
+  if (!m_enabled || m_pMainWindow == nullptr) {
+    return;
+  }
+
   const auto productName = QString::fromStdString(m_license.productName());
   qDebug("updating main window title: %s", qPrintable(productName));
   const bool showVersion = Settings::value(Settings::Gui::ShowVersionInTitle).toBool();

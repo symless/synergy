@@ -88,6 +88,10 @@ modules:
       # Dev build by default; CI overwrites these for snapshot/release flatpaks.
       - "-DSYNERGY_VERSION_RELEASE=false"
       - "-DSYNERGY_VERSION_SNAPSHOT=false"
+      # Product values; CI overwrites these from the repository variables too.
+      - "-DSYNERGY_PRODUCT_NAME="
+      - "-DSYNERGY_ENABLE_ACTIVATION=ON"
+      - "-DSYNERGY_VERSION_CHECK=ON"
     sources:
       - type: dir
         path: ../../../../
