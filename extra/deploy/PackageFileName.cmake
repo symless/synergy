@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2012 - 2026 Synergy App Ltd
 # SPDX-License-Identifier: MIT
 
-# Synergy distribution filename: synergy_<version>_<os>_<arch>.<ext>, matching the
+# Synergy distribution filename: <prefix>_<version>_<os>_<arch>.<ext>, matching the
 # release Package Templates that the downloads page / release flow match artifacts
 # against. Upstream's deploy/ builds a different scheme (hyphen-joined, win/macos,
 # os-release-derived distro tokens) it will never change to ours, so we override
@@ -51,5 +51,5 @@ elseif(UNIX)
 endif()
 
 if(_os)
-  set(CPACK_PACKAGE_FILE_NAME "${CMAKE_PROJECT_NAME}_${PACKAGE_VERSION_LABEL}_${_os}")
+  set(CPACK_PACKAGE_FILE_NAME "${SYNERGY_PACKAGE_PREFIX}_${PACKAGE_VERSION_LABEL}_${_os}")
 endif()
