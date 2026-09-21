@@ -95,10 +95,19 @@ inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *co
   FeatureHandler::instance().handleMainWindow(mainWindow);
 }
 
+// The one name the product goes by right now, for every surface that prints it. With licensing
+// on, the license names the edition; otherwise the build names itself. Reading either directly
+// leaves the title and the About dialog free to disagree.
+inline QString productName()
+{
+  const auto &license = LicenseHandler::instance();
+  return license.isEnabled() ? license.productName() : QString::fromUtf8(synergy::kDisplayName);
+}
+
 inline void onTitleApplied(QMainWindow *mainWindow)
 {
   const bool showVersion = Settings::value(Settings::Gui::ShowVersionInTitle).toBool();
-  mainWindow->setWindowTitle(synergy::gui::windowTitle(synergy::kDisplayName, showVersion));
+  mainWindow->setWindowTitle(synergy::gui::windowTitle(productName(), showVersion));
 }
 
 inline bool onAppStart()
@@ -136,7 +145,7 @@ inline void onAbout(QDialog *parent)
   // The dialog names the product with the logo wordmark alone, which carries the brand but not the
   // edition, so every flavor's About dialog would otherwise look identical. Reuses the .ui's own
   // translated title string rather than restating it, so there is only one copy to translate.
-  parent->setWindowTitle(QCoreApplication::translate("AboutDialog", "About %1").arg(synergy::kDisplayName));
+  parent->setWindowTitle(QCoreApplication::translate("AboutDialog", "About %1").arg(productName()));
 
   FeatureHandler::instance().handleAbout(parent);
   LicenseHandler::instance().handleAbout(parent);
@@ -150,11 +159,11 @@ inline void onAbout(QDialog *parent)
     return;
   }
 
-  auto *const productName = new QLabel(QString::fromUtf8(synergy::kDisplayName), parent);
-  QFont font = productName->font();
+  auto *const nameLabel = new QLabel(productName(), parent);
+  QFont font = nameLabel->font();
   font.setBold(true);
-  productName->setFont(font);
-  mainLayout->insertWidget(mainLayout->indexOf(anchor) + 1, productName);
+  nameLabel->setFont(font);
+  mainLayout->insertWidget(mainLayout->indexOf(anchor) + 1, nameLabel);
 }
 
 inline bool onVersionCheck([[maybe_unused]] QString &versionUrl)
