@@ -73,7 +73,6 @@ void TestSettings::load()
   m_startTimeEpochSecs = 0;
   m_lockedSettingsFile.clear();
   m_verbose = false;
-  m_skipRemoteCheck = false;
   m_allowExpiredLicenses = false;
 
   if (!QFile::exists(m_fileName)) {
@@ -95,7 +94,6 @@ void TestSettings::load()
   m_lockedSettingsFile = ini.value(QStringLiteral("test/lockedSettingsFile")).toString();
 
   m_verbose = ini.value(QStringLiteral("features/verbose"), false).toBool();
-  m_skipRemoteCheck = ini.value(QStringLiteral("features/skipRemoteCheck"), false).toBool();
   m_allowExpiredLicenses = ini.value(QStringLiteral("features/allowExpiredLicenses"), false).toBool();
 
   qInfo().noquote() << "test mode enabled, loaded:" << m_fileName;

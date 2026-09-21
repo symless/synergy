@@ -40,11 +40,43 @@ QString settingsFile()
 const auto kLicenseGroup = QStringLiteral("license");
 
 const auto kSerialKey = QStringLiteral("serialKey");
-const auto kActivated = QStringLiteral("activated");
-const auto kHoldsServerActivation = QStringLiteral("holdsServerActivation");
-const auto kGraceStart = QStringLiteral("graceStartEpochSecs");
+const auto kActivatedMode = QStringLiteral("activatedMode");
 const auto kOfflineActivationResponse = QStringLiteral("offlineActivationResponse");
+
+const auto kModeServer = QStringLiteral("server");
+const auto kModeClient = QStringLiteral("client");
+
+// Pre-slot-limit activation state. Dropped rather than migrated: the next core start activates
+// under the new protocol, which is idempotent for a machine the website already knows.
+const auto kLegacyActivated = QStringLiteral("activated");
+const auto kLegacyHoldsServerActivation = QStringLiteral("holdsServerActivation");
+const auto kLegacyGraceStart = QStringLiteral("graceStartEpochSecs");
 const auto kLegacyActivationState = QStringLiteral("activationState");
+
+ExtraSettings::ActivatedMode parseActivatedMode(const QString &value)
+{
+  using enum ExtraSettings::ActivatedMode;
+  if (value == kModeServer) {
+    return kServer;
+  }
+  if (value == kModeClient) {
+    return kClient;
+  }
+  return kNone;
+}
+
+QString activatedModeString(ExtraSettings::ActivatedMode mode)
+{
+  using enum ExtraSettings::ActivatedMode;
+  switch (mode) {
+  case kServer:
+    return kModeServer;
+  case kClient:
+    return kModeClient;
+  default:
+    return {};
+  }
+}
 
 } // namespace
 
@@ -60,9 +92,7 @@ void ExtraSettings::load()
   };
 
   m_serialKey = value(kSerialKey).toString();
-  m_activated = value(kActivated).toBool();
-  m_holdsServerActivation = value(kHoldsServerActivation).toBool();
-  m_graceStartEpochSecs = value(kGraceStart).toLongLong();
+  m_activatedMode = parseActivatedMode(value(kActivatedMode).toString());
   m_offlineActivationResponse = value(kOfflineActivationResponse).toString();
 }
 
@@ -74,19 +104,19 @@ void ExtraSettings::sync()
     return;
   }
 
-  // Drop the old top-level keys (license state now lives under the license group) and the dead
-  // activationState left over from the enum.
-  for (const auto &key :
-       {kSerialKey, kActivated, kHoldsServerActivation, kGraceStart, kOfflineActivationResponse,
-        kLegacyActivationState}) {
+  // Drop the old top-level keys (license state now lives under the license group) and any
+  // legacy key, wherever it was written.
+  for (const auto &key : {kSerialKey, kOfflineActivationResponse}) {
     ini.remove(key);
+  }
+  for (const auto &key : {kLegacyActivated, kLegacyHoldsServerActivation, kLegacyGraceStart, kLegacyActivationState}) {
+    ini.remove(key);
+    ini.remove(QStringLiteral("%1/%2").arg(kLicenseGroup, key));
   }
 
   ini.beginGroup(kLicenseGroup);
   ini.setValue(kSerialKey, m_serialKey);
-  ini.setValue(kActivated, m_activated);
-  ini.setValue(kHoldsServerActivation, m_holdsServerActivation);
-  ini.setValue(kGraceStart, m_graceStartEpochSecs);
+  ini.setValue(kActivatedMode, activatedModeString(m_activatedMode));
   ini.setValue(kOfflineActivationResponse, m_offlineActivationResponse);
   ini.endGroup();
   ini.sync();

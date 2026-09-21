@@ -76,10 +76,6 @@ public:
   {
     return m_verbose;
   }
-  bool skipRemoteCheck() const
-  {
-    return m_skipRemoteCheck;
-  }
   bool allowExpiredLicenses() const
   {
     return m_allowExpiredLicenses;
@@ -110,7 +106,6 @@ private:
   qint64 m_startTimeEpochSecs = 0;
   QString m_lockedSettingsFile;
   bool m_verbose = false;
-  bool m_skipRemoteCheck = false;
   bool m_allowExpiredLicenses = false;
 };
 

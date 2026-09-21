@@ -757,6 +757,11 @@ Además, verifique que puede %1 el archivo de configuración del servidor: %2</t
         <translation type="unfinished">No se pudo leer la clave RSA del archivo de certificado: %1</translation>
     </message>
     <message>
+        <source>failed to create directory for tls certificate: %1</source>
+        <extracomment>%1 will be replaced by the directory the certificate would be written to</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is already running</source>
         <translation type="unfinished">%1 ya se está ejecutando</translation>
     </message>

@@ -21,12 +21,16 @@
 #include "common/Settings.h"
 #include "synergy/gui/LegacySettingsKeys.h"
 #include "synergy/gui/SettingsScope.h"
+#include "synergy/gui/styles.h"
 
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
+#include <QMainWindow>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QSettings>
+#include <QStatusBar>
 #include <QStringLiteral>
 
 #include <optional>
@@ -37,7 +41,23 @@ namespace {
 
 const auto kSchemaKey = QStringLiteral("migration/schemaVersion");
 const auto kNotifiedKey = QStringLiteral("migration/notifiedFor");
+const auto kBackupPathKey = QStringLiteral("migration/backupPath");
 const auto kLegacySystemScopeKey = QStringLiteral("systemScope");
+
+// Qt builds the macOS preferences domain from the organization, reversing it if it is dotted and
+// prefixing "com." if it is not. Every release up to 1.21 wrote com.symless.Synergy, which comes
+// from "symless.com" and not from the application name: passing that lands on com.synergy.Synergy,
+// a domain no release has ever written, so the migration finds nothing and the customer's settings
+// and serial key stay behind in the real one. The old domain is a historical fact and does not
+// follow the current brand, so it is spelled out rather than derived. Linux keys its path off the
+// application name alone and Windows off the registry path, so both are already right.
+#ifdef Q_OS_MAC
+const auto kLegacyOrganization = QStringLiteral("symless.com");
+#else
+const auto kLegacyOrganization = QString::fromUtf8(kAppName);
+#endif
+const auto kLegacySerialKey = QStringLiteral("serialKey");
+const auto kExtraSerialKey = QStringLiteral("license/serialKey");
 
 QString extraFile()
 {
@@ -67,6 +87,21 @@ void writeNotifiedVersion(int version)
 {
   QSettings ini(extraFile(), QSettings::IniFormat);
   ini.setValue(kNotifiedKey, version);
+  ini.sync();
+}
+
+// Persisted so the notice survives a launch the customer did not acknowledge it on, and so a
+// fresh install, which also records a schema version, is not mistaken for one that migrated.
+QString storedBackupPath()
+{
+  QSettings ini(extraFile(), QSettings::IniFormat);
+  return ini.value(kBackupPathKey).toString();
+}
+
+void writeBackupPath(const QString &path)
+{
+  QSettings ini(extraFile(), QSettings::IniFormat);
+  ini.setValue(kBackupPathKey, path);
   ini.sync();
 }
 
@@ -121,6 +156,28 @@ int migrateOneScope(QSettings &legacy, const QString &newPath)
   return migrated;
 }
 
+// The serial key does not belong in Synergy.conf, where cleanSettings() would strip it; it goes
+// to the extra file the license code reads. A key already there wins, so a key entered into a
+// newer build is never overwritten by a stale one. Activation state is deliberately left behind:
+// the next core start re-activates against the current endpoint.
+void migrateSerialKey(const QSettings &legacy, const char *scopeLabel)
+{
+  const auto serialKey = legacy.value(kLegacySerialKey).toString();
+  if (serialKey.isEmpty()) {
+    return;
+  }
+
+  QSettings extra(extraFile(), QSettings::IniFormat);
+  if (!extra.value(kExtraSerialKey).toString().isEmpty()) {
+    qDebug("settings migration: %s legacy serial key ignored, extra settings already hold one", scopeLabel);
+    return;
+  }
+
+  extra.setValue(kExtraSerialKey, serialKey);
+  extra.sync();
+  qInfo("settings migration: %s legacy serial key carried to extra settings", scopeLabel);
+}
+
 bool s_migrationRanThisLaunch = false;
 QString s_lastBackupPath;
 
@@ -156,7 +213,7 @@ bool runLegacyMigration()
 {
   bool any = false;
 
-  QSettings legacyUser(QSettings::NativeFormat, QSettings::UserScope, kAppName, kAppName);
+  QSettings legacyUser(QSettings::NativeFormat, QSettings::UserScope, kLegacyOrganization, kAppName);
   const bool legacyHadSystemScope = legacyUser.value(kLegacySystemScopeKey, false).toBool();
   if (looksLikeLegacy(legacyUser)) {
     s_lastBackupPath = backupLegacy(legacyUser, Settings::UserSettingFile + QStringLiteral(".legacy.bak"));
@@ -165,10 +222,11 @@ bool runLegacyMigration()
       any = true;
       applyMasterCompatDefaults(Settings::UserSettingFile);
     }
+    migrateSerialKey(legacyUser, "user-scope");
     maybeClearLegacy(legacyUser, Settings::UserSettingFile, "user-scope");
   }
 
-  QSettings legacySystem(QSettings::NativeFormat, QSettings::SystemScope, kAppName, kAppName);
+  QSettings legacySystem(QSettings::NativeFormat, QSettings::SystemScope, kLegacyOrganization, kAppName);
   if (looksLikeLegacy(legacySystem)) {
     const auto backupPath = Settings::SystemSettingFile + QStringLiteral(".legacy.bak");
     s_lastBackupPath = backupLegacy(legacySystem, backupPath);
@@ -177,6 +235,7 @@ bool runLegacyMigration()
       any = true;
       applyMasterCompatDefaults(Settings::SystemSettingFile);
     }
+    migrateSerialKey(legacySystem, "system-scope");
     maybeClearLegacy(legacySystem, Settings::SystemSettingFile, "system-scope");
   }
 
@@ -197,6 +256,14 @@ bool migrateIfNeeded()
 
   s_migrationRanThisLaunch = runLegacyMigration();
   writeSchemaVersion(kCurrentSchemaVersion);
+  if (s_migrationRanThisLaunch) {
+    writeBackupPath(s_lastBackupPath);
+  } else {
+    // Nothing was carried, so there is nothing to tell the customer about. Without this, a machine
+    // that migrated cleanly under an earlier schema would raise the notice a second time when the
+    // schema is bumped, pointing at a backup taken releases ago.
+    writeNotifiedVersion(kCurrentSchemaVersion);
+  }
   return s_migrationRanThisLaunch;
 }
 
@@ -205,20 +272,44 @@ void showNoticeIfPending(QWidget *parent)
   if (notifiedSchemaVersion() >= kCurrentSchemaVersion) {
     return;
   }
-  if (!s_migrationRanThisLaunch) {
+
+  const auto backupPath = storedBackupPath();
+  if (backupPath.isEmpty()) {
     writeNotifiedVersion(kCurrentSchemaVersion);
     return;
   }
 
-  QMessageBox::information(
-      parent, QObject::tr("Settings updated"),
-      QObject::tr("<p>We've migrated your settings to a new format used by this version of Synergy.</p>"
-                  "<p>Your previous settings have been backed up to:</p>"
-                  "<p><code>%1</code></p>"
-                  "<p>If anything looks different, please contact us.</p>")
-          .arg(s_lastBackupPath)
-  );
-  writeNotifiedVersion(kCurrentSchemaVersion);
+  auto *mainWindow = qobject_cast<QMainWindow *>(parent);
+  auto *statusBar = mainWindow != nullptr ? mainWindow->statusBar() : nullptr;
+  if (statusBar == nullptr) {
+    qWarning("settings migration: no status bar, notice not shown");
+    return;
+  }
+
+  // A status bar pill rather than a dialog. Startup already raises the serial key dialog,
+  // activation, and the first-server-start message once the core is up, and Qt leaves two dialogs
+  // at once fighting over input: the one in front can be the one that ignores the mouse. Nothing
+  // here blocks use of the product, so it waits to be asked.
+  auto *pill = new QPushButton(QObject::tr("Settings migrated"), statusBar);
+  pill->setFlat(true);
+  pill->setStyleSheet(kStyleNoticeLabel);
+  pill->setToolTip(QObject::tr("Your settings were migrated to a new format"));
+  statusBar->addPermanentWidget(pill);
+
+  QObject::connect(pill, &QPushButton::clicked, pill, [pill, mainWindow, backupPath] {
+    QMessageBox::information(
+        mainWindow, QObject::tr("Settings updated"),
+        QObject::tr(
+            "<p>We've migrated your settings to a new format used by this version of Synergy.</p>"
+            "<p>Your previous settings have been backed up to:</p>"
+            "<p><code>%1</code></p>"
+            "<p>If anything looks different, please contact us.</p>"
+        )
+            .arg(backupPath)
+    );
+    writeNotifiedVersion(kCurrentSchemaVersion);
+    pill->deleteLater();
+  });
 }
 
 } // namespace synergy::gui::migration

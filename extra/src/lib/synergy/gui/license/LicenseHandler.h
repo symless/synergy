@@ -89,22 +89,20 @@ public:
   }
 
 private:
+  using ActivatedMode = synergy::gui::ExtraSettings::ActivatedMode;
+
   void updateWindowTitle() const;
   bool showSerialKeyDialog();
   bool showOfflineActivationDialog();
   bool isOfflineActivated() const;
   bool check();
-  void runRemoteCheck();
-  void handleLicenseVerified();
-  void handleLicenseUnverified(const QString &message);
-  void handleActivationDeactivated(synergy::gui::license::LicenseApiClient::ActivationIntent intent, const QString &message);
-  void handleCheckDeactivated(synergy::gui::license::LicenseApiClient::CheckIntent intent, const QString &message);
-  void askServerQuestion();
-  bool isInGracePeriod() const;
-  bool isGracePeriodExpired() const;
-  void resetGracePeriod();
+  void handleActivationSucceeded();
+  void handleActivationFailed(const QString &message, const QString &reason, const QString &reference);
+  void handleActivationUnreachable();
+  void resumeCore();
+  void reportUsage();
+  ActivatedMode liveActivatedMode() const;
   Settings::CoreMode liveCoreMode() const;
-  void disableLicenseAfterGrace(const QString &reason);
   synergy::gui::license::LicenseApiClient::Data buildApiData() const;
 
   bool m_enabled = true;
@@ -112,9 +110,10 @@ private:
   License m_license = License::invalid();
   synergy::gui::ExtraSettings m_settings;
   synergy::gui::license::LicenseApiClient m_apiClient;
-  bool m_warnedAboutGrace = false;
+  ActivatedMode m_pendingMode = ActivatedMode::kNone;
+  bool m_inCoreStart = false;
   qint64 m_lastCoreStartMs = 0;
-  QTimer m_remoteCheckTimer;
+  QTimer m_usageTimer;
   QMainWindow *m_pMainWindow = nullptr;
   deskflow::gui::CoreProcess *m_pCoreProcess = nullptr;
 };

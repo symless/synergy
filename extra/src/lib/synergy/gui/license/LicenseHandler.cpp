@@ -45,6 +45,7 @@
 #include <QObject>
 #include <QProcessEnvironment>
 #include <QPushButton>
+#include <QScopeGuard>
 #include <QSysInfo>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -55,9 +56,6 @@ using namespace std::chrono;
 using namespace synergy::gui::license;
 using namespace synergy::gui;
 using namespace deskflow::gui;
-
-using ActivationIntent = LicenseApiClient::ActivationIntent;
-using CheckIntent = LicenseApiClient::CheckIntent;
 
 namespace {
 
@@ -79,78 +77,9 @@ LicenseHandler::LicenseHandler()
 {
   m_enabled = synergy::gui::license::isActivationEnabled();
 
-  connect(
-      &m_apiClient, &LicenseApiClient::activationFailed, this,
-      [this](ActivationIntent intent, const QString &message) {
-        handleLicenseUnverified(message);
-
-        if (intent == ActivationIntent::kKeyEntry) {
-          qWarning("activation failed at key entry, showing serial key dialog");
-          showSerialKeyDialog();
-        }
-      }
-  );
-
-  connect(&m_apiClient, &LicenseApiClient::activationSucceeded, this, [this](ActivationIntent intent) {
-    qDebug("license activation succeeded, saving settings");
-    const bool holdsServerActivation =
-        m_license.productEdition() == Product::Edition::kBusiness && liveCoreMode() == Settings::Server;
-    m_settings.setActivated(true);
-    m_settings.setHoldsServerActivation(holdsServerActivation);
-    resetGracePeriod();
-
-    if (m_pCoreProcess == nullptr) {
-      qCritical("core process not set");
-      return;
-    }
-
-    // Key entry activations must never start the core; the customer chose nothing yet.
-    if (intent == ActivationIntent::kCoreStart &&
-        m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
-      qDebug("resuming core process after activation");
-      m_pCoreProcess->start();
-    }
-  });
-
-  connect(&m_apiClient, &LicenseApiClient::activationUnreachable, this, [this](ActivationIntent intent) {
-    if (isGracePeriodExpired()) {
-      qWarning("license activation server unreachable and grace period expired, not starting core");
-      return;
-    }
-
-    qWarning("license activation server unreachable, continuing without activation");
-
-    if (intent == ActivationIntent::kCoreStart && m_pCoreProcess != nullptr &&
-        m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
-      m_pCoreProcess->start();
-    }
-  });
-
-  connect(&m_apiClient, &LicenseApiClient::activationDeactivated, this, &LicenseHandler::handleActivationDeactivated);
-  connect(&m_apiClient, &LicenseApiClient::checkSucceeded, this, &LicenseHandler::handleLicenseVerified);
-  connect(&m_apiClient, &LicenseApiClient::checkFailed, this, &LicenseHandler::handleLicenseUnverified);
-  connect(&m_apiClient, &LicenseApiClient::checkDeactivated, this, &LicenseHandler::handleCheckDeactivated);
-
-  connect(&m_apiClient, &LicenseApiClient::checkNotActivated, this, [this] {
-    // The server has no record of this machine, so a read-only check cannot heal it; claim now.
-    qInfo("license check found no activation for this machine, activating");
-    m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart);
-  });
-
-  connect(&m_apiClient, &LicenseApiClient::validateSucceeded, this, [] { qInfo("business license key validated"); });
-
-  connect(&m_apiClient, &LicenseApiClient::validateFailed, this, [this](const QString &message) {
-    qWarning().noquote() << "business license key validation failed:" << message;
-    if (m_pMainWindow != nullptr) {
-      QMessageBox::warning(m_pMainWindow, "License check failed", message);
-    }
-    showSerialKeyDialog();
-  });
-
-  connect(&m_apiClient, &LicenseApiClient::validateDeactivated, this, [](const QString &message) {
-    // The role is unknown at key entry; the next core start resolves any server contention.
-    qInfo().noquote() << "validation found another server, deferring to core start:" << message;
-  });
+  connect(&m_apiClient, &LicenseApiClient::activationSucceeded, this, &LicenseHandler::handleActivationSucceeded);
+  connect(&m_apiClient, &LicenseApiClient::activationFailed, this, &LicenseHandler::handleActivationFailed);
+  connect(&m_apiClient, &LicenseApiClient::activationUnreachable, this, &LicenseHandler::handleActivationUnreachable);
 }
 
 void LicenseHandler::handleMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
@@ -200,13 +129,11 @@ bool LicenseHandler::handleAppStart()
   qDebug("license is valid, continuing with start");
   updateWindowTitle();
   clampFeatures();
-  runRemoteCheck();
 
-  // A long-running session must still honor a disabled (e.g. unpaid) license within a day, so
-  // re-check on a cadence; runRemoteCheck self-skips personal and offline licenses.
-  m_remoteCheckTimer.setInterval(kRemoteCheckInterval);
-  connect(&m_remoteCheckTimer, &QTimer::timeout, this, &LicenseHandler::runRemoteCheck);
-  m_remoteCheckTimer.start();
+  reportUsage();
+  m_usageTimer.setInterval(kUsageReportInterval);
+  connect(&m_usageTimer, &QTimer::timeout, this, &LicenseHandler::reportUsage);
+  m_usageTimer.start();
   return true;
 }
 
@@ -324,35 +251,22 @@ bool LicenseHandler::handleCoreStart()
     return false;
   }
 
-  // The role is only reliably known at core start; start optimistically, a deactivated verdict stops the core.
-  if (m_settings.activated() && !m_license.serialKey().isOffline) {
-    // A personal license activates once and stays activated; refreshing here would be the
-    // kind of post-activation phone-home that breaks offline networks.
-    if (m_license.productEdition() != Product::Edition::kBusiness) {
-      qDebug("license is activated, starting core for personal license");
-      return true;
-    }
-    if (m_apiClient.isBusy()) {
-      qInfo("license api busy, starting core without refreshing activation");
-      return true;
-    }
+  // The dialog runs a nested event loop, and the duplicate trigger above can land inside it.
+  if (m_inCoreStart) {
+    qDebug("core start already in progress, skipping");
+    return false;
+  }
+  m_inCoreStart = true;
+  const auto guard = qScopeGuard([this] { m_inCoreStart = false; });
 
-    // A routine restart must not re-claim the slot, or the takeover ledger would inflate and a
-    // displaced server would silently reclaim instead of asking. So a machine that already holds
-    // its slot (and a plain client) only checks; a machine taking on the server role claims it.
-    const bool isServer = liveCoreMode() == Settings::Server;
-    if (isServer != m_settings.holdsServerActivation()) {
-      if (isServer) {
-        qDebug("core server, claiming server activation slot on core start");
-      } else {
-        qDebug("core client, releasing server activation slot on core start");
-      }
-      m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart);
-    } else {
-      qDebug("license is activated, checking on core start");
-      m_apiClient.check(buildApiData(), CheckIntent::kCoreStart);
+  // The main window auto-starts the core before the app start hook runs, so on a fresh install
+  // this is the first thing that can ask for a key; without asking here the start is silently
+  // refused and the key the customer then enters starts nothing.
+  if (!m_license.isValid()) {
+    qInfo("no valid license, showing serial key dialog before core start");
+    if (!showSerialKeyDialog()) {
+      return false;
     }
-    return true;
   }
 
   if (m_license.serialKey().isOffline) {
@@ -369,9 +283,12 @@ bool LicenseHandler::handleCoreStart()
     return showOfflineActivationDialog();
   }
 
-  if (!m_license.isValid()) {
-    qWarning("no valid license, skipping core start");
-    return false;
+  // Activation is per role: once a machine has activated in a role it never phones home again
+  // for that role, so a routine restart is silent and only a mode change reaches the server.
+  const auto mode = liveActivatedMode();
+  if (m_settings.activatedMode() == mode) {
+    qDebug("already activated in this mode, starting core");
+    return true;
   }
 
   if (m_apiClient.isBusy()) {
@@ -379,8 +296,9 @@ bool LicenseHandler::handleCoreStart()
     return false;
   }
 
-  qInfo("activating license");
-  m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart);
+  qInfo("activating license as %s", mode == ActivatedMode::kServer ? "server" : "client");
+  m_pendingMode = mode;
+  m_apiClient.activate(buildApiData());
 
   return false;
 }
@@ -433,11 +351,8 @@ bool LicenseHandler::showSerialKeyDialog()
   if (dialog.serialKeyChanged()) {
     // Reset activation so new serial key can be activated.
     qDebug("serial key changed, updating settings");
-    m_settings.setActivated(false);
-    m_settings.setHoldsServerActivation(false);
-    m_settings.setGraceStartEpochSecs(0);
+    m_settings.setActivatedMode(ActivatedMode::kNone);
     m_settings.setOfflineActivationResponse({});
-    m_warnedAboutGrace = false;
     m_settings.sync();
   }
 
@@ -445,24 +360,8 @@ bool LicenseHandler::showSerialKeyDialog()
   updateWindowTitle();
   clampFeatures();
 
-  // Key entry never touches the core process; everything a new key implies (activation, the
-  // offline challenge, feature clamps) is applied at the next core start.
-  // If the user accepted the dialog while not activated (e.g. recovering from a
-  // remote disable), reach out so something visible happens regardless of whether the
-  // serial key changed.
-  if (!m_settings.activated() && m_license.isValid() && !m_license.serialKey().isOffline && !m_apiClient.isBusy()) {
-    // The role is unknown at key entry, so business only validates the key here; its first
-    // activation happens at core start once the role is known. Personal has no role, so it
-    // activates immediately.
-    if (m_license.productEdition() == Product::Edition::kBusiness) {
-      qInfo("validating business license after dialog accept");
-      m_apiClient.validate(buildApiData());
-    } else {
-      qInfo("retrying activation after dialog accept");
-      m_apiClient.activate(buildApiData(), ActivationIntent::kKeyEntry);
-    }
-  }
-
+  // Key entry only parses the key and never phones home; the role is unknown until the core
+  // starts, and that is where activation (or the offline challenge) happens.
   qDebug("license serial key dialog accepted");
   return true;
 }
@@ -612,13 +511,10 @@ bool LicenseHandler::check()
     qDebug("license validation failed, license expired");
     return showSerialKeyDialog();
   } else if (m_license.isExpiringSoon()) {
-    if (isInGracePeriod()) {
-      qDebug("license expiring soon but in remote grace period, suppressing renew nag");
-      return true;
-    }
     qDebug("license is expiring soon, showing serial key dialog");
     showSerialKeyDialog();
-    // Return true even if dialog cancelled, since expiring soon licenses are still valid.
+
+    // A licence that is expiring is still valid, so declining the dialog is not a failure.
     return true;
   } else {
     qDebug("license validation succeeded");
@@ -649,28 +545,6 @@ void LicenseHandler::disable()
   m_enabled = false;
 }
 
-bool LicenseHandler::isInGracePeriod() const
-{
-  return m_settings.graceStartEpochSecs() > 0;
-}
-
-bool LicenseHandler::isGracePeriodExpired() const
-{
-  if (!isInGracePeriod()) {
-    return false;
-  }
-  const auto now = QDateTime::currentSecsSinceEpoch();
-  const auto elapsed = seconds{now - m_settings.graceStartEpochSecs()};
-  return elapsed >= duration_cast<seconds>(kLicenseGracePeriod);
-}
-
-void LicenseHandler::resetGracePeriod()
-{
-  m_settings.setGraceStartEpochSecs(0);
-  m_settings.sync();
-  m_warnedAboutGrace = false;
-}
-
 Settings::CoreMode LicenseHandler::liveCoreMode() const
 {
   // The saved mode setting lags the UI at core start.
@@ -678,6 +552,11 @@ Settings::CoreMode LicenseHandler::liveCoreMode() const
     return m_pCoreProcess->mode();
   }
   return static_cast<Settings::CoreMode>(Settings::value(Settings::Core::CoreMode).toInt());
+}
+
+LicenseHandler::ActivatedMode LicenseHandler::liveActivatedMode() const
+{
+  return liveCoreMode() == Settings::Server ? ActivatedMode::kServer : ActivatedMode::kClient;
 }
 
 LicenseApiClient::Data LicenseHandler::buildApiData() const
@@ -695,192 +574,90 @@ LicenseApiClient::Data LicenseHandler::buildApiData() const
   };
 }
 
-void LicenseHandler::runRemoteCheck()
+void LicenseHandler::handleActivationSucceeded()
 {
-  if (!m_license.isValid() || m_license.serialKey().isOffline) {
-    qDebug("license invalid or offline, skipping remote check");
-    return;
-  }
-
-  // Personal licenses activate once and are never re-validated, so they keep working on
-  // offline and restricted networks. Only business licenses are re-checked.
-  if (m_license.productEdition() != Product::Edition::kBusiness) {
-    if (isInGracePeriod()) {
-      // Nothing else clears grace once personal checks stop, and a stale grace flag
-      // suppresses the renew nag forever.
-      qInfo("clearing stale grace period for personal license");
-      resetGracePeriod();
-    }
-    qDebug("personal license, skipping remote check");
-    return;
-  }
-
-  if (m_apiClient.isBusy()) {
-    qDebug("license activator busy, skipping remote check");
-    return;
-  }
-
-  qInfo("running remote license check");
-  m_apiClient.check(buildApiData());
-}
-
-void LicenseHandler::handleLicenseVerified()
-{
-  qInfo("remote license check succeeded");
-
-  const bool wasInGrace = isInGracePeriod();
-  resetGracePeriod();
-
-  if (wasInGrace && m_pMainWindow != nullptr) {
-    QMessageBox::information(
-        m_pMainWindow, "License restored", tr("Your license is valid again. Thanks for your patience.")
-    );
-  }
-}
-
-void LicenseHandler::handleLicenseUnverified(const QString &message)
-{
-  qWarning().noquote() << "license could not be verified:" << message;
-
-  if (!isInGracePeriod()) {
-    m_settings.setGraceStartEpochSecs(QDateTime::currentSecsSinceEpoch());
-    m_settings.sync();
-  }
-
-  if (isGracePeriodExpired()) {
-    disableLicenseAfterGrace(message);
-    return;
-  }
-
-  if (!m_warnedAboutGrace && m_pMainWindow != nullptr) {
-    m_warnedAboutGrace = true;
-    const auto now = QDateTime::currentSecsSinceEpoch();
-    const auto elapsed = seconds{now - m_settings.graceStartEpochSecs()};
-    const auto daysRemaining = ceil<days>(kLicenseGracePeriod - elapsed).count();
-    QMessageBox::warning(
-        m_pMainWindow, "License check failed",
-        tr("<p>We could not verify your license:</p>"
-           "<p><i>%1</i></p>"
-           "<p>%2 will keep working for %3 days. "
-           R"(If the problem persists, please <a href="%4">contact us</a>.)"
-           "</p>")
-            .arg(message.toHtmlEscaped())
-            .arg(productName())
-            .arg(daysRemaining)
-            .arg(kUrlContact)
-    );
-  }
-}
-
-void LicenseHandler::handleActivationDeactivated(ActivationIntent intent, const QString &message)
-{
-  qWarning().noquote() << "server activation held by another computer:" << message;
-
-  m_settings.setHoldsServerActivation(false);
-  resetGracePeriod();
-
-  // The role is only reliably known at core start; an activation sent from anywhere else
-  // (e.g. serial key entry) must not ask or stop anything, the next core start will.
-  if (intent != ActivationIntent::kCoreStart) {
-    qInfo("not a core start activation, leaving the server question for the next core start");
-    return;
-  }
-
-  if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
-    qDebug("stopping core process while the server question is unanswered");
-    m_pCoreProcess->stop();
-  }
-
-  askServerQuestion();
-}
-
-void LicenseHandler::askServerQuestion()
-{
-  // The license allows one server per seat, but we never block the customer standing at this
-  // machine; they are almost always the rightful user (switching desks, replacing a machine).
-  // Asking first keeps use of one license fair and deliberate, and the other computer is
-  // asked the same question rather than cut off. Switching the old server to client mode
-  // releases the server slot, so the normal switching flow never sees this question.
-  QString question;
-  if (m_license.serialKey().seats > 1) {
-    question = tr("<p>All of the server activations for your team's license are currently in use.</p>"
-                  "<p>If you need to add more seats to your team's license, please "
-                  R"(<a href="%1">contact us</a> today.</p>)"
-                  "<p>Do you want to reassign a server activation to this computer?</p>"
-                  "<p>This will deactivate the other computer and interrupt an existing setup.</p>")
-                   .arg(kUrlContact);
-  } else {
-    question = tr("<p>Another computer is currently the server for your license.</p>"
-                  "<p>If you need more than one server running at the same time, please "
-                  R"(<a href="%1">contact us</a> today.</p>)"
-                  "<p>Do you want to reassign the server activation to this computer?</p>"
-                  "<p>This will deactivate the other computer and interrupt an existing setup.</p>")
-                   .arg(kUrlContact);
-  }
-  const auto reply = QMessageBox::question(m_pMainWindow, "License limit reached", question);
-  if (reply == QMessageBox::Yes) {
-    qInfo("server question accepted, reactivating");
-
-    // The customer just chose to be the server, so success may resume the stopped core.
-    m_apiClient.activate(buildApiData(), ActivationIntent::kCoreStart, true);
-    return;
-  }
-
-  // Decline changes nothing; writing the mode setting here would desync it from the main
-  // window's mode controls and the core process, which only the main window owns.
-  qInfo("server question declined, leaving core stopped");
-}
-
-void LicenseHandler::handleCheckDeactivated(CheckIntent intent, const QString &message)
-{
-  qWarning().noquote() << "server activation taken over by another computer:" << message;
-
-  m_settings.setHoldsServerActivation(false);
-  resetGracePeriod();
-
-  // The recurring poll only acts on a server that is actually running; a core start is becoming
-  // the server right now, so it asks regardless of how far the process has got.
-  const bool runningAsServer =
-      m_pCoreProcess != nullptr && m_pCoreProcess->isStarted() && liveCoreMode() == Settings::Server;
-  if (intent == CheckIntent::kPoll && !runningAsServer) {
-    qDebug("not running as server, ignoring deactivated check");
-    return;
-  }
-
-  if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
-    qInfo("stopping core, another computer took over as server");
-    m_pCoreProcess->stop();
-  }
-
-  askServerQuestion();
-}
-
-void LicenseHandler::disableLicenseAfterGrace(const QString &reason)
-{
-  qWarning().noquote() << "license grace period expired, disabling:" << reason;
-
-  if (m_pCoreProcess != nullptr && m_pCoreProcess->isStarted()) {
-    qDebug("stopping core process due to disabled license");
-    m_pCoreProcess->stop();
-  }
-
-  // Keep the serial key + in-memory license so the next activation attempt can succeed
-  // automatically if the server re-enables the license (e.g. after the customer pays).
-  // Keep the grace clock too, so a restart stays disabled instead of granting a fresh grace.
-  m_settings.setActivated(false);
-  m_settings.setHoldsServerActivation(false);
+  qDebug("license activation succeeded, saving settings");
+  m_settings.setActivatedMode(m_pendingMode);
+  m_pendingMode = ActivatedMode::kNone;
   m_settings.sync();
-  m_warnedAboutGrace = false;
+  resumeCore();
+}
 
-  if (m_pMainWindow != nullptr) {
-    QMessageBox::warning(
-        m_pMainWindow, "License disabled",
-        tr("<p>Your license has been disabled and could not be verified within the grace period:</p>"
-           "<p><i>%1</i></p>"
-           R"(<p>Please <a href="%2">contact us</a> to restore access. )"
-           "Once your license is reinstated, the app will resume automatically.</p>")
-            .arg(reason.toHtmlEscaped())
-            .arg(kUrlContact)
-    );
+void LicenseHandler::handleActivationFailed(const QString &message, const QString &reason, const QString &reference)
+{
+  m_pendingMode = ActivatedMode::kNone;
+
+  if (m_pMainWindow == nullptr) {
+    return;
   }
+
+  // The website words the cause, the app adds the way out. Both are fixed from the account page
+  // and either can turn out to be the wrong key in hand, so the account link and the serial key
+  // button are offered whatever the website says, or fails to say.
+  const bool limitReached = reason == QLatin1String("limitReached");
+
+  auto text = QStringLiteral("<p>%1</p>").arg(message.toHtmlEscaped());
+  if (limitReached) {
+    text +=
+        tr(R"(<p>Free an activation on your <a href="%1">account page</a>, then start again.</p>)").arg(kUrlAccount);
+  } else {
+    text += tr(R"(<p>Check your license and serial key on your <a href="%1">account page</a>.</p>)").arg(kUrlAccount);
+  }
+  text += tr(R"(<p>If you need help, please <a href="%1">contact us</a>.</p>)").arg(kUrlContact);
+  if (!reference.isEmpty()) {
+    text += tr("<p>License reference: <code>%1</code></p>").arg(reference.toHtmlEscaped());
+  }
+
+  QMessageBox box(QMessageBox::Warning, tr("Activation failed"), text, QMessageBox::Close, m_pMainWindow);
+  auto *changeSerialKey = box.addButton(tr("Change serial key"), QMessageBox::ActionRole);
+  if (limitReached) {
+    box.setDefaultButton(QMessageBox::Close);
+  } else {
+    box.setDefaultButton(changeSerialKey);
+  }
+  box.exec();
+
+  if (box.clickedButton() == changeSerialKey) {
+    showSerialKeyDialog();
+  }
+}
+
+void LicenseHandler::handleActivationUnreachable()
+{
+  // Leaving the mode unset means the next core start tries again; the customer is never
+  // blocked by our server being down.
+  m_pendingMode = ActivatedMode::kNone;
+  qWarning("license activation server unreachable, starting core without activation");
+  resumeCore();
+}
+
+void LicenseHandler::resumeCore()
+{
+  if (m_pCoreProcess == nullptr) {
+    qCritical("core process not set");
+    return;
+  }
+
+  if (m_pCoreProcess->processState() == deskflow::core::ProcessState::Stopped) {
+    qDebug("resuming core process after activation");
+    m_pCoreProcess->start();
+  }
+}
+
+void LicenseHandler::reportUsage()
+{
+  // Personal licenses keep an absolute no-phone-home promise after activation; the report is
+  // only there so business seat usage is a defensible number at renewal.
+  if (!m_license.isValid() || m_license.serialKey().isOffline ||
+      m_license.productEdition() != Product::Edition::kBusiness) {
+    return;
+  }
+
+  if (m_settings.activatedMode() == ActivatedMode::kNone) {
+    qDebug("not yet activated, skipping usage report");
+    return;
+  }
+
+  qDebug("sending usage report");
+  m_apiClient.reportUsage(buildApiData());
 }

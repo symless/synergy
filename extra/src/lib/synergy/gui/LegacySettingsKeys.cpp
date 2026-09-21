@@ -17,7 +17,10 @@
 
 #include "LegacySettingsKeys.h"
 
+#include "common/LogLevel.h"
 #include "common/Settings.h"
+
+#include <algorithm>
 
 namespace synergy::gui {
 
@@ -33,7 +36,16 @@ std::optional<std::pair<QString, QVariant>> mapLegacySetting(const QString &oldK
     return std::make_pair(Settings::Core::Interface, value);
   }
   if (oldKey == "logLevel2") {
-    return std::make_pair(Settings::Log::Level, value);
+    // The old value is an index into {INFO, DEBUG, DEBUG1, DEBUG2}; the current one is the name of
+    // a level on a scale that starts at FATAL, so the number means something else entirely and
+    // passing it through leaves a value the app rejects and replaces with its default. There is
+    // nothing between DEBUG and the most detailed level any more, so both old debug levels above
+    // the first land there: somebody who asked for more detail should not quietly get less.
+    static const QList<LogLevel::Level> levels = {
+        LogLevel::Level::Info, LogLevel::Level::Debug, LogLevel::Level::Verbose, LogLevel::Level::Verbose
+    };
+    const auto index = std::clamp(value.toInt(), 0, static_cast<int>(levels.size()) - 1);
+    return std::make_pair(Settings::Log::Level, LogLevel::toOption(static_cast<int>(levels.at(index))));
   }
   if (oldKey == "logToFile") {
     return std::make_pair(Settings::Log::ToFile, value);
@@ -42,7 +54,12 @@ std::optional<std::pair<QString, QVariant>> mapLegacySetting(const QString &oldK
     return std::make_pair(Settings::Log::File, value);
   }
   if (oldKey == "elevateModeEnum") {
-    return std::make_pair(Settings::Daemon::Elevate, value);
+    // The old value was an enum, 0 automatic, 1 always, 2 never, and the current setting is a
+    // boolean read with toBool(), so passing the number through inverts the one choice that
+    // matters: never elevate arrives as true. Automatic meant elevate when required, which is
+    // what the boolean's true means and what it defaults to.
+    constexpr int kElevateNever = 2;
+    return std::make_pair(Settings::Daemon::Elevate, QVariant(value.toInt() != kElevateNever));
   }
   if (oldKey == "cryptoEnabled") {
     return std::make_pair(Settings::Security::TlsEnabled, value);
@@ -90,8 +107,15 @@ std::optional<std::pair<QString, QVariant>> mapLegacySetting(const QString &oldK
     return std::make_pair(Settings::Client::InvertYScroll, value);
   }
   if (oldKey == "enableService") {
+#ifdef Q_OS_WIN
     const auto mode = value.toBool() ? Settings::Service : Settings::Desktop;
     return std::make_pair(Settings::Core::ProcessMode, QVariant(mode));
+#else
+    // The daemon is only built on Windows, so carrying this anywhere else puts the core into a
+    // mode with nothing to talk to: it fails to start, and the only explanation offered is a
+    // dialog about UAC and the Windows services program. The platform default is correct here.
+    return std::nullopt;
+#endif
   }
   if (oldKey == "closeToTray") {
     return std::make_pair(Settings::Gui::CloseToTray, value);
