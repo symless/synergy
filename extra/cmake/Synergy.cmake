@@ -63,6 +63,12 @@ set(GUI_QRC_FILE "${GUI_RES_DIR}/synergy.qrc")
 # target name == source basename.
 set(CMAKE_PROJECT_NAME synergy)
 
+# Prefix of the distribution filename only. A fork that ships this same code
+# under its own product name sets it so its downloads are told apart from the
+# standard ones; CMAKE_PROJECT_NAME cannot carry that, because it also names
+# the binaries, the install paths and the user's config directory.
+set(SYNERGY_PACKAGE_PREFIX "${CMAKE_PROJECT_NAME}" CACHE STRING "Distribution filename prefix")
+
 # Synergy version. Base semver lives in ./VERSION (read by the root CMakeLists.txt);
 # composition rules — dev/snapshot/release suffix, rev count — are shared with
 # extra/cmake/SaveVersion.cmake via synergy_compute_version() so the CI-side
