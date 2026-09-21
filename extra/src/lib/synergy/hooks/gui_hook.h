@@ -20,6 +20,7 @@
 #include "common/Settings.h"
 #include "synergy/build_config.h"
 #include "synergy/gui/FeatureHandler.h"
+#include "synergy/gui/LockedSettings.h"
 #include "synergy/gui/SettingsMigration.h"
 #include "synergy/gui/SettingsScope.h"
 #include "synergy/gui/UpdateChannel.h"
@@ -57,6 +58,10 @@ inline void onPreInit()
       synergy::gui::SettingsScope::setPreferSystem(false);
     }
   }
+
+  // After the scope is settled, so the administrator's values land in the
+  // settings file the rest of the launch reads.
+  synergy::gui::LockedSettings::instance().apply();
 }
 
 inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
@@ -82,6 +87,12 @@ inline void onSettings(QDialog *parent)
 {
   LicenseHandler::instance().handleSettings(parent);
   FeatureHandler::instance().handleSettings(parent);
+  synergy::gui::LockedSettings::instance().applyToDialog(parent);
+}
+
+inline void onServerConfig(QDialog *parent)
+{
+  synergy::gui::LockedSettings::instance().applyToDialog(parent);
 }
 
 inline void onAbout(QDialog *parent)

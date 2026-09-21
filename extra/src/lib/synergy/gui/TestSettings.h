@@ -66,6 +66,10 @@ public:
   {
     return m_startTimeEpochSecs;
   }
+  QString lockedSettingsFile() const
+  {
+    return m_lockedSettingsFile;
+  }
 
   // Feature toggles read from the [features] section.
   bool verbose() const
@@ -104,6 +108,7 @@ private:
   QString m_apiUrlBase;
   QString m_machineId;
   qint64 m_startTimeEpochSecs = 0;
+  QString m_lockedSettingsFile;
   bool m_verbose = false;
   bool m_skipRemoteCheck = false;
   bool m_allowExpiredLicenses = false;

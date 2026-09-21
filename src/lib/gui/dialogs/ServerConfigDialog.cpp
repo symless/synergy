@@ -17,6 +17,10 @@
 #include "dialogs/HotkeyDialog.h"
 #include "dialogs/ScreenSettingsDialog.h"
 
+#ifdef SYNERGY_EXTRA_HEADER
+#include "synergy/hooks/gui_hook.h"
+#endif
+
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -178,6 +182,10 @@ ServerConfigDialog::ServerConfigDialog(QWidget *parent, ServerConfig &config)
 
   // computers
   connect(&m_screenSetupModel, &ScreenSetupModel::screensChanged, this, &ServerConfigDialog::onChange);
+
+#ifdef SYNERGY_EXTRA_HEADER
+  synergy::hooks::onServerConfig(this);
+#endif
 }
 
 ServerConfigDialog::~ServerConfigDialog() = default;

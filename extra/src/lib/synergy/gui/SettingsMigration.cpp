@@ -19,6 +19,7 @@
 
 #include "common/Constants.h"
 #include "common/Settings.h"
+#include "synergy/gui/LegacySettingsKeys.h"
 #include "synergy/gui/SettingsScope.h"
 
 #include <QDebug>
@@ -29,7 +30,6 @@
 #include <QStringLiteral>
 
 #include <optional>
-#include <utility>
 
 namespace synergy::gui::migration {
 
@@ -68,90 +68,6 @@ void writeNotifiedVersion(int version)
   QSettings ini(extraFile(), QSettings::IniFormat);
   ini.setValue(kNotifiedKey, version);
   ini.sync();
-}
-
-std::optional<std::pair<QString, QVariant>> mapKey(const QString &oldKey, const QVariant &value)
-{
-  if (oldKey == "screenName") {
-    return std::make_pair(Settings::Core::ComputerName, value);
-  }
-  if (oldKey == "port") {
-    return std::make_pair(Settings::Core::Port, value);
-  }
-  if (oldKey == "interface") {
-    return std::make_pair(Settings::Core::Interface, value);
-  }
-  if (oldKey == "logLevel2") {
-    return std::make_pair(Settings::Log::Level, value);
-  }
-  if (oldKey == "logToFile") {
-    return std::make_pair(Settings::Log::ToFile, value);
-  }
-  if (oldKey == "logFilename") {
-    return std::make_pair(Settings::Log::File, value);
-  }
-  if (oldKey == "elevateModeEnum") {
-    return std::make_pair(Settings::Daemon::Elevate, value);
-  }
-  if (oldKey == "cryptoEnabled") {
-    return std::make_pair(Settings::Security::TlsEnabled, value);
-  }
-  if (oldKey == "autoHide") {
-    return std::make_pair(Settings::Gui::Autohide, value);
-  }
-  if (oldKey == "lastVersion") {
-    return std::make_pair(Settings::Core::LastVersion, value);
-  }
-  if (oldKey == "groupServerChecked") {
-    if (value.toBool()) {
-      return std::make_pair(Settings::Core::CoreMode, QVariant(Settings::Server));
-    }
-    return std::nullopt;
-  }
-  if (oldKey == "groupClientChecked") {
-    if (value.toBool()) {
-      return std::make_pair(Settings::Core::CoreMode, QVariant(Settings::Client));
-    }
-    return std::nullopt;
-  }
-  if (oldKey == "useExternalConfig") {
-    return std::make_pair(Settings::Server::ExternalConfig, value);
-  }
-  if (oldKey == "configFile") {
-    return std::make_pair(Settings::Server::ExternalConfigFile, value);
-  }
-  if (oldKey == "serverHostname") {
-    return std::make_pair(Settings::Client::RemoteHost, value);
-  }
-  if (oldKey == "tlsCertPath") {
-    return std::make_pair(Settings::Security::Certificate, value);
-  }
-  if (oldKey == "tlsKeyLength") {
-    return std::make_pair(Settings::Security::KeySize, value);
-  }
-  if (oldKey == "preventSleep") {
-    return std::make_pair(Settings::Core::PreventSleep, value);
-  }
-  if (oldKey == "languageSync") {
-    return std::make_pair(Settings::Client::LanguageSync, value);
-  }
-  if (oldKey == "invertScrollDirection") {
-    return std::make_pair(Settings::Client::InvertYScroll, value);
-  }
-  if (oldKey == "enableService") {
-    const auto mode = value.toBool() ? Settings::Service : Settings::Desktop;
-    return std::make_pair(Settings::Core::ProcessMode, QVariant(mode));
-  }
-  if (oldKey == "closeToTray") {
-    return std::make_pair(Settings::Gui::CloseToTray, value);
-  }
-  if (oldKey == "showCloseReminder") {
-    return std::make_pair(Settings::Gui::CloseReminder, value);
-  }
-  if (oldKey == "enableUpdateCheck") {
-    return std::make_pair(Settings::Gui::AutoUpdateCheck, value);
-  }
-  return std::nullopt;
 }
 
 // File-existence isn't a usable signal: on Linux the legacy NativeFormat
@@ -193,7 +109,7 @@ int migrateOneScope(QSettings &legacy, const QString &newPath)
   int migrated = 0;
   int dropped = 0;
   for (const auto &oldKey : legacy.allKeys()) {
-    if (auto mapped = mapKey(oldKey, legacy.value(oldKey)); mapped.has_value()) {
+    if (auto mapped = mapLegacySetting(oldKey, legacy.value(oldKey)); mapped.has_value()) {
       newSettings.setValue(mapped->first, mapped->second);
       migrated++;
     } else {
