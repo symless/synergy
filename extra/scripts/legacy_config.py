@@ -96,7 +96,8 @@ SERVER_CONFIG_NAME = "legacy-config.sgc"
 #
 # Each era carries a whole config, the settings a customer actually set and would notice
 # losing, plus a few keys that no longer exist, so a run shows both what the migration
-# carries and what it drops.
+# carries and what it drops. Auto-hide stays off in all of them, since an era that hides
+# the window cannot be checked by eye.
 #
 # "native" is what the release wrote through QSettings' native backend (an ini file on
 # Linux, a plist on macOS, the registry on Windows). "conf" and "extra" are the files the
@@ -124,17 +125,18 @@ ERAS = {
             "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
             "tlsKeyLength": "2048",
             "elevateMode": "true",
-            # 1.14 wrote both, and only the enum is carried forward. 2 is never elevate, which
-            # is the value that used to arrive inverted.
-            "elevateModeEnum": "2",
-            "autoHide": "true",
+            "autoHide": "false",
             "preventSleep": "true",
             "languageSync": "true",
             "invertScrollDirection": "true",
             "serialKey": "@SERIAL_KEY@",
             "activationHasRun": "true",
             "lastVersion": "1.14.5",
-            # Gone by the current release; these must be dropped, not carried.
+
+            # A config of this age carried both, and only the enum is mapped.
+            "elevateModeEnum": "2",
+
+            # Retired long ago, and here to prove they are dropped rather than carried.
             "edition": "2",
             "language": "en",
             "autoConfig": "false",
@@ -192,26 +194,23 @@ ERAS = {
             "configFile": "@SERVERCONFIG@",
             "serverHostname": "localhost",
             "cryptoEnabled": "true",
-            # The certificate moved out of SSL/ into tls/ in 1.17.2, so anything from 1.18 on
-            # points at the new one.
-            "tlsCertPath": "@HOME@/.config/Synergy/tls/synergy.pem",
             "tlsKeyLength": "4096",
-            # Left off deliberately, unlike the older eras: this is the one run every release and
-            # checked by eye, and auto-hide migrating correctly means the window is not there to
-            # check. The true case is covered by 1.14.
             "autoHide": "false",
             "elevateModeEnum": "2",
-            "preventSleep": "true",
-            "languageSync": "false",
-            "invertScrollDirection": "true",
             "enableService": "true",
             "closeToTray": "true",
             "showCloseReminder": "true",
             "enableUpdateCheck": "false",
+            "preventSleep": "true",
+            "languageSync": "false",
+            "invertScrollDirection": "true",
             "serialKey": "@SERIAL_KEY@",
             "activated": "true",
             "graceStartEpochSecs": "0",
             "lastVersion": "1.20.4",
+
+            # The certificate moved out of SSL/ into tls/ in 1.17.2.
+            "tlsCertPath": "@HOME@/.config/Synergy/tls/synergy.pem",
         },
     },
     "1.21-beta": {
@@ -671,6 +670,9 @@ def check_launchable(values, allow_unusable_cert):
             problems.append(f"cannot bind {interface or 'any address'} port {port or 'any'}: {error}")
         finally:
             probe.close()
+
+    if str(value_of("autoHide", "gui/autoHide")).lower() == "true":
+        problems.append("auto-hide is on, so the window will hide itself and cannot be checked by eye")
 
     host = value_of("serverHostname", "client/remoteHost")
     if host:

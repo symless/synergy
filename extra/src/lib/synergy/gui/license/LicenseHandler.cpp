@@ -513,7 +513,8 @@ bool LicenseHandler::check()
   } else if (m_license.isExpiringSoon()) {
     qDebug("license is expiring soon, showing serial key dialog");
     showSerialKeyDialog();
-    // Return true even if dialog cancelled, since expiring soon licenses are still valid.
+
+    // A licence that is expiring is still valid, so declining the dialog is not a failure.
     return true;
   } else {
     qDebug("license validation succeeded");
