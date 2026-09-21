@@ -66,6 +66,7 @@ import shutil
 import socket
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 APP = "Synergy"
@@ -77,14 +78,18 @@ FIXTURES = Path(__file__).resolve().parent / "legacy_config"
 REGISTRY_KEY = rf"Software\{APP}\{APP}"
 
 # A path no user can create, for reproducing what the app does with a certificate path it cannot
-# use. Only written when apply is asked for it.
-UNUSABLE_CERT_PATH = "/nonexistent/Synergy/tls/synergy.pem"
+# use. Only written when apply is asked for it. Windows has no unwritable root to point at, so it
+# gets a reserved device name instead, which cannot be a directory on any drive.
+UNUSABLE_CERT_PATH = r"C:\CON\Synergy\tls\synergy.pem" if IS_WINDOWS else "/nonexistent/Synergy/tls/synergy.pem"
 
 # Any fixture value naming something outside the config has to be real on the machine the era is
 # applied to, or the run stalls on something the migration had nothing to do with: a certificate
 # directory that cannot be created, a server config that does not exist, an address that cannot be
-# bound. Paths use @HOME@ or @SERVERCONFIG@, the interface is the loopback, and log files go to a
-# writable temporary directory.
+# bound. Paths use a placeholder that resolves per platform, @USERDIR@ for the settings directory,
+# @TMP@ for the temporary directory, @HOME@ and @SERVERCONFIG@ for the rest, the interface is the
+# loopback, and log files go to a writable temporary directory. A path hard-coded to one platform's
+# shape would still pass the launch check on the others, since a missing certificate directory is
+# simply created, and the fixture would quietly stop matching what the old release wrote.
 #
 # An era that turns on the external server config has to leave a real file behind. The name
 # is ours, so clear can remove it again without touching anything of the developer's.
@@ -114,7 +119,7 @@ ERAS = {
             "interface": "127.0.0.1",
             "logLevel2": "2",
             "logToFile": "true",
-            "logFilename": "/tmp/synergy-1-14.log",
+            "logFilename": "@TMP@/synergy-1-14.log",
             "startedBefore": "true",
             "groupServerChecked": "true",
             "groupClientChecked": "false",
@@ -122,7 +127,7 @@ ERAS = {
             "configFile": "@SERVERCONFIG@",
             "serverHostname": "localhost",
             "cryptoEnabled": "true",
-            "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
+            "tlsCertPath": "@USERDIR@/SSL/Synergy.pem",
             "tlsKeyLength": "2048",
             "elevateMode": "true",
             "autoHide": "false",
@@ -153,7 +158,7 @@ ERAS = {
             "interface": "127.0.0.1",
             "logLevel2": "1",
             "logToFile": "false",
-            "logFilename": "/tmp/synergy-1-17.log",
+            "logFilename": "@TMP@/synergy-1-17.log",
             "startedBefore": "true",
             "groupServerChecked": "false",
             "groupClientChecked": "true",
@@ -161,7 +166,7 @@ ERAS = {
             "configFile": "@SERVERCONFIG@",
             "serverHostname": "localhost",
             "cryptoEnabled": "true",
-            "tlsCertPath": "@HOME@/.config/Synergy/SSL/Synergy.pem",
+            "tlsCertPath": "@USERDIR@/SSL/Synergy.pem",
             "tlsKeyLength": "2048",
             "elevateModeEnum": "1",
             "autoHide": "false",
@@ -186,7 +191,7 @@ ERAS = {
             "interface": "127.0.0.1",
             "logLevel2": "3",
             "logToFile": "true",
-            "logFilename": "/tmp/synergy-1-20.log",
+            "logFilename": "@TMP@/synergy-1-20.log",
             "startedBefore": "true",
             "groupServerChecked": "true",
             "groupClientChecked": "false",
@@ -210,7 +215,7 @@ ERAS = {
             "lastVersion": "1.20.4",
 
             # The certificate moved out of SSL/ into tls/ in 1.17.2.
-            "tlsCertPath": "@HOME@/.config/Synergy/tls/synergy.pem",
+            "tlsCertPath": "@USERDIR@/tls/synergy.pem",
         },
     },
     "1.21-beta": {
@@ -583,8 +588,10 @@ def cmd_apply(args):
                 value = serial_key
             elif value == "@SERVERCONFIG@":
                 value = str(server_config_file())
-            elif isinstance(value, str) and "@HOME@" in value:
+            elif isinstance(value, str):
                 value = value.replace("@HOME@", str(Path.home()))
+                value = value.replace("@USERDIR@", str(user_dir()))
+                value = value.replace("@TMP@", tempfile.gettempdir())
             if args.unusable_cert_path and key in ("tlsCertPath", "security/certificate"):
                 value = UNUSABLE_CERT_PATH
             filled[key] = value
