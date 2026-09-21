@@ -76,6 +76,7 @@ PLATFORM = "windows" if IS_WINDOWS else "macos" if IS_MACOS else "linux"
 
 FIXTURES = Path(__file__).resolve().parent / "legacy_config"
 REGISTRY_KEY = rf"Software\{APP}\{APP}"
+REGISTRY_BACKUP = "registry.reg"
 
 # A path no user can create, for reproducing what the app does with a certificate path it cannot
 # use. Only written when apply is asked for it. Windows has no unwritable root to point at, so it
@@ -373,13 +374,55 @@ def read_registry():
     return values
 
 
-def delete_registry():
+def registry_exists():
     import winreg
 
     try:
-        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY)
+        winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY).Close()
     except FileNotFoundError:
-        pass
+        return False
+    return True
+
+
+def export_registry(path):
+    """Back the key up with reg.exe, which keeps what enumerating values alone drops: the
+    screen layout lives in subkeys, and the likes of port and tlsKeyLength are DWORDs that
+    come back as strings once they have been through a rewrite by hand."""
+    if not registry_exists():
+        return False
+    result = subprocess.run(
+        ["reg", "export", rf"HKCU\{REGISTRY_KEY}", str(path), "/y"], capture_output=True, check=False
+    )
+    return result.returncode == 0 and path.exists()
+
+
+def import_registry(path):
+    result = subprocess.run(["reg", "import", str(path)], capture_output=True, check=False)
+    if result.returncode != 0:
+        detail = result.stderr.decode(errors="replace").strip()
+        raise RuntimeError(f"could not put the registry back from {path}: {detail}")
+
+
+def delete_registry():
+    import winreg
+
+    def delete_tree(path):
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, path, 0, winreg.KEY_ALL_ACCESS)
+        except FileNotFoundError:
+            return
+        with key:
+            while True:
+                try:
+                    child = winreg.EnumKey(key, 0)
+                except OSError:
+                    break
+                delete_tree(rf"{path}\{child}")
+        # DeleteKey refuses a key that still holds subkeys, and fails with a permission error
+        # that names nothing of the real reason, so the children have to go first.
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, path)
+
+    delete_tree(REGISTRY_KEY)
 
 
 def flush_macos_prefs():
@@ -473,15 +516,13 @@ def cmd_save(args):
             shutil.move(str(path), stored)
             manifest["files"][str(path)] = stored.name
             print(f"saved {path}")
-    if IS_WINDOWS:
-        values = read_registry()
-        if values is not None:
-            manifest["registry"] = values
-            delete_registry()
-            print(f"saved registry {REGISTRY_KEY}")
+    if IS_WINDOWS and export_registry(target / REGISTRY_BACKUP):
+        manifest["registry_file"] = REGISTRY_BACKUP
+        delete_registry()
+        print(f"saved registry {REGISTRY_KEY}")
 
     (target / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    if not manifest["files"] and "registry" not in manifest:
+    if not manifest["files"] and "registry_file" not in manifest:
         print("nothing to save, the machine had no config")
     return 0
 
@@ -500,13 +541,13 @@ def cmd_restore(args):
         path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(target / stored), path)
         print(f"restored {path}")
-    if "registry" in manifest:
-        write_registry(manifest["registry"])
+    if "registry_file" in manifest:
+        import_registry(target / manifest["registry_file"])
         print(f"restored registry {REGISTRY_KEY}")
     if IS_MACOS:
         flush_macos_prefs()
 
-    if not manifest["files"] and "registry" not in manifest:
+    if not manifest["files"] and "registry_file" not in manifest:
         print("the saved config was empty, so the machine is back to having none")
     shutil.rmtree(target)
     return 0
