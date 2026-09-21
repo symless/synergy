@@ -82,7 +82,7 @@ XDGSessionMonitor::XDGSessionMonitor(ReadyCallback onReady) : m_onReady{std::mov
 XDGSessionMonitor::~XDGSessionMonitor()
 {
   if (m_sessionBus) {
-    for (auto &watch : m_screenSavers) {
+    for (const auto &watch : m_screenSavers) {
       if (watch.watchId) {
         g_bus_unwatch_name(watch.watchId);
       }
