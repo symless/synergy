@@ -71,6 +71,7 @@ void TestSettings::load()
   m_apiUrlBase.clear();
   m_machineId.clear();
   m_startTimeEpochSecs = 0;
+  m_lockedSettingsFile.clear();
   m_verbose = false;
   m_allowExpiredLicenses = false;
 
@@ -90,6 +91,7 @@ void TestSettings::load()
   m_apiUrlBase = ini.value(QStringLiteral("test/apiUrlBase")).toString();
   m_machineId = ini.value(QStringLiteral("test/machineId")).toString();
   m_startTimeEpochSecs = ini.value(QStringLiteral("test/startTime"), 0).toLongLong();
+  m_lockedSettingsFile = ini.value(QStringLiteral("test/lockedSettingsFile")).toString();
 
   m_verbose = ini.value(QStringLiteral("features/verbose"), false).toBool();
   m_allowExpiredLicenses = ini.value(QStringLiteral("features/allowExpiredLicenses"), false).toBool();
