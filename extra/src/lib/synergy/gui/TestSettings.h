@@ -72,10 +72,6 @@ public:
   {
     return m_verbose;
   }
-  bool skipRemoteCheck() const
-  {
-    return m_skipRemoteCheck;
-  }
   bool allowExpiredLicenses() const
   {
     return m_allowExpiredLicenses;
@@ -105,7 +101,6 @@ private:
   QString m_machineId;
   qint64 m_startTimeEpochSecs = 0;
   bool m_verbose = false;
-  bool m_skipRemoteCheck = false;
   bool m_allowExpiredLicenses = false;
 };
 

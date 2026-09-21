@@ -759,6 +759,11 @@ Additionally, check you are able to %1 the server config file: %2</source>
         <translation type="unfinished">无法从证书文件中读取 RSA 密钥：%1</translation>
     </message>
     <message>
+        <source>failed to create directory for tls certificate: %1</source>
+        <extracomment>%1 will be replaced by the directory the certificate would be written to</extracomment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is already running</source>
         <translation>%1 已经在运行中</translation>
     </message>

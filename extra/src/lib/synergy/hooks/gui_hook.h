@@ -59,11 +59,24 @@ inline void onPreInit()
   }
 }
 
+// The migration notice is shown at the end of onAppStart rather than here, so it cannot compete
+// with a dialog raised later in startup; this is how it gets the window to parent itself to.
+inline QMainWindow *s_mainWindow = nullptr;
+
 inline void onMainWindow(QMainWindow *mainWindow, deskflow::gui::CoreProcess *coreProcess)
 {
+  s_mainWindow = mainWindow;
+
+  // Upstream asks, on first launch, whether to check for updates, which Debian packaging policy
+  // wants and Synergy does not need. Writing the value before the main window opens means the
+  // question never gets asked; anyone who has already answered it, here or in an older release
+  // the settings migration carried forward, keeps their answer.
+  if (!Settings::value(Settings::Gui::AutoUpdateCheck).isValid()) {
+    Settings::setValue(Settings::Gui::AutoUpdateCheck, true);
+  }
+
   LicenseHandler::instance().handleMainWindow(mainWindow, coreProcess);
   FeatureHandler::instance().handleMainWindow(mainWindow);
-  synergy::gui::migration::showNoticeIfPending(mainWindow);
 }
 
 inline void onTitleApplied(QMainWindow *mainWindow)
@@ -75,7 +88,13 @@ inline void onTitleApplied(QMainWindow *mainWindow)
 inline bool onAppStart()
 {
   FeatureHandler::instance().handleAppStart();
-  return LicenseHandler::instance().handleAppStart();
+  if (!LicenseHandler::instance().handleAppStart()) {
+    return false;
+  }
+
+  // Last, so every other dialog startup can raise has been dealt with by the time it appears.
+  synergy::gui::migration::showNoticeIfPending(s_mainWindow);
+  return true;
 }
 
 inline void onSettings(QDialog *parent)

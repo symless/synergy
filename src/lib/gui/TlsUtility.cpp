@@ -111,7 +111,8 @@ bool generateCertificate()
 
   QFileInfo info(certPath);
   if (QDir dir(info.absolutePath()); !dir.exists() && !dir.mkpath(".")) {
-    qCritical("failed to create directory for tls certificate");
+    //: %1 will be replaced by the directory the certificate would be written to
+    qCritical().noquote() << QObject::tr("failed to create directory for tls certificate: %1").arg(info.absolutePath());
     return false;
   }
 
