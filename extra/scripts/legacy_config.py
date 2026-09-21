@@ -269,6 +269,62 @@ def extra_file():
     return user_dir() / f"{APP}.extra.conf"
 
 
+def system_dir():
+    """Where the All users scope keeps its settings, mirroring Settings::SystemDir."""
+    if IS_WINDOWS:
+        return Path(os.environ.get("ProgramData", r"C:\\ProgramData")) / APP
+    if IS_MACOS:
+        return Path("/Library") / APP
+    return Path("/etc") / APP
+
+
+def locked_files():
+    """Every path an administrator's locked settings file is read from."""
+    paths = [system_dir() / f"{APP}.locked.ini"]
+    if IS_WINDOWS:
+        paths.append(Path(os.environ.get("ProgramData", r"C:\\ProgramData")) / APP / f"{APP}.locked.ini")
+    elif IS_MACOS:
+        paths.append(Path("/Library/Preferences") / APP / f"{APP}.locked.conf")
+    else:
+        paths.append(Path("/etc/xdg") / APP / f"{APP}.locked.conf")
+    return [p for p in dict.fromkeys(paths)]
+
+
+def system_scope_findings():
+    """Conditions outside this script's reach that can make a run prove the wrong thing.
+
+    The script only ever writes the current-user scope. Anything that makes the app read
+    somewhere else, or write over what the migration produced, invalidates the comparison
+    without looking like a failure.
+    """
+    blocking, notes = [], []
+
+    for path in locked_files():
+        if path.exists():
+            blocking.append(
+                f"an administrator's locked settings file is present at {path}; it is applied "
+                "after the migration and overwrites whatever the migration produced, so a "
+                "setting reported as lost or changed may be its doing rather than the migration's"
+            )
+
+    system_conf = system_dir() / f"{APP}.conf"
+    if system_conf.exists():
+        notes.append(
+            f"the All users scope has settings at {system_conf}; this run covers the current-user "
+            "scope only, and says nothing about migrating that one"
+        )
+
+    extra = read_ini(extra_file())
+    if str(extra.get("scope/preferSystem", "")).lower() == "true":
+        notes.append(
+            "this machine prefers the All users scope; apply clears that along with the rest of "
+            "the config, so the run itself is in the current-user scope, and restore puts the "
+            "preference back afterwards"
+        )
+
+    return blocking, notes
+
+
 def native_ini_file():
     # Only Linux keeps the native store in a file with a predictable name; it is the same
     # path as the current settings file, which is why the migration tells the two apart
@@ -591,6 +647,10 @@ def cmd_show(args):
         print()
     if not shown:
         print("no config on this machine")
+
+    blocking, notes = system_scope_findings()
+    for line in blocking + notes:
+        print(f"note: {line}")
     return 0
 
 
@@ -600,6 +660,17 @@ def cmd_apply(args):
     if era is None:
         print(f"unknown era {args.era}; try list", file=sys.stderr)
         return 1
+
+    blocking, notes = system_scope_findings()
+    for note in notes:
+        print(f"note: {note}")
+    if blocking and not args.force:
+        for problem in blocking:
+            print(f"error: {problem}", file=sys.stderr)
+        print("move the file aside, or pass --force to run anyway", file=sys.stderr)
+        return 1
+    for problem in blocking:
+        print(f"warning: {problem}")
 
     if not backup_dir().exists():
         print("saving the current config first")
@@ -793,7 +864,9 @@ def main():
     apply_cmd = sub.add_parser("apply", help="write an era's config as the live config")
     apply_cmd.add_argument("era", help="an era from list")
     apply_cmd.add_argument("--serial-key", help="key to write; defaults to the one in Synergy.test.conf")
-    apply_cmd.add_argument("--force", action="store_true", help="overwrite an existing saved config")
+    apply_cmd.add_argument(
+        "--force", action="store_true", help="overwrite an existing saved config, and run despite a locked settings file"
+    )
     apply_cmd.add_argument(
         "--unusable-cert-path",
         action="store_true",
