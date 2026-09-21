@@ -21,8 +21,10 @@ class QWidget;
 
 namespace synergy::gui::migration {
 
-/// Bumped each time a new migration is added.
-constexpr int kCurrentSchemaVersion = 1;
+/// Bumped each time a new migration is added, and to re-run one that was broken in a release
+/// already in customers' hands: schema 1 shipped in the 1.21 betas reading the wrong macOS
+/// preferences domain, so those machines recorded a migration that carried nothing.
+constexpr int kCurrentSchemaVersion = 2;
 
 /**
  * @brief Ports legacy-format settings (Synergy 1.x, both user and system

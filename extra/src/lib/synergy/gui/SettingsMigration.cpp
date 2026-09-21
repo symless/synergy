@@ -45,6 +45,19 @@ const auto kSchemaKey = QStringLiteral("migration/schemaVersion");
 const auto kNotifiedKey = QStringLiteral("migration/notifiedFor");
 const auto kBackupPathKey = QStringLiteral("migration/backupPath");
 const auto kLegacySystemScopeKey = QStringLiteral("systemScope");
+
+// Qt builds the macOS preferences domain from the organization, reversing it if it is dotted and
+// prefixing "com." if it is not. Every release up to 1.21 wrote com.symless.Synergy, which comes
+// from "symless.com" and not from the application name: passing that lands on com.synergy.Synergy,
+// a domain no release has ever written, so the migration finds nothing and the customer's settings
+// and serial key stay behind in the real one. The old domain is a historical fact and does not
+// follow the current brand, so it is spelled out rather than derived. Linux keys its path off the
+// application name alone and Windows off the registry path, so both are already right.
+#ifdef Q_OS_MAC
+const auto kLegacyOrganization = QStringLiteral("symless.com");
+#else
+const auto kLegacyOrganization = QString::fromUtf8(kAppName);
+#endif
 const auto kLegacySerialKey = QStringLiteral("serialKey");
 const auto kExtraSerialKey = QStringLiteral("license/serialKey");
 
@@ -307,7 +320,7 @@ bool runLegacyMigration()
 {
   bool any = false;
 
-  QSettings legacyUser(QSettings::NativeFormat, QSettings::UserScope, kAppName, kAppName);
+  QSettings legacyUser(QSettings::NativeFormat, QSettings::UserScope, kLegacyOrganization, kAppName);
   const bool legacyHadSystemScope = legacyUser.value(kLegacySystemScopeKey, false).toBool();
   if (looksLikeLegacy(legacyUser)) {
     s_lastBackupPath = backupLegacy(legacyUser, Settings::UserSettingFile + QStringLiteral(".legacy.bak"));
@@ -320,7 +333,7 @@ bool runLegacyMigration()
     maybeClearLegacy(legacyUser, Settings::UserSettingFile, "user-scope");
   }
 
-  QSettings legacySystem(QSettings::NativeFormat, QSettings::SystemScope, kAppName, kAppName);
+  QSettings legacySystem(QSettings::NativeFormat, QSettings::SystemScope, kLegacyOrganization, kAppName);
   if (looksLikeLegacy(legacySystem)) {
     const auto backupPath = Settings::SystemSettingFile + QStringLiteral(".legacy.bak");
     s_lastBackupPath = backupLegacy(legacySystem, backupPath);
@@ -352,6 +365,11 @@ bool migrateIfNeeded()
   writeSchemaVersion(kCurrentSchemaVersion);
   if (s_migrationRanThisLaunch) {
     writeBackupPath(s_lastBackupPath);
+  } else {
+    // Nothing was carried, so there is nothing to tell the customer about. Without this, a machine
+    // that migrated cleanly under an earlier schema would raise the notice a second time when the
+    // schema is bumped, pointing at a backup taken releases ago.
+    writeNotifiedVersion(kCurrentSchemaVersion);
   }
   return s_migrationRanThisLaunch;
 }
