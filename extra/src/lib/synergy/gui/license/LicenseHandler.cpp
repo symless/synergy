@@ -535,10 +535,12 @@ void LicenseHandler::clampFeatures()
     Settings::setValue(Settings::Security::TlsEnabled, false);
   }
 
+  // Warned rather than clamped: the settings already live in the system file by this point, and
+  // moving the preference without carrying them across would strand the user's configuration.
+  // qWarning, because qCritical raises a modal dialog, and this recurs on every launch.
   const auto isSystemScope = (Settings::settingsFile() == Settings::SystemSettingFile);
   if (isSystemScope && !m_license.isSettingsScopeAvailable()) {
-    qCritical("settings scope not available");
-    return;
+    qWarning("settings scope not available for this license");
   }
 
   qDebug("committing default feature settings");
