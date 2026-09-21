@@ -25,6 +25,7 @@
 namespace synergy {
 
 constexpr auto kDisplayName = SYNERGY_DISPLAY_NAME;
+constexpr auto kProductLine = SYNERGY_PRODUCT_LINE;
 
 #ifdef SYNERGY_VERSION_DEV
 constexpr bool kIsDevBuild = true;

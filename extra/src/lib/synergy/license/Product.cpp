@@ -22,7 +22,7 @@
 
 using SKE = Product::SerialKeyEditionID;
 
-const char *const kLicensedProductName = synergy::kDisplayName;
+const char *const kLicensedProductName = synergy::kProductLine;
 
 const std::string SKE::Pro = "pro";
 const std::string SKE::Basic = "basic";

@@ -11,23 +11,29 @@ set(CMAKE_PROJECT_REV_FQDN "com.symless.synergy")
 set(CMAKE_PROJECT_DOMAIN "synergyapp.io")
 set(CMAKE_PROJECT_HOMEPAGE_URL "https://synergyapp.io")
 
-# Display brand. "Synergy 1" is the default user-facing name (window title,
-# About dialog). When building as the Core, flip to "Synergy Core" so the
-# same codebase ships under a different product label.
-# Distinct from CMAKE_PROJECT_PROPER_NAME, which stays "Synergy" to keep file paths
-# (~/.config/Synergy/, Synergy.conf) and Windows globals space-free.
-# A fork shipping this code as its own product names itself with
-# SYNERGY_PRODUCT_NAME, which wins over the flavor default.
+# The product line this build belongs to, which is the name a serial key's edition qualifies
+# ("Synergy 1 Pro"). Distinct from CMAKE_PROJECT_PROPER_NAME, which stays "Synergy" to keep file
+# paths (~/.config/Synergy/, Synergy.conf) and Windows globals space-free.
 option(SYNERGY_CORE_FLAVOR "Build as Synergy Core" OFF)
+if(SYNERGY_CORE_FLAVOR)
+  set(SYNERGY_PRODUCT_LINE "Synergy Core")
+else()
+  set(SYNERGY_PRODUCT_LINE "Synergy 1")
+endif()
+
+# What this build calls itself in the window title and About dialog. Defaults to the line; a fork
+# shipping this code as its own product sets it, and that name is then final rather than a base
+# for editions to qualify.
 set(SYNERGY_PRODUCT_NAME "" CACHE STRING "User-facing product name")
 if(SYNERGY_PRODUCT_NAME)
   set(SYNERGY_DISPLAY_NAME "${SYNERGY_PRODUCT_NAME}")
-elseif(SYNERGY_CORE_FLAVOR)
-  set(SYNERGY_DISPLAY_NAME "Synergy Core")
 else()
-  set(SYNERGY_DISPLAY_NAME "Synergy 1")
+  set(SYNERGY_DISPLAY_NAME "${SYNERGY_PRODUCT_LINE}")
 endif()
-add_compile_definitions(SYNERGY_DISPLAY_NAME="${SYNERGY_DISPLAY_NAME}")
+add_compile_definitions(
+  SYNERGY_DISPLAY_NAME="${SYNERGY_DISPLAY_NAME}"
+  SYNERGY_PRODUCT_LINE="${SYNERGY_PRODUCT_LINE}"
+)
 
 # Single source of truth for the minimum macOS version. Synergy is long-term
 # stable (unlike upstream, which tracks recent macOS), so we target the oldest
