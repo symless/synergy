@@ -35,6 +35,38 @@
 	</branding>
 	<content_rating type="oars-1.0" />
 	<releases>
+		<release version="1.21.2" date="2026-09-22" urgency="medium">
+			<description>
+				<p>Highlights since the previous release:</p>
+				<ul>
+					<li>Hotkeys now work on a Wayland server, through the GlobalShortcuts portal, and the
+						portal permission prompt no longer reappears on every start, after sleep, or when the
+						display wakes.</li>
+					<li>Many cursor fixes on Wayland, covering multi-monitor edges, input capture that never
+						engaged, screen switches during a drag, and the cursor jumping when the compositor
+						renegotiates input devices.</li>
+					<li>Scroll wheels that send small deltas are no longer ignored.</li>
+					<li>Keyboard fixes for the numpad on Wayland, keys left stuck on an X11 client when its
+						keyboard map refreshes, and modifier keys left stuck after crossing screens.</li>
+					<li>CVE-2026-63409: an out-of-bounds read parsing a protocol options array of odd
+						length.</li>
+					<li>CVE-2026-65832: an out-of-bounds read from a mapped modifier index outside the valid
+						range.</li>
+					<li>CVE-2026-65976: a peer could exhaust memory by sending clipboard chunks without
+						limit.</li>
+					<li>GHSA-8hqj-422h-c6jx: a single-byte payload could terminate the client through an
+						uncaught exception.</li>
+					<li>Further memory-safety hardening in clipboard handling.</li>
+					<li>Administrators can apply a locked settings file at launch again.</li>
+					<li>Settings, the serial key and the log level now survive an upgrade from 1.20 or
+						older.</li>
+					<li>The Flatpak build no longer reports itself as a beta development build.</li>
+					<li>Various macOS and Windows fixes and improvements.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
+			</description>
+			<url>https://symless.com/synergy/download</url>
+		</release>
 		<release version="1.21.1" date="2026-06-22" urgency="medium">
 			<description>
 				<p>Highlights since the previous release:</p>
