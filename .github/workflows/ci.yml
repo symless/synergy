@@ -16,6 +16,11 @@ on:
           - dev
           - snapshot
           - release
+      test-release:
+        description: "Build and sign as a release, without publishing one"
+        required: false
+        default: false
+        type: boolean
       aws-s3-uri:
         description: "Override AWS S3 target (e.g. s3://bucket/path)"
         required: false
@@ -53,7 +58,14 @@ env:
   # Release events + explicit "release" workflow_dispatch input → release build.
   # Push to a master branch + schedule + explicit "snapshot" dispatch → snapshot build.
   # PRs and "dev" dispatch fall through to dev (the cmake default).
-  SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'release') }}
+  #
+  # The "test-release" dispatch input builds a release in everything but where it
+  # lands: it signs, so the signing path can be exercised without cutting a release,
+  # but it uploads to a test directory and never reaches the website, which only a
+  # release event does. Signing is the one part of a release no other event runs,
+  # and it has broken between releases through no change of ours.
+  SYNERGY_VERSION_RELEASE: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'release') || inputs.test-release == true }}
+  SYNERGY_TEST_RELEASE: ${{ inputs.test-release == true }}
   SYNERGY_VERSION_SNAPSHOT: ${{ github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.package-type == 'snapshot') }}
 
   # Product values, set per repository so a fork building this code (synergy-ee)
@@ -202,6 +214,27 @@ jobs:
       - name: Build
         shell: bash
         run: cmake --build build --config Release -j8
+
+      # CodeSignTool runs on a JDK from January 2019 that it bundles, whose trust
+      # store cannot hold the root SSL.com moved their signing API to, so its calls
+      # fail the TLS handshake. This JDK is installed for its trust store alone; the
+      # signing tool still runs on its own.
+      - name: Install a current CA trust store
+        if: env.SYNERGY_VERSION_RELEASE == 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          check-latest: true
+
+      - name: Point the signing tool at the trust store
+        if: env.SYNERGY_VERSION_RELEASE == 'true'
+        shell: pwsh
+        run: |
+          $store = "$env:JAVA_HOME\lib\security\cacerts"
+          if (-not (Test-Path $store)) { throw "no trust store at $store" }
+          "JAVA_TOOL_OPTIONS=-Djavax.net.ssl.trustStore=$store -Djavax.net.ssl.trustStorePassword=changeit" |
+            Out-File $env:GITHUB_ENV -Append
 
       # Inner binaries (synergy-core.exe, synergy.exe, synergy-daemon.exe) must
       # be signed BEFORE the MSI is built — WiX embeds them into the installer,
@@ -809,7 +842,11 @@ jobs:
           s3_uri="${{ inputs.aws-s3-uri || format('s3://{0}/{1}', vars.AWS_S3_BUCKET, vars.AWS_S3_UPLOAD_DIR) }}"
           s3_uri="${s3_uri%/}"
 
-          if [[ "${{ env.SYNERGY_VERSION_RELEASE }}" == "true" ]]; then
+          if [[ "${{ env.SYNERGY_TEST_RELEASE }}" == "true" ]]; then
+            # Built as a release and named like one, so it is kept out of the
+            # release folder where it would be indistinguishable from the real one.
+            sub_dir="test"
+          elif [[ "${{ env.SYNERGY_VERSION_RELEASE }}" == "true" ]]; then
             sub_dir="release"
           elif [[ "${{ env.SYNERGY_VERSION_SNAPSHOT }}" == "true" ]]; then
             # Group snapshots by base version, keeping the stage so the folder
