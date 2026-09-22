@@ -39,6 +39,15 @@
 			<description>
 				<p>Highlights since the previous release:</p>
 				<ul>
+					<li>CVE-2026-63409: an odd-length DSOP options vector caused an out-of-bounds read in the
+						client.</li>
+					<li>CVE-2026-65832: an unauthenticated, server-controlled out-of-bounds read in
+						modifier-table indexing.</li>
+					<li>CVE-2026-65976: a clipboard receiver could accumulate data beyond the configured
+						clipboard size limit.</li>
+					<li>GHSA-vxgx-6p4m-fv83: a single-byte LSYN language payload caused an uncaught exception
+						in the client.</li>
+					<li>Further memory-safety hardening in clipboard handling.</li>
 					<li>Hotkeys now work on a Wayland server, through the GlobalShortcuts portal, and the
 						portal permission prompt no longer reappears on every start, after sleep, or when the
 						display wakes.</li>
@@ -48,15 +57,6 @@
 					<li>Scroll wheels that send small deltas are no longer ignored.</li>
 					<li>Keyboard fixes for the numpad on Wayland, keys left stuck on an X11 client when its
 						keyboard map refreshes, and modifier keys left stuck after crossing screens.</li>
-					<li>CVE-2026-63409: an out-of-bounds read parsing a protocol options array of odd
-						length.</li>
-					<li>CVE-2026-65832: an out-of-bounds read from a mapped modifier index outside the valid
-						range.</li>
-					<li>CVE-2026-65976: a peer could exhaust memory by sending clipboard chunks without
-						limit.</li>
-					<li>GHSA-8hqj-422h-c6jx: a single-byte payload could terminate the client through an
-						uncaught exception.</li>
-					<li>Further memory-safety hardening in clipboard handling.</li>
 					<li>Administrators can apply a locked settings file at launch again.</li>
 					<li>Settings, the serial key and the log level now survive an upgrade from 1.20 or
 						older.</li>
@@ -87,6 +87,15 @@
 				</p>
 				<p>Stronger security</p>
 				<ul>
+					<li>CVE-2021-42072: the client's identity was not sufficiently verified when it
+						connected.</li>
+					<li>CVE-2021-42073: an attacker could enter an active session state.</li>
+					<li>CVE-2021-42074: an attacker could cause a segmentation fault in the server
+						component.</li>
+					<li>CVE-2021-42075: the server did not correctly close file descriptors for established
+						TCP connections.</li>
+					<li>CVE-2021-42076: an attacker could exhaust memory in the server and client components
+						by sending long TCP messages.</li>
 					<li>TLS fingerprints are now kept in a fingerprint database, with a clearer comparison
 						dialog that shows both the local and remote prints side by side.</li>
 					<li>A new option for servers to require a client certificate before accepting a
