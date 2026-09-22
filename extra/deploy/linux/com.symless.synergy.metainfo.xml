@@ -41,7 +41,6 @@
 					A security and Wayland release. It closes four advisories, makes hotkeys and the cursor
 					behave on a Wayland server, and repairs upgrading from 1.20 or older, which could arrive
 					with the settings, the serial key and the log level reset.
-					Highlights since the previous release:
 				</p>
 				<ul>
 					<li>CVE-2026-63409: an odd-length DSOP options vector caused an out-of-bounds read in the
@@ -77,7 +76,6 @@
 				<p>
 					A maintenance release for the 1.21 line, whose main addition is clipboard sharing on
 					Wayland.
-					Highlights since the previous release:
 				</p>
 				<ul>
 					<li>Clipboard sharing now works on Wayland, using the desktop portals.</li>
@@ -92,7 +90,6 @@
 				<p>
 					This release folds a large number of upstream improvements into Synergy from Deskflow,
 					much of it built by the Synergy team and contributed upstream.
-					Highlights since the previous release:
 				</p>
 				<p>Stronger security</p>
 				<ul>
