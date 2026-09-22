@@ -144,7 +144,7 @@
       "type": "shell",
       "command": "echo noop > /dev/null",
       "windows": {
-        "command": "Stop-Service -Name 'Synergy' -Force; while ((Get-Service -Name 'Synergy').Status -ne 'Stopped') { Start-Sleep -Seconds 1 }"
+        "command": "foreach ($n in 'Synergy Daemon (development)','Synergy') { if (Get-Service -Name $n -ErrorAction SilentlyContinue) { Stop-Service -Name $n -Force; while ((Get-Service -Name $n).Status -ne 'Stopped') { Start-Sleep -Seconds 1 } } }"
       }
     },
     {
@@ -152,7 +152,7 @@
       "type": "shell",
       "command": "echo noop > /dev/null",
       "windows": {
-        "command": "Start-Service -Name 'Synergy'; while ((Get-Service -Name 'Synergy').Status -ne 'Running') { Start-Sleep -Seconds 1 }"
+        "command": "Start-Service -Name 'Synergy Daemon (development)'; while ((Get-Service -Name 'Synergy Daemon (development)').Status -ne 'Running') { Start-Sleep -Seconds 1 }"
       }
     },
     {
@@ -160,7 +160,7 @@
       "type": "shell",
       "command": "echo noop > /dev/null",
       "windows": {
-        "command": "Restart-Service -Name 'Synergy'"
+        "command": "Restart-Service -Name 'Synergy Daemon (development)'"
       }
     },
     {
@@ -174,7 +174,7 @@
       "type": "shell",
       "command": "echo noop > /dev/null",
       "windows": {
-        "command": "sc.exe create Synergy binPath= \"${workspaceFolder}\\build\\bin-copy\\synergy-daemon.exe\" start= auto DisplayName= Synergy"
+        "command": "New-Service -Name 'Synergy Daemon (development)' -DisplayName 'Synergy Daemon (development)' -BinaryPathName '${workspaceFolder}\\build\\bin-copy\\synergy-daemon.exe' -StartupType Manual"
       }
     },
     {
@@ -182,7 +182,7 @@
       "type": "shell",
       "command": "echo noop > /dev/null",
       "windows": {
-        "command": "sc.exe delete Synergy"
+        "command": "sc.exe delete 'Synergy Daemon (development)'"
       }
     },
     {
