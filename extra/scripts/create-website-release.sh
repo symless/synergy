@@ -5,7 +5,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-file_codes=("synergy-personal-v1" "synergy-business-v1")
 sub_path="synergy/api/releases"
 jira_base="https://symless.atlassian.net"
 jira_project="S1"
@@ -26,6 +25,26 @@ fi
 
 if [[ -z "${WEBSITE_API_TOKEN:-}" ]]; then
 	echo "a website API token is required" >&2
+	exit 1
+fi
+
+# Which editions this repository announces the build under, as one website file
+# code per line. It is a repository variable because it is the whole difference
+# between a release from here and one from synergy-ee, which builds this same
+# tree as Enterprise. A fork that has not set it must fail rather than inherit
+# another product's file codes and announce itself as that product.
+declare -a file_codes=()
+
+IFS=$',\n' read -r -d '' -a requested_codes <<<"${SYNERGY_FILE_CODES:-}" || true
+for code in "${requested_codes[@]}"; do
+	code="${code//[[:space:]]/}"
+	if [[ -n "$code" ]]; then
+		file_codes+=("$code")
+	fi
+done
+
+if [[ ${#file_codes[@]} -eq 0 ]]; then
+	echo "the file codes to announce this release under are required, as SYNERGY_FILE_CODES with one website file code per line (i.e. synergy-personal-v1 and synergy-business-v1)" >&2
 	exit 1
 fi
 
@@ -95,12 +114,13 @@ if [[ "$count" -eq 0 ]]; then
 	exit 1
 fi
 
-# One rpm under two names: Business customers run Red Hat, Personal runs the free
-# rebuilds. The package is named after neither, because it is neither.
+# One rpm under two names: the editions sold to companies list it against Red Hat
+# and Personal lists it against the free rebuilds, so the edition in the file code
+# is what picks the row. The package is named after neither, because it is neither.
 el_row_for() {
 	local major="$1" file_code="$2"
 	case "$file_code" in
-	synergy-business-v1) echo "rhel-$major X64" ;;
+	*business* | *enterprise*) echo "rhel-$major X64" ;;
 	*) echo "rocky-$major X64" ;;
 	esac
 }
@@ -200,8 +220,8 @@ for file_code in "${file_codes[@]}"; do
 
 	case "$status" in
 	200) echo "The website is holding $version of $file_code for review: $body" ;;
-	# This creates two releases, so a run that got one in before failing has to be
-	# safe to repeat; re-running the job is the recovery.
+	# This can create a release per file code, so a run that got one in before
+	# failing has to be safe to repeat; re-running the job is the recovery.
 	409) echo "$file_code already has a release for $version, so it was left alone: $body" >&2 ;;
 	*)
 		echo "the website refused $file_code $version (HTTP $status): $body" >&2
