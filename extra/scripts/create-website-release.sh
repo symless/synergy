@@ -74,13 +74,34 @@ changes="[]"
 source="the issues fixed in $version"
 asked_jira=false
 
-if [[ -n "${JIRA_API_TOKEN:-}" && -n "${JIRA_USER_EMAIL:-}" ]]; then
+if [[ -n "${JIRA_API_TOKEN:-}" ]]; then
 	asked_jira=true
+
+	# A scoped API token is a bearer token against the API gateway, not a
+	# password against the site. Sent as basic auth it is not rejected: the call
+	# is served as an anonymous caller, and anonymous search answers 200 with no
+	# issues, which reads exactly like a release that fixed nothing. So the
+	# token is made to name its account before anything is asked of it.
+	cloud_id="$(curl -sS --max-time 30 "$jira_base/_edge/tenant_info" | jq -r '.cloudId // empty')"
+	if [[ -z "$cloud_id" ]]; then
+		echo "could not read the Jira cloud id from $jira_base, so the issues fixed in $version cannot be read" >&2
+		exit 1
+	fi
+	jira_api="https://api.atlassian.com/ex/jira/$cloud_id"
+
+	account_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+		-H "Authorization: Bearer $JIRA_API_TOKEN" \
+		"$jira_api/rest/api/3/myself")"
+	if [[ "$account_status" != "200" ]]; then
+		echo "the Jira token names no account (HTTP $account_status), so the issues fixed in $version cannot be read" >&2
+		exit 1
+	fi
+
 	jira_body="$(jq -n --arg jql "project = $jira_project AND fixVersion = \"$version\"" \
 		'{jql: $jql, fields: ["summary", "description"], maxResults: 200}')"
 
-	jira_response="$(curl -sS -X POST "$jira_base/rest/api/3/search/jql" \
-		-u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+	jira_response="$(curl -sS -X POST "$jira_api/rest/api/3/search/jql" \
+		-H "Authorization: Bearer $JIRA_API_TOKEN" \
 		-H "Content-Type: application/json" \
 		--data-binary "$jira_body" \
 		--max-time 60 \
@@ -105,11 +126,16 @@ fi
 count="$(jq 'length' <<<"$changes")"
 
 if [[ "$count" -eq 0 ]]; then
+	# Notes are what customers read to decide whether to upgrade, so a release
+	# whose issues were asked for and came back empty stops. The fix version is
+	# either missing from the issues or the token cannot see them, and both are
+	# worth a person's attention rather than a changelog of commit subjects.
 	if [[ "$asked_jira" == true ]]; then
-		echo "no issues carry the fix version $version, using the commit subjects instead" >&2
-	else
-		echo "no credentials to read the issues fixed in $version, using the commit subjects instead" >&2
+		echo "no issue carries the fix version $version, so there are no notes to write: check the fix versions in $jira_project, and that the token can read them" >&2
+		exit 1
 	fi
+
+	echo "no credentials to read the issues fixed in $version, using the commit subjects instead" >&2
 	source="the commits since ${previous:-the start of history}"
 
 	# A squashed pull request carries its number in the subject, which says

@@ -898,7 +898,6 @@ jobs:
           SYNERGY_PACKAGE_DIR: ${{ github.workspace }}/dist
           SYNERGY_FILE_CODES: ${{ vars.SYNERGY_FILE_CODES }}
           WEBSITE_API_TOKEN: ${{ secrets.WEBSITE_API_TOKEN }}
-          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         run: bash extra/scripts/create-website-release.sh
 
