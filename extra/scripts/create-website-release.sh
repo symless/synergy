@@ -118,6 +118,16 @@ if [[ "$count" -eq 0 ]]; then
 		sed -E 's/ \(#[0-9]+\)$//' |
 		jq -R -s 'split("\n") | map(select(length > 0))')"
 	count="$(jq 'length' <<<"$changes")"
+
+	# The previous tag is whichever one git finds nearest, and a fork whose own
+	# release tags sit outside this history hands back one from years ago: the
+	# range then covers most of the project and the notes become a changelog
+	# nobody can read. Stop, because a release with the wrong notes is worse
+	# than a release that waited.
+	if [[ "$count" -gt 300 ]]; then
+		echo "$range covers $count commits, which is a range too wide to be one release's notes: check that $previous is the release before $tag in this repository" >&2
+		exit 1
+	fi
 fi
 
 if [[ "$count" -eq 0 ]]; then
@@ -195,6 +205,10 @@ package_list() {
 	echo "$out"
 }
 
+changes_file="$(mktemp)"
+trap 'rm -f "$changes_file"' EXIT
+printf '%s' "$changes" >"$changes_file"
+
 base="${SYNERGY_WEBSITE_URL_BASE:-https://symless.com}"
 url="${base%/}/$sub_path"
 
@@ -213,9 +227,12 @@ for file_code in "${file_codes[@]}"; do
 
 	echo "Naming the $package_count packages the build produced for $file_code"
 
+	# The notes go in through a file rather than an argument: a release with a
+	# few hundred of them is past what a command line holds, and jq dies with
+	# "Argument list too long" only once the release is already tagged.
 	payload="$(jq -n --arg fileCode "$file_code" --arg version "$version" \
-		--argjson changes "$changes" --argjson packages "$packages" \
-		'{fileCode: $fileCode, version: $version, changes: $changes, packages: $packages}')"
+		--slurpfile changes "$changes_file" --argjson packages "$packages" \
+		'{fileCode: $fileCode, version: $version, changes: $changes[0], packages: $packages}')"
 
 	response="$(curl -sS -X POST "$url" \
 		-H "Authorization: Bearer $WEBSITE_API_TOKEN" \
