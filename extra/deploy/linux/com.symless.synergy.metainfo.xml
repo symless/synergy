@@ -37,7 +37,12 @@
 	<releases>
 		<release version="1.21.2" date="2026-09-22" urgency="medium">
 			<description>
-				<p>Highlights since the previous release:</p>
+				<p>
+					A security and Wayland release. It closes four advisories, makes hotkeys and the cursor
+					behave on a Wayland server, and repairs upgrading from 1.20 or older, which could arrive
+					with the settings, the serial key and the log level reset.
+					Highlights since the previous release:
+				</p>
 				<ul>
 					<li>CVE-2026-63409: an odd-length DSOP options vector caused an out-of-bounds read in the
 						client.</li>
@@ -69,7 +74,11 @@
 		</release>
 		<release version="1.21.1" date="2026-06-22" urgency="medium">
 			<description>
-				<p>Highlights since the previous release:</p>
+				<p>
+					A maintenance release for the 1.21 line, whose main addition is clipboard sharing on
+					Wayland.
+					Highlights since the previous release:
+				</p>
 				<ul>
 					<li>Clipboard sharing now works on Wayland, using the desktop portals.</li>
 					<li>The version shown in the interface no longer repeats the commit hash.</li>
