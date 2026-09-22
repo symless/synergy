@@ -48,6 +48,17 @@ if [[ ${#file_codes[@]} -eq 0 ]]; then
 	exit 1
 fi
 
+# A release names the files the build produced, and a release that names none is
+# filled in from the website's release template instead: rows for whatever that
+# template still lists, including installers this build never produced, each one
+# a download that answers 404. There is no case where sending nothing is better
+# than stopping, so the packages are required rather than optional.
+package_dir="${SYNERGY_PACKAGE_DIR:-}"
+if [[ ! -d "$package_dir" ]]; then
+	echo "the directory holding the packages this release is for is required, as SYNERGY_PACKAGE_DIR, got: ${package_dir:-<empty>}" >&2
+	exit 1
+fi
+
 if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
 	echo "the tag being released is not in this checkout, which needs the whole history and its tags" >&2
 	exit 1
@@ -191,23 +202,20 @@ echo "Telling the website about $version, built from $count changes taken from $
 
 for file_code in "${file_codes[@]}"; do
 	# Read per edition, because the same rpm is filed under a different row for
-	# each. Sending none leaves the website deciding from its own template.
-	packages="[]"
-	if [[ -n "${SYNERGY_PACKAGE_DIR:-}" && -d "$SYNERGY_PACKAGE_DIR" ]]; then
-		packages="$(package_list "$SYNERGY_PACKAGE_DIR" "$file_code")"
-	fi
+	# each.
+	packages="$(package_list "$package_dir" "$file_code")"
 	package_count="$(jq 'length' <<<"$packages")"
 
-	if [[ "$package_count" -gt 0 ]]; then
-		echo "Naming the $package_count packages the build produced for $file_code"
-	else
-		echo "Naming no packages for $file_code, so the website's release template decides them" >&2
+	if [[ "$package_count" -eq 0 ]]; then
+		echo "the build produced no packages for $file_code, so there is nothing to release" >&2
+		exit 1
 	fi
+
+	echo "Naming the $package_count packages the build produced for $file_code"
 
 	payload="$(jq -n --arg fileCode "$file_code" --arg version "$version" \
 		--argjson changes "$changes" --argjson packages "$packages" \
-		'{fileCode: $fileCode, version: $version, changes: $changes}
-		 + (if ($packages | length) > 0 then {packages: $packages} else {} end)')"
+		'{fileCode: $fileCode, version: $version, changes: $changes, packages: $packages}')"
 
 	response="$(curl -sS -X POST "$url" \
 		-H "Authorization: Bearer $WEBSITE_API_TOKEN" \
