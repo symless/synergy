@@ -5,7 +5,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-file_codes=("synergy-personal-v1" "synergy-business-v1")
 sub_path="synergy/api/releases"
 jira_base="https://symless.atlassian.net"
 jira_project="S1"
@@ -26,6 +25,37 @@ fi
 
 if [[ -z "${WEBSITE_API_TOKEN:-}" ]]; then
 	echo "a website API token is required" >&2
+	exit 1
+fi
+
+# Which editions this repository announces the build under, as one website file
+# code per line. It is a repository variable because it is the whole difference
+# between a release from here and one from synergy-ee, which builds this same
+# tree as Enterprise. A fork that has not set it must fail rather than inherit
+# another product's file codes and announce itself as that product.
+declare -a file_codes=()
+
+IFS=$',\n' read -r -d '' -a requested_codes <<<"${SYNERGY_FILE_CODES:-}" || true
+for code in "${requested_codes[@]}"; do
+	code="${code//[[:space:]]/}"
+	if [[ -n "$code" ]]; then
+		file_codes+=("$code")
+	fi
+done
+
+if [[ ${#file_codes[@]} -eq 0 ]]; then
+	echo "the file codes to announce this release under are required, as SYNERGY_FILE_CODES with one website file code per line (i.e. synergy-personal-v1 and synergy-business-v1)" >&2
+	exit 1
+fi
+
+# A release names the files the build produced, and a release that names none is
+# filled in from the website's release template instead: rows for whatever that
+# template still lists, including installers this build never produced, each one
+# a download that answers 404. There is no case where sending nothing is better
+# than stopping, so the packages are required rather than optional.
+package_dir="${SYNERGY_PACKAGE_DIR:-}"
+if [[ ! -d "$package_dir" ]]; then
+	echo "the directory holding the packages this release is for is required, as SYNERGY_PACKAGE_DIR, got: ${package_dir:-<empty>}" >&2
 	exit 1
 fi
 
@@ -95,12 +125,13 @@ if [[ "$count" -eq 0 ]]; then
 	exit 1
 fi
 
-# One rpm under two names: Business customers run Red Hat, Personal runs the free
-# rebuilds. The package is named after neither, because it is neither.
+# One rpm under two names: the editions sold to companies list it against Red Hat
+# and Personal lists it against the free rebuilds, so the edition in the file code
+# is what picks the row. The package is named after neither, because it is neither.
 el_row_for() {
 	local major="$1" file_code="$2"
 	case "$file_code" in
-	synergy-business-v1) echo "rhel-$major X64" ;;
+	*business* | *enterprise*) echo "rhel-$major X64" ;;
 	*) echo "rocky-$major X64" ;;
 	esac
 }
@@ -171,23 +202,20 @@ echo "Telling the website about $version, built from $count changes taken from $
 
 for file_code in "${file_codes[@]}"; do
 	# Read per edition, because the same rpm is filed under a different row for
-	# each. Sending none leaves the website deciding from its own template.
-	packages="[]"
-	if [[ -n "${SYNERGY_PACKAGE_DIR:-}" && -d "$SYNERGY_PACKAGE_DIR" ]]; then
-		packages="$(package_list "$SYNERGY_PACKAGE_DIR" "$file_code")"
-	fi
+	# each.
+	packages="$(package_list "$package_dir" "$file_code")"
 	package_count="$(jq 'length' <<<"$packages")"
 
-	if [[ "$package_count" -gt 0 ]]; then
-		echo "Naming the $package_count packages the build produced for $file_code"
-	else
-		echo "Naming no packages for $file_code, so the website's release template decides them" >&2
+	if [[ "$package_count" -eq 0 ]]; then
+		echo "the build produced no packages for $file_code, so there is nothing to release" >&2
+		exit 1
 	fi
+
+	echo "Naming the $package_count packages the build produced for $file_code"
 
 	payload="$(jq -n --arg fileCode "$file_code" --arg version "$version" \
 		--argjson changes "$changes" --argjson packages "$packages" \
-		'{fileCode: $fileCode, version: $version, changes: $changes}
-		 + (if ($packages | length) > 0 then {packages: $packages} else {} end)')"
+		'{fileCode: $fileCode, version: $version, changes: $changes, packages: $packages}')"
 
 	response="$(curl -sS -X POST "$url" \
 		-H "Authorization: Bearer $WEBSITE_API_TOKEN" \
@@ -200,8 +228,8 @@ for file_code in "${file_codes[@]}"; do
 
 	case "$status" in
 	200) echo "The website is holding $version of $file_code for review: $body" ;;
-	# This creates two releases, so a run that got one in before failing has to be
-	# safe to repeat; re-running the job is the recovery.
+	# This can create a release per file code, so a run that got one in before
+	# failing has to be safe to repeat; re-running the job is the recovery.
 	409) echo "$file_code already has a release for $version, so it was left alone: $body" >&2 ;;
 	*)
 		echo "the website refused $file_code $version (HTTP $status): $body" >&2

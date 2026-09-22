@@ -859,6 +859,7 @@ jobs:
           SYNERGY_VERSION: ${{ needs.get-version.outputs.version }}
           SYNERGY_RELEASE_TAG: ${{ github.ref_name }}
           SYNERGY_PACKAGE_DIR: ${{ github.workspace }}/dist
+          SYNERGY_FILE_CODES: ${{ vars.SYNERGY_FILE_CODES }}
           WEBSITE_API_TOKEN: ${{ secrets.WEBSITE_API_TOKEN }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
