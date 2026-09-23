@@ -22,13 +22,16 @@ class QWidget;
 namespace synergy::gui::migration {
 
 /// Bumped each time a new migration is added, and to re-run one that was broken in a release
-/// already in customers' hands: schema 1 shipped in the 1.21 betas reading the wrong macOS
-/// preferences domain, so those machines recorded a migration that carried nothing.
-constexpr int kCurrentSchemaVersion = 2;
+/// already in customers' hands. Schema 1 shipped in the 1.21 betas reading the wrong macOS
+/// preferences domain, so those machines recorded a migration that carried nothing. Schema 2
+/// shipped in 1.21.0 to 1.21.2 dropping the server configuration and never reading the All users
+/// scope, so those machines have their screen layout only in the backup the migration took.
+constexpr int kCurrentSchemaVersion = 3;
 
 /**
- * @brief Ports legacy-format settings (Synergy 1.x, both user and system
- * scope, native QSettings backend) into the new Settings layout.
+ * @brief Ports legacy-format settings (Synergy 1.x, the user scope from the native store and
+ * the All users scope from its ini file) into the new Settings layout, and puts back what an
+ * earlier schema's migration dropped.
  *
  * Must run before Settings::instance() is constructed: upstream's
  * cleanSettings() strips any key not in its allow-list, which would erase

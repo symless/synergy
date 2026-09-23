@@ -96,9 +96,32 @@ UNUSABLE_CERT_PATH = r"C:\CON\Synergy\tls\synergy.pem" if IS_WINDOWS else "/none
 # is ours, so clear can remove it again without touching anything of the developer's.
 SERVER_CONFIG_NAME = "legacy-config.sgc"
 
+def server_layout(server, client):
+    """The server configuration a release wrote under its one nested group.
+
+    Every release from 1.14 to the current one has kept the screen layout and the server
+    options under internalConfig in the same shape, so one set serves every era. The grid is
+    5 by 3 with the server in the middle cell and the client to its left; Qt stores it as an
+    array, which is why it carries a size and a one-based index per cell. This is what a
+    customer has spent the most time setting up and would notice losing first.
+    """
+    return {
+        "internalConfig/numColumns": "5",
+        "internalConfig/numRows": "3",
+        "internalConfig/screens/size": "15",
+        "internalConfig/screens/7/name": client,
+        "internalConfig/screens/8/name": server,
+        "internalConfig/hotkeys/size": "0",
+        "internalConfig/clipboardSharing": "false",
+        "internalConfig/hasSwitchDelay": "true",
+        "internalConfig/switchDelay": "500",
+    }
+
+
 # Settings shapes, oldest first. Each is one way a release left the machine, not one
-# release: every version up to 1.20 wrote flat keys into the native store, so the only
-# differences that matter are which keys are there and what they were called.
+# release: every version up to 1.20 wrote flat keys into the native store, with the server
+# configuration nested under one group, so the only differences that matter are which keys
+# are there and what they were called.
 #
 # Each era carries a whole config, the settings a customer actually set and would notice
 # losing, plus a few keys that no longer exist, so a run shows both what the migration
@@ -147,6 +170,7 @@ ERAS = {
             "language": "en",
             "autoConfig": "false",
             "eliteBackersUrl": "https://symless.com/backers",
+            **server_layout("legacy-1-14", "legacy-1-14-client"),
         },
     },
     "1.17": {
@@ -180,6 +204,7 @@ ERAS = {
             "serialKey": "@SERIAL_KEY@",
             "activated": "true",
             "lastVersion": "1.17.1",
+            **server_layout("legacy-1-17", "legacy-1-17-client"),
         },
     },
     "1.20": {
@@ -217,6 +242,7 @@ ERAS = {
 
             # The certificate moved out of SSL/ into tls/ in 1.17.2.
             "tlsCertPath": "@USERDIR@/tls/synergy.pem",
+            **server_layout("legacy-1-20", "legacy-1-20-client"),
         },
     },
     "1.21-beta": {
@@ -314,7 +340,7 @@ def system_scope_findings():
             "scope only, and says nothing about migrating that one"
         )
 
-    extra = read_ini(extra_file())
+    extra = read_ini(extra_file()) or {}
     if str(extra.get("scope/preferSystem", "")).lower() == "true":
         notes.append(
             "this machine prefers the All users scope; apply clears that along with the rest of "
@@ -362,11 +388,18 @@ def backup_dir():
 
 
 def write_ini(path, values):
-    """Write a QSettings ini. Keys are "group/name"; a bare name is top level."""
+    """Write a QSettings ini. Keys are "group/name"; a bare name is top level.
+
+    Only the first segment is a section. Qt keeps anything nested below it as a backslashed
+    name inside that section, so "internalConfig/screens/7/name" is screens\\7\\name under
+    [internalConfig], not a section of its own.
+    """
     groups = {}
     for key, value in values.items():
-        group, _, name = key.rpartition("/")
-        groups.setdefault(group, {})[name] = value
+        group, sep, name = key.partition("/")
+        if not sep:
+            group, name = "", key
+        groups.setdefault(group, {})[name.replace("/", "\\")] = value
 
     lines = []
     for name, value in sorted(groups.pop("", {}).items()):
@@ -398,36 +431,52 @@ def read_ini(path):
         if not sep:
             continue
         key = f"{group}/{name.strip()}" if group else name.strip()
-        values[key] = value.strip()
+        values[key.replace("\\", "/")] = value.strip()
     return values
 
 
 def write_registry(values):
+    """Qt keeps a nested key in subkeys: "internalConfig/screens/7/name" is the value "name"
+    under Software\\Synergy\\Synergy\\internalConfig\\screens\\7. A value written with the
+    separators in its name sits at the top and the app never looks at it."""
     import winreg
 
-    with winreg.CreateKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY) as key:
-        for name, value in values.items():
-            winreg.SetValueEx(key, name.replace("/", "\\"), 0, winreg.REG_SZ, str(value))
+    for name, value in values.items():
+        path, _, leaf = name.replace("/", "\\").rpartition("\\")
+        subkey = rf"{REGISTRY_KEY}\{path}" if path else REGISTRY_KEY
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, subkey) as key:
+            winreg.SetValueEx(key, leaf, 0, winreg.REG_SZ, str(value))
 
 
 def read_registry():
     import winreg
 
-    try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_KEY)
-    except FileNotFoundError:
-        return None
-    values = {}
-    with key:
-        index = 0
-        while True:
-            try:
-                name, value, _ = winreg.EnumValue(key, index)
-            except OSError:
-                break
-            values[name] = str(value)
-            index += 1
-    return values
+    def read_tree(path, prefix):
+        try:
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, path)
+        except FileNotFoundError:
+            return None
+        values = {}
+        with key:
+            index = 0
+            while True:
+                try:
+                    name, value, _ = winreg.EnumValue(key, index)
+                except OSError:
+                    break
+                values[f"{prefix}{name}"] = str(value)
+                index += 1
+            index = 0
+            while True:
+                try:
+                    child = winreg.EnumKey(key, index)
+                except OSError:
+                    break
+                values.update(read_tree(rf"{path}\{child}", f"{prefix}{child}/") or {})
+                index += 1
+        return values
+
+    return read_tree(REGISTRY_KEY, "")
 
 
 def registry_exists():
@@ -441,9 +490,9 @@ def registry_exists():
 
 
 def export_registry(path):
-    """Back the key up with reg.exe, which keeps what enumerating values alone drops: the
-    screen layout lives in subkeys, and the likes of port and tlsKeyLength are DWORDs that
-    come back as strings once they have been through a rewrite by hand."""
+    """Back the key up with reg.exe, which keeps what a rewrite by hand drops: the likes of
+    port and tlsKeyLength are DWORDs that come back as strings once they have been through
+    one."""
     if not registry_exists():
         return False
     result = subprocess.run(
