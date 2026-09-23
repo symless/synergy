@@ -877,11 +877,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          # The commit subjects the notes fall back to are the range between two
-          # tags, which the default shallow checkout has neither of.
-          fetch-depth: 0
-          fetch-tags: true
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8
@@ -898,8 +893,7 @@ jobs:
           SYNERGY_PACKAGE_DIR: ${{ github.workspace }}/dist
           SYNERGY_FILE_CODES: ${{ vars.SYNERGY_FILE_CODES }}
           WEBSITE_API_TOKEN: ${{ secrets.WEBSITE_API_TOKEN }}
-          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: bash extra/scripts/create-website-release.sh
 
   report:
