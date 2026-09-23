@@ -33,10 +33,6 @@ namespace synergy::gui {
 
 namespace {
 
-// Server options live under this group in the settings file rather than in
-// Settings' key list, so they pass through unmapped.
-const auto kInternalConfigGroup = QStringLiteral("internalConfig/");
-
 const auto kClipboardSharing = QStringLiteral("internalConfig/clipboardSharing");
 const auto kClipboardSharingSize = QStringLiteral("internalConfig/clipboardSharingSize");
 
@@ -122,7 +118,7 @@ void LockedSettings::load()
   const auto keys = ini.allKeys();
   for (const auto &key : keys) {
     const auto value = ini.value(key);
-    if (Settings::validKeys().contains(key) || key.startsWith(kInternalConfigGroup)) {
+    if (Settings::validKeys().contains(key)) {
       m_values.insert(key, value);
     } else if (const auto mapped = mapLegacySetting(key, value); mapped.has_value()) {
       m_values.insert(mapped->first, mapped->second);

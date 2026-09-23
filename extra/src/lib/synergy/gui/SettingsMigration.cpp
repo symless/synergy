@@ -42,7 +42,17 @@ namespace {
 const auto kSchemaKey = QStringLiteral("migration/schemaVersion");
 const auto kNotifiedKey = QStringLiteral("migration/notifiedFor");
 const auto kBackupPathKey = QStringLiteral("migration/backupPath");
+const auto kInternalConfigGroup = QStringLiteral("internalConfig/");
+const auto kScreensSizeKey = QStringLiteral("internalConfig/screens/size");
+const auto kScreenNameKey = QStringLiteral("internalConfig/screens/%1/name");
+
 const auto kLegacySystemScopeKey = QStringLiteral("systemScope");
+
+// The schemas a machine may have recorded before this one, each named for what its migration got
+// wrong. Schema 1 read the wrong macOS preferences domain, so on macOS it carried nothing. Schema
+// 2 dropped the server configuration group.
+constexpr int kSchemaWrongMacDomain = 1;
+constexpr int kSchemaWithoutServerConfig = 2;
 
 // Qt builds the macOS preferences domain from the organization, reversing it if it is dotted and
 // prefixing "com." if it is not. Every release up to 1.21 wrote com.symless.Synergy, which comes
@@ -58,6 +68,9 @@ const auto kLegacyOrganization = QString::fromUtf8(kAppName);
 #endif
 const auto kLegacySerialKey = QStringLiteral("serialKey");
 const auto kExtraSerialKey = QStringLiteral("license/serialKey");
+
+bool s_migrationRanThisLaunch = false;
+QString s_lastBackupPath;
 
 QString extraFile()
 {
@@ -178,9 +191,6 @@ void migrateSerialKey(const QSettings &legacy, const char *scopeLabel)
   qInfo("settings migration: %s legacy serial key carried to extra settings", scopeLabel);
 }
 
-bool s_migrationRanThisLaunch = false;
-QString s_lastBackupPath;
-
 // On Linux, NativeFormat resolves to the same file beta's Settings uses,
 // so clear() on the legacy QSettings would wipe the keys we just wrote.
 // On macOS/Windows the storage backends are distinct (plist / registry).
@@ -209,27 +219,32 @@ void maybeClearLegacy(QSettings &legacy, const QString &newPath, const char *sco
   qInfo("settings migration: cleared %s legacy storage at %s", scopeLabel, qPrintable(legacy.fileName()));
 }
 
+bool migrateUserScope(QSettings &legacyUser)
+{
+  s_lastBackupPath = backupLegacy(legacyUser, Settings::UserSettingFile + QStringLiteral(".legacy.bak"));
+  qInfo().noquote() << "settings migration: user-scope legacy backed up to" << s_lastBackupPath;
+  const bool carried = migrateOneScope(legacyUser, Settings::UserSettingFile) > 0;
+  if (carried) {
+    applyMasterCompatDefaults(Settings::UserSettingFile);
+  }
+  migrateSerialKey(legacyUser, "user-scope");
+  maybeClearLegacy(legacyUser, Settings::UserSettingFile, "user-scope");
+  return carried;
+}
+
 bool runLegacyMigration()
 {
-  bool any = false;
-
   QSettings legacyUser(QSettings::NativeFormat, QSettings::UserScope, kLegacyOrganization, kAppName);
   const bool legacyHadSystemScope = legacyUser.value(kLegacySystemScopeKey, false).toBool();
+
+  bool any = false;
   if (looksLikeLegacy(legacyUser)) {
-    s_lastBackupPath = backupLegacy(legacyUser, Settings::UserSettingFile + QStringLiteral(".legacy.bak"));
-    qInfo().noquote() << "settings migration: user-scope legacy backed up to" << s_lastBackupPath;
-    if (migrateOneScope(legacyUser, Settings::UserSettingFile) > 0) {
-      any = true;
-      applyMasterCompatDefaults(Settings::UserSettingFile);
-    }
-    migrateSerialKey(legacyUser, "user-scope");
-    maybeClearLegacy(legacyUser, Settings::UserSettingFile, "user-scope");
+    any = migrateUserScope(legacyUser);
   }
 
   QSettings legacySystem(QSettings::NativeFormat, QSettings::SystemScope, kLegacyOrganization, kAppName);
   if (looksLikeLegacy(legacySystem)) {
-    const auto backupPath = Settings::SystemSettingFile + QStringLiteral(".legacy.bak");
-    s_lastBackupPath = backupLegacy(legacySystem, backupPath);
+    s_lastBackupPath = backupLegacy(legacySystem, Settings::SystemSettingFile + QStringLiteral(".legacy.bak"));
     qInfo().noquote() << "settings migration: system-scope legacy backed up to" << s_lastBackupPath;
     if (migrateOneScope(legacySystem, Settings::SystemSettingFile) > 0) {
       any = true;
@@ -242,19 +257,81 @@ bool runLegacyMigration()
   if (legacyHadSystemScope) {
     SettingsScope::setPreferSystem(true);
   }
-
   return any;
+}
+
+// The window adds the server's own screen to an empty layout by itself, so a layout holding only
+// that one is still empty for this purpose.
+bool hasClientScreens(const QSettings &settings)
+{
+  const auto computerName = settings.value(Settings::Core::ComputerName).toString();
+  const auto count = settings.value(kScreensSizeKey).toInt();
+  for (int i = 1; i <= count; ++i) {
+    const auto name = settings.value(kScreenNameKey.arg(i)).toString();
+    if (!name.isEmpty() && name != computerName) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// A machine that migrated under schema 2 has its server configuration only in the backup that
+// migration took, since the native store was cleared once the backup was written. The group is
+// put back from there into whichever scope the machine now uses, unless the customer has rebuilt
+// a layout by hand since: that one is newer than the backup and is theirs to keep.
+bool recoverServerConfig()
+{
+  const auto backupPath = storedBackupPath();
+  if (backupPath.isEmpty() || !QFile::exists(backupPath)) {
+    return false;
+  }
+
+  const auto settingsPath = SettingsScope::preferSystem() ? Settings::SystemSettingFile : Settings::UserSettingFile;
+  QSettings current(settingsPath, QSettings::IniFormat);
+  if (hasClientScreens(current)) {
+    qInfo("settings migration: screen layout rebuilt since the last migration, backup left alone");
+    return false;
+  }
+
+  const QSettings backup(backupPath, QSettings::IniFormat);
+  int recovered = 0;
+  for (const auto &key : backup.allKeys()) {
+    if (key.startsWith(kInternalConfigGroup)) {
+      current.setValue(key, backup.value(key));
+      recovered++;
+    }
+  }
+  current.sync();
+  if (recovered == 0) {
+    return false;
+  }
+
+  s_lastBackupPath = backupPath;
+  qInfo("settings migration: recovered %d server configuration keys from %s", recovered, qPrintable(backupPath));
+  return true;
 }
 
 } // namespace
 
 bool migrateIfNeeded()
 {
-  if (storedSchemaVersion() >= kCurrentSchemaVersion) {
+  const auto stored = storedSchemaVersion();
+  if (stored >= kCurrentSchemaVersion) {
     return false;
   }
 
-  s_migrationRanThisLaunch = runLegacyMigration();
+  // A machine that never migrated reads the legacy store, and so does one whose migration read
+  // the wrong domain, since that one found nothing to clear. Any machine that has migrated before
+  // may be missing its server configuration, and gets it back from that migration's backup.
+  bool ran = false;
+  if (stored <= kSchemaWrongMacDomain) {
+    ran = runLegacyMigration();
+  }
+  if (stored > 0 && stored <= kSchemaWithoutServerConfig) {
+    ran = recoverServerConfig() || ran;
+  }
+
+  s_migrationRanThisLaunch = ran;
   writeSchemaVersion(kCurrentSchemaVersion);
   if (s_migrationRanThisLaunch) {
     writeBackupPath(s_lastBackupPath);

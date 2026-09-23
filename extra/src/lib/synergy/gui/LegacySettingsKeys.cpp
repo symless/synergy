@@ -26,6 +26,11 @@ namespace synergy::gui {
 
 std::optional<std::pair<QString, QVariant>> mapLegacySetting(const QString &oldKey, const QVariant &value)
 {
+  // The server configuration, the screen layout included, has kept this group and these key
+  // names through every release, so the whole group is current as it stands.
+  if (oldKey.startsWith(QStringLiteral("internalConfig/"))) {
+    return std::make_pair(oldKey, value);
+  }
   if (oldKey == "screenName") {
     return std::make_pair(Settings::Core::ComputerName, value);
   }
