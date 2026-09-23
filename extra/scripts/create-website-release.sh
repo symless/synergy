@@ -70,13 +70,7 @@ changes="$(printf '%s\n' "$notes" |
 	jq -R -s 'split("\n") | map(select(length > 0))')"
 count="$(jq 'length' <<<"$changes")"
 
-if [[ "$count" -eq 0 ]]; then
-	echo "the release notes on $tag list nothing, so there is nothing to tell the website: write them on the release page and run this again" >&2
-	exit 1
-fi
-
-# A range GitHub could not narrow reaches back years, and a fork that has not
-# released on this line is how that happens. Stop rather than publish a
+# A range GitHub could not narrow reaches back years. Stop rather than publish a
 # changelog nobody can read.
 if [[ "$count" -gt 300 ]]; then
 	echo "the release notes on $tag list $count changes, which is too many to be one release's notes: write them on the release page and run this again" >&2
