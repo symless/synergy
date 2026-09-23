@@ -39,6 +39,7 @@ that release would have written instead, on Linux, macOS and Windows.
   legacy_config.py list                     what eras exist and whether config is saved
   legacy_config.py save                     move the live config aside
   legacy_config.py apply 1.20               write that era's config as the live config
+  legacy_config.py apply 1.20 --scope system  the same, set up in the All users scope
   legacy_config.py show                     print the config as it stands now
   legacy_config.py restore                  put the saved config back
   legacy_config.py capture 1.20             save the live config as this era's fixture
@@ -50,6 +51,11 @@ Typical run:
   <launch Synergy, check every setting came through>
   legacy_config.py show            (what the new build made of it)
   legacy_config.py restore
+
+The All users scope lives under the system settings directory, so `apply --scope system`,
+and `save`, `clear` and `restore` on a machine that has settings there, need administrator
+rights: an elevated shell on Windows, `sudo -E` elsewhere so the user's own files are still
+found under their home.
 
 Each era carries a full config rather than a minimal one, so what is being tested is the
 whole migration and not just the part that broke last time. A fixture captured from a
@@ -77,6 +83,17 @@ PLATFORM = "windows" if IS_WINDOWS else "macos" if IS_MACOS else "linux"
 FIXTURES = Path(__file__).resolve().parent / "legacy_config"
 REGISTRY_KEY = rf"Software\{APP}\{APP}"
 REGISTRY_BACKUP = "registry.reg"
+
+# 1.20 recorded the choice of the All users scope in the system file itself, and removed it
+# from the user's store when the switch was made.
+LEGACY_SYSTEM_SCOPE_KEY = "loadFromSystemScope"
+PREFER_SYSTEM_KEY = "scope/preferSystem"
+
+# The daemon keeps its launch command under this key on Windows and opens the settings under
+# the system profile before it is handed the user's file. Both are daemon state rather than
+# settings, but a fresh install has neither.
+DAEMON_REGISTRY_KEY = rf"Software\{APP}"
+DAEMON_REGISTRY_VALUES = ("LogLevel", "Mode", "Args", "Elevate", "Command")
 
 # A path no user can create, for reproducing what the app does with a certificate path it cannot
 # use. Only written when apply is asked for it. Windows has no unwritable root to point at, so it
@@ -278,13 +295,35 @@ ERAS = {
 }
 
 
+def home():
+    """The home of the user being tested, which under sudo is not root's."""
+    sudo_user = os.environ.get("SUDO_USER")
+    if sudo_user and not IS_WINDOWS and os.geteuid() == 0:
+        import pwd
+
+        return Path(pwd.getpwnam(sudo_user).pw_dir)
+    return Path.home()
+
+
+def own_by_user(path):
+    """A file written under sudo would otherwise be root's, and the app runs as the user."""
+    sudo_user = os.environ.get("SUDO_USER")
+    if not sudo_user or IS_WINDOWS or os.geteuid() != 0:
+        return
+    try:
+        if path.is_relative_to(home()):
+            shutil.chown(path, user=sudo_user)
+    except (OSError, LookupError):
+        pass
+
+
 def user_dir():
-    home = Path.home()
+    home_dir = home()
     if IS_WINDOWS:
-        return home / "AppData" / "Roaming" / APP
+        return home_dir / "AppData" / "Roaming" / APP
     if IS_MACOS:
-        return home / "Library" / APP
-    return home / ".config" / APP
+        return home_dir / "Library" / APP
+    return home_dir / ".config" / APP
 
 
 def conf_file():
@@ -304,24 +343,77 @@ def system_dir():
     return Path("/etc") / APP
 
 
+def legacy_system_dir():
+    """Where Qt put a system-scope ini file for an organisation and application both named
+    after the app, which is how 1.20 opened the All users scope. Only on Windows is it the
+    same directory the current release uses."""
+    if IS_WINDOWS:
+        return Path(os.environ.get("ProgramData", r"C:\\ProgramData")) / APP
+    if IS_MACOS:
+        return Path("/Library/Preferences") / APP
+    return Path("/etc/xdg") / APP
+
+
+def legacy_system_ini():
+    return legacy_system_dir() / f"{APP}.ini"
+
+
+def system_conf_file():
+    return system_dir() / f"{APP}.conf"
+
+
+def system_backup_files():
+    """Where the migration leaves the All users backup: beside the system file when it could
+    write there, otherwise beside the user's under a name that does not replace theirs."""
+    return [system_dir() / f"{APP}.conf.legacy.bak", user_dir() / f"{APP}.conf.system.legacy.bak"]
+
+
+def tls_dirs():
+    """Certificate and fingerprint directories, the current tls/ and the SSL/ used up to 1.17."""
+    return [user_dir() / "tls", user_dir() / "SSL", system_dir() / "tls", system_dir() / "SSL"]
+
+
+def daemon_profile_dir():
+    """The settings directory under the service account, which the daemon opens before it is
+    handed the user's file."""
+    if not IS_WINDOWS:
+        return None
+    system_root = Path(os.environ.get("SystemRoot", r"C:\\WINDOWS"))
+    return system_root / "system32" / "config" / "systemprofile" / "AppData" / "Roaming" / APP
+
+
+def is_writable(path):
+    """Whether this process could create or replace the path, walking up to the first parent
+    that exists."""
+    cursor = path
+    while not cursor.exists():
+        if cursor.parent == cursor:
+            return False
+        cursor = cursor.parent
+    return os.access(cursor, os.W_OK)
+
+
 def locked_files():
     """Every path an administrator's locked settings file is read from."""
     paths = [system_dir() / f"{APP}.locked.ini"]
-    if IS_WINDOWS:
-        paths.append(Path(os.environ.get("ProgramData", r"C:\\ProgramData")) / APP / f"{APP}.locked.ini")
-    elif IS_MACOS:
-        paths.append(Path("/Library/Preferences") / APP / f"{APP}.locked.conf")
-    else:
-        paths.append(Path("/etc/xdg") / APP / f"{APP}.locked.conf")
+    suffix = "ini" if IS_WINDOWS else "conf"
+    paths.append(legacy_system_dir() / f"{APP}.locked.{suffix}")
     return [p for p in dict.fromkeys(paths)]
 
 
-def system_scope_findings():
+def applied_scope():
+    """Which scope the last apply set up, recorded so show can judge the outcome."""
+    manifest_file = backup_dir() / "manifest.json"
+    if not manifest_file.exists():
+        return "user"
+    return json.loads(manifest_file.read_text(encoding="utf-8")).get("applied_scope", "user")
+
+
+def system_scope_findings(scope="user"):
     """Conditions outside this script's reach that can make a run prove the wrong thing.
 
-    The script only ever writes the current-user scope. Anything that makes the app read
-    somewhere else, or write over what the migration produced, invalidates the comparison
-    without looking like a failure.
+    Anything that makes the app read somewhere other than the scope under test, or write over
+    what the migration produced, invalidates the comparison without looking like a failure.
     """
     blocking, notes = [], []
 
@@ -333,15 +425,18 @@ def system_scope_findings():
                 "setting reported as lost or changed may be its doing rather than the migration's"
             )
 
-    system_conf = system_dir() / f"{APP}.conf"
+    if scope == "system":
+        return blocking, notes
+
+    system_conf = system_conf_file()
     if system_conf.exists():
         notes.append(
             f"the All users scope has settings at {system_conf}; this run covers the current-user "
-            "scope only, and says nothing about migrating that one"
+            "scope only, and says nothing about migrating that one (apply --scope system does)"
         )
 
     extra = read_ini(extra_file()) or {}
-    if str(extra.get("scope/preferSystem", "")).lower() == "true":
+    if str(extra.get(PREFER_SYSTEM_KEY, "")).lower() == "true":
         notes.append(
             "this machine prefers the All users scope; apply clears that along with the rest of "
             "the config, so the run itself is in the current-user scope, and restore puts the "
@@ -380,6 +475,7 @@ def write_server_config(screen_name):
         "end\n",
         encoding="utf-8",
     )
+    own_by_user(path)
     return path
 
 
@@ -413,6 +509,7 @@ def write_ini(path, values):
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    own_by_user(path)
 
 
 def read_ini(path):
@@ -567,14 +664,59 @@ def read_native(era):
 
 
 def live_paths():
-    """Every file this script may touch, for saving and clearing."""
+    """Every file or directory this script may touch, for saving and clearing.
+
+    Both scopes are here, since a machine can hold settings in each and a run in one scope
+    still has to put the other back as it found it. The system entries need administrator
+    rights; save and clear say so and leave them rather than failing part way."""
     paths = [conf_file(), extra_file(), server_config_file()]
     if IS_MACOS:
         seen = {e.get("plist") for e in ERAS.values() if e.get("plist")}
         paths += [plist_file(name) for name in sorted(seen)]
     elif not IS_WINDOWS:
         paths.append(native_ini_file())
+    paths += [legacy_system_ini(), system_conf_file(), *system_backup_files(), *tls_dirs()]
     return [p for p in dict.fromkeys(paths)]
+
+
+def remove_path(path):
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(path)
+    else:
+        path.unlink()
+
+
+def clear_daemon_state(quiet):
+    """A fresh Windows install has no launch command stored for the daemon and no settings
+    under the service account. Both need administrator rights."""
+    import winreg
+
+    profile = daemon_profile_dir()
+    if profile and profile.exists():
+        try:
+            shutil.rmtree(profile)
+            if not quiet:
+                print(f"removed {profile}")
+        except PermissionError:
+            print(f"warning: cannot remove {profile}; run from an elevated shell")
+
+    try:
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, DAEMON_REGISTRY_KEY, 0, winreg.KEY_SET_VALUE)
+    except FileNotFoundError:
+        return
+    except PermissionError:
+        print(f"warning: cannot clear the daemon's values under HKLM\\{DAEMON_REGISTRY_KEY}; run from an elevated shell")
+        return
+    with key:
+        removed = 0
+        for name in DAEMON_REGISTRY_VALUES:
+            try:
+                winreg.DeleteValue(key, name)
+                removed += 1
+            except FileNotFoundError:
+                pass
+    if removed and not quiet:
+        print(f"removed the daemon's values under HKLM\\{DAEMON_REGISTRY_KEY}")
 
 
 def serial_key_from_test_conf():
@@ -615,12 +757,17 @@ def cmd_save(args):
     target.mkdir(parents=True)
 
     manifest = {"platform": PLATFORM, "files": {}}
-    for path in live_paths():
-        if path.exists():
-            stored = target / path.name
-            shutil.move(str(path), stored)
-            manifest["files"][str(path)] = stored.name
-            print(f"saved {path}")
+    for index, path in enumerate(live_paths()):
+        if not path.exists():
+            continue
+        if not is_writable(path):
+            print(f"warning: cannot move {path}; run from an elevated shell to save it")
+            continue
+        # The two scopes share file names, so the stored name carries its position.
+        stored = target / f"{index:02d}-{path.name}"
+        shutil.move(str(path), stored)
+        manifest["files"][str(path)] = stored.name
+        print(f"saved {path}")
     if IS_WINDOWS and export_registry(target / REGISTRY_BACKUP):
         manifest["registry_file"] = REGISTRY_BACKUP
         delete_registry()
@@ -640,11 +787,21 @@ def cmd_restore(args):
         return 1
     manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
 
+    # Checked before anything moves, so a run without the rights to put the system files back
+    # leaves the saved config intact for a run that has them.
+    unwritable = [original for original in manifest["files"] if not is_writable(Path(original))]
+    if unwritable:
+        for original in unwritable:
+            print(f"error: cannot put back {original}", file=sys.stderr)
+        print("run from an elevated shell and restore again", file=sys.stderr)
+        return 1
+
     cmd_clear(args, quiet=True)
     for original, stored in manifest["files"].items():
         path = Path(original)
         path.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(target / stored), path)
+        own_by_user(path)
         print(f"restored {path}")
     if "registry_file" in manifest:
         import_registry(target / manifest["registry_file"])
@@ -660,14 +817,20 @@ def cmd_restore(args):
 
 def cmd_clear(args, quiet=False):
     for path in live_paths():
-        if path.exists():
-            path.unlink()
-            if not quiet:
-                print(f"removed {path}")
+        if not path.exists():
+            continue
+        try:
+            remove_path(path)
+        except PermissionError:
+            print(f"warning: cannot remove {path}; run from an elevated shell for a fresh install")
+            continue
+        if not quiet:
+            print(f"removed {path}")
     if IS_WINDOWS:
         delete_registry()
         if not quiet:
             print(f"removed registry {REGISTRY_KEY}")
+        clear_daemon_state(quiet)
     if IS_MACOS:
         flush_macos_prefs()
     return 0
@@ -676,11 +839,15 @@ def cmd_clear(args, quiet=False):
 def cmd_show(args):
     """Print the config as it stands, so a tester can see what an upgrade made of it."""
     shown = False
-    for label, values in (
+    stores = [
         ("native store", read_native(next(iter(ERAS.values())))),
         (str(conf_file()), read_ini(conf_file())),
         (str(extra_file()), read_ini(extra_file())),
-    ):
+        (str(legacy_system_ini()), read_ini(legacy_system_ini())),
+        (str(system_conf_file()), read_ini(system_conf_file())),
+    ]
+    stores += [(str(path), read_ini(path)) for path in system_backup_files()]
+    for label, values in stores:
         if not values:
             continue
         # On Linux the native store and the current settings file are the same file, so
@@ -697,7 +864,22 @@ def cmd_show(args):
     if not shown:
         print("no config on this machine")
 
-    blocking, notes = system_scope_findings()
+    scope = applied_scope()
+    blocking, notes = system_scope_findings(scope)
+    if scope == "system":
+        extra = read_ini(extra_file()) or {}
+        if str(extra.get(PREFER_SYSTEM_KEY, "")).lower() != "true":
+            notes.append(
+                "the All users scope was applied but the machine now prefers the current-user "
+                "scope; either the migration did not carry the preference or this launch could "
+                "not write the system settings directory and fell back to the user's file"
+            )
+        # Qt's clear() leaves the file behind empty, so only keys still in it mean anything.
+        if read_ini(legacy_system_ini()):
+            notes.append(
+                f"{legacy_system_ini()} still has keys in it; the migration clears it once they are "
+                "carried, so either it did not run against that scope or could not write there"
+            )
     for line in blocking + notes:
         print(f"note: {line}")
     return 0
@@ -709,8 +891,9 @@ def cmd_apply(args):
     if era is None:
         print(f"unknown era {args.era}; try list", file=sys.stderr)
         return 1
+    scope = getattr(args, "scope", "user")
 
-    blocking, notes = system_scope_findings()
+    blocking, notes = system_scope_findings(scope)
     for note in notes:
         print(f"note: {note}")
     if blocking and not args.force:
@@ -721,10 +904,20 @@ def cmd_apply(args):
     for problem in blocking:
         print(f"warning: {problem}")
 
+    if scope == "system":
+        for path in (legacy_system_ini(), system_conf_file()):
+            if not is_writable(path):
+                print(f"error: cannot write {path}; the All users scope needs an elevated shell", file=sys.stderr)
+                return 1
+
     if not backup_dir().exists():
         print("saving the current config first")
         if cmd_save(args) != 0:
             return 1
+    manifest_file = backup_dir() / "manifest.json"
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    manifest["applied_scope"] = scope
+    manifest_file.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     cmd_clear(args, quiet=True)
 
     serial_key = args.serial_key or serial_key_from_test_conf()
@@ -761,16 +954,34 @@ def cmd_apply(args):
     screen_name = (data.get("native") or {}).get("screenName") or (data.get("conf") or {}).get(
         "core/computerName", "legacy"
     )
+    # The All users copy gets its own screen name, so what comes back says which scope it
+    # came from: 1.20 left the user's store in place when the switch was made, and a run has
+    # to show the migration took the system one as live rather than the other.
+    system_screen_name = f"{screen_name}-all-users"
     if "@SERVERCONFIG@" in json.dumps(data):
-        print(f"wrote {write_server_config(screen_name)}")
+        print(f"wrote {write_server_config(system_screen_name if scope == 'system' else screen_name)}")
 
     if data.get("native"):
         print(f"wrote {write_native(era, fill(data['native']))}")
+        if scope == "system":
+            system_values = {
+                key: system_screen_name if value == screen_name else value
+                for key, value in fill(data["native"]).items()
+            }
+            system_values[LEGACY_SYSTEM_SCOPE_KEY] = "true"
+            write_ini(legacy_system_ini(), system_values)
+            print(f"wrote {legacy_system_ini()}")
     if data.get("conf"):
-        write_ini(conf_file(), fill(data["conf"]))
-        print(f"wrote {conf_file()}")
-    if data.get("extra"):
-        write_ini(extra_file(), fill(data["extra"]))
+        target = system_conf_file() if scope == "system" else conf_file()
+        write_ini(target, fill(data["conf"]))
+        print(f"wrote {target}")
+    # Only an era already on the current layout carries the scope preference. For the older
+    # ones the migration has to derive it from the legacy key, which is part of what is tested.
+    if data.get("extra") or (scope == "system" and data.get("conf")):
+        extra = fill(data.get("extra") or {})
+        if scope == "system" and data.get("conf"):
+            extra[PREFER_SYSTEM_KEY] = "true"
+        write_ini(extra_file(), extra)
         print(f"wrote {extra_file()}")
 
     written = {}
@@ -789,7 +1000,8 @@ def cmd_apply(args):
         print("looks like a defect and is not one")
         return 1
 
-    print(f"the machine now looks like a {args.era} install; launch Synergy to test the upgrade")
+    where = " set to the All users scope" if scope == "system" else ""
+    print(f"the machine now looks like a {args.era} install{where}; launch Synergy to test the upgrade")
     print("run restore when done")
     return 0
 
@@ -913,6 +1125,12 @@ def main():
     apply_cmd = sub.add_parser("apply", help="write an era's config as the live config")
     apply_cmd.add_argument("era", help="an era from list")
     apply_cmd.add_argument("--serial-key", help="key to write; defaults to the one in Synergy.test.conf")
+    apply_cmd.add_argument(
+        "--scope",
+        choices=("user", "system"),
+        default="user",
+        help="which scope the era was using; system is the All users scope and needs an elevated shell",
+    )
     apply_cmd.add_argument(
         "--force", action="store_true", help="overwrite an existing saved config, and run despite a locked settings file"
     )
