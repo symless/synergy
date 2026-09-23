@@ -6,8 +6,6 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 sub_path="synergy/api/releases"
-jira_base="https://symless.atlassian.net"
-jira_project="S1"
 
 # cmake names the build and the tag is a separate act that can disagree with it.
 # A tag that does would point the website at an archive folder nobody wrote.
@@ -59,81 +57,33 @@ if [[ ! -d "$package_dir" ]]; then
 	exit 1
 fi
 
-if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-	echo "the tag being released is not in this checkout, which needs the whole history and its tags" >&2
-	exit 1
-fi
-
-previous="$(git describe --tags --abbrev=0 --match 'v*' "$tag^" 2>/dev/null || true)"
-range="$tag"
-if [[ -n "$previous" ]]; then
-	range="$previous..$tag"
-fi
-
-changes="[]"
-source="the issues fixed in $version"
-asked_jira=false
-
-if [[ -n "${JIRA_API_TOKEN:-}" && -n "${JIRA_USER_EMAIL:-}" ]]; then
-	asked_jira=true
-	jira_body="$(jq -n --arg jql "project = $jira_project AND fixVersion = \"$version\"" \
-		'{jql: $jql, fields: ["summary", "description"], maxResults: 200}')"
-
-	jira_response="$(curl -sS -X POST "$jira_base/rest/api/3/search/jql" \
-		-u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
-		-H "Content-Type: application/json" \
-		--data-binary "$jira_body" \
-		--max-time 60 \
-		-w $'\n%{http_code}')"
-	jira_status="${jira_response##*$'\n'}"
-	jira_json="${jira_response%$'\n'*}"
-
-	# A failed read is not a reason to fall back: it would quietly write worse
-	# notes with nothing to say why.
-	if [[ "$jira_status" != "200" ]]; then
-		echo "could not read the issues fixed in $version (HTTP $jira_status): $jira_json" >&2
-		exit 1
-	fi
-
-	# A description is rich text, so take every run of text in it in order.
-	changes="$(jq '[.issues[]
-		| .fields.summary as $summary
-		| ([.fields.description? // {} | .. | objects | select(.type == "text") | .text] | join(" ")) as $body
-		| if ($body | length) > 0 then "\($summary)\n\n\($body)" else $summary end]' <<<"$jira_json")"
-fi
-
+# The notes are the release's own, so the release page is where they are read
+# from and where they are corrected: edit them there and run this again, no
+# re-tagging and nothing else to keep in step. Anything that is not a list item
+# is GitHub's furniture, and a generated item carries the author and the pull
+# request it came from, which says nothing to somebody deciding whether to
+# upgrade.
+notes="$(gh release view "$tag" --json body -q .body)"
+changes="$(printf '%s\n' "$notes" |
+	sed -n 's/^[*-] //p' |
+	sed -E 's/ by @[A-Za-z0-9_-]+ in https?:\/\/[^[:space:]]+$//' |
+	jq -R -s 'split("\n") | map(select(length > 0))')"
 count="$(jq 'length' <<<"$changes")"
 
 if [[ "$count" -eq 0 ]]; then
-	if [[ "$asked_jira" == true ]]; then
-		echo "no issues carry the fix version $version, using the commit subjects instead" >&2
-	else
-		echo "no credentials to read the issues fixed in $version, using the commit subjects instead" >&2
-	fi
-	source="the commits since ${previous:-the start of history}"
-
-	# A squashed pull request carries its number in the subject, which says
-	# nothing to anyone reading the notes it becomes.
-	changes="$(git log --no-merges --format=%s "$range" |
-		sed -E 's/ \(#[0-9]+\)$//' |
-		jq -R -s 'split("\n") | map(select(length > 0))')"
-	count="$(jq 'length' <<<"$changes")"
-
-	# The previous tag is whichever one git finds nearest, and a fork whose own
-	# release tags sit outside this history hands back one from years ago: the
-	# range then covers most of the project and the notes become a changelog
-	# nobody can read. Stop, because a release with the wrong notes is worse
-	# than a release that waited.
-	if [[ "$count" -gt 300 ]]; then
-		echo "$range covers $count commits, which is a range too wide to be one release's notes: check that $previous is the release before $tag in this repository" >&2
-		exit 1
-	fi
-fi
-
-if [[ "$count" -eq 0 ]]; then
-	echo "nothing was fixed or committed for $version, so there is nothing to write notes about" >&2
+	echo "the release notes on $tag list nothing, so there is nothing to tell the website: write them on the release page and run this again" >&2
 	exit 1
 fi
+
+# A range GitHub could not narrow reaches back years, and a fork that has not
+# released on this line is how that happens. Stop rather than publish a
+# changelog nobody can read.
+if [[ "$count" -gt 300 ]]; then
+	echo "the release notes on $tag list $count changes, which is too many to be one release's notes: write them on the release page and run this again" >&2
+	exit 1
+fi
+
+source="the release notes on $tag"
 
 # One rpm under two names: the editions sold to companies list it against Red Hat
 # and Personal lists it against the free rebuilds, so the edition in the file code
