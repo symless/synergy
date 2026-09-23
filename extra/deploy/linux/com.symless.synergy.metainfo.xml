@@ -35,6 +35,26 @@
 	</branding>
 	<content_rating type="oars-1.0" />
 	<releases>
+		<release version="1.21.3" date="2026-09-23" urgency="medium">
+			<description>
+				<p>
+					An upgrade fix. Upgrading from 1.20 or older lost the server's screen layout and every
+					setting kept for all users; both now come across, and a machine that has already
+					upgraded gets its screen layout back from the backup that upgrade took.
+				</p>
+				<ul>
+					<li>The server's screen layout, per-screen options, hotkeys and switch settings survive
+						an upgrade from 1.20 or older.</li>
+					<li>Settings kept for all users on 1.20 are carried across instead of being replaced by
+						the defaults.</li>
+					<li>A machine that already upgraded to 1.21.0, 1.21.1 or 1.21.2 has its screen layout
+						restored, unless a new one has been set up since.</li>
+					<li>Various macOS and Windows fixes and improvements.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
+			</description>
+			<url>https://symless.com/synergy/download</url>
+		</release>
 		<release version="1.21.2" date="2026-09-22" urgency="medium">
 			<description>
 				<p>
