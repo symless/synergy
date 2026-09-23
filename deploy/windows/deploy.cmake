@@ -37,7 +37,8 @@ set(CPACK_PACKAGE_EXECUTABLES "${CMAKE_PROJECT_NAME}" "${CMAKE_PROJECT_PROPER_NA
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "${CMAKE_PROJECT_PROPER_NAME}")
 
 # Wix Specific Values
-set(CPACK_WIX_UPGRADE_GUID "027D1C8A-E7A5-4754-BB93-B2D45BFDBDC8")
+# Divergence from upstream: Synergy's own upgrade code, so 1.21 replaces 1.20 and leaves Deskflow alone.
+set(CPACK_WIX_UPGRADE_GUID "E8A4FA54-14B9-4FD1-8E00-7BC46555FDA0")
 set(CPACK_WIX_UI_BANNER "${CMAKE_SOURCE_DIR}/extra/deploy/windows/wix-banner.png")
 set(CPACK_WIX_UI_DIALOG "${CMAKE_SOURCE_DIR}/extra/deploy/windows/wix-dialog.png")
 
