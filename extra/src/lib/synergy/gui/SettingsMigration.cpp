@@ -46,11 +46,14 @@ const auto kInternalConfigGroup = QStringLiteral("internalConfig/");
 const auto kScreensSizeKey = QStringLiteral("internalConfig/screens/size");
 const auto kScreenNameKey = QStringLiteral("internalConfig/screens/%1/name");
 
-const auto kLegacySystemScopeKey = QStringLiteral("systemScope");
+// The flag moved over the years: the releases up to 1.14 kept it in the user scope, and 1.20 read
+// it from the system scope and deleted it from the user's. Set in either, the system scope held
+// the live settings.
+const auto kLegacySystemScopeKey = QStringLiteral("loadFromSystemScope");
 
 // The schemas a machine may have recorded before this one, each named for what its migration got
 // wrong. Schema 1 read the wrong macOS preferences domain, so on macOS it carried nothing. Schema
-// 2 dropped the server configuration group.
+// 2 dropped the server configuration group and never read the All users scope.
 constexpr int kSchemaWrongMacDomain = 1;
 constexpr int kSchemaWithoutServerConfig = 2;
 
@@ -232,30 +235,62 @@ bool migrateUserScope(QSettings &legacyUser)
   return carried;
 }
 
+// The system scope is only any use from a launch that can write it. Where this one cannot, and
+// the system scope held the live settings, they are carried into the user scope instead, over
+// whatever the user scope held: an install that starts empty is worse than one in the other
+// scope. A system scope that was not the live one is left where it is in that case, because the
+// user scope carried the live settings and writing the other set over them would change what
+// the customer sees.
+bool migrateSystemScope(QSettings &legacySystem, bool systemWasActive)
+{
+  const bool systemWritable = SettingsScope::isSystemWritable();
+  if (!systemWritable && !systemWasActive) {
+    qWarning("settings migration: system-scope legacy found, system scope not writable, leaving it in place");
+    return false;
+  }
+
+  const auto target = systemWritable ? Settings::SystemSettingFile : Settings::UserSettingFile;
+  const auto suffix = systemWritable ? QStringLiteral(".legacy.bak") : QStringLiteral(".system.legacy.bak");
+  s_lastBackupPath = backupLegacy(legacySystem, target + suffix);
+  qInfo().noquote() << "settings migration: system-scope legacy backed up to" << s_lastBackupPath;
+
+  const bool carried = migrateOneScope(legacySystem, target) > 0;
+  if (carried) {
+    applyMasterCompatDefaults(target);
+  }
+  migrateSerialKey(legacySystem, "system-scope");
+  maybeClearLegacy(legacySystem, target, "system-scope");
+
+  if (!systemWritable) {
+    qWarning("settings migration: system scope not writable, system-scope legacy carried to the user scope");
+  } else if (systemWasActive) {
+    SettingsScope::setPreferSystem(true);
+  }
+  return carried;
+}
+
 bool runLegacyMigration()
 {
   QSettings legacyUser(QSettings::NativeFormat, QSettings::UserScope, kLegacyOrganization, kAppName);
-  const bool legacyHadSystemScope = legacyUser.value(kLegacySystemScopeKey, false).toBool();
+
+  // 1.20 kept the All users scope in an ini file, not the native store: it opened Qt's
+  // system-scope ini for an organisation and an application both named after the app, which is
+  // C:\ProgramData\Synergy\Synergy.ini on Windows, /Library/Preferences/Synergy/Synergy.ini on
+  // macOS and /etc/xdg/Synergy/Synergy.ini on Linux. Opened the same way here so the path stays
+  // whatever Qt says it is. The plain name is the organisation on every platform, since the
+  // domain only ever shaped the macOS plist.
+  const auto appName = QString::fromUtf8(kAppName);
+  QSettings legacySystem(QSettings::IniFormat, QSettings::SystemScope, appName, appName);
+
+  const bool systemWasActive = legacySystem.value(kLegacySystemScopeKey, false).toBool() ||
+                               legacyUser.value(kLegacySystemScopeKey, false).toBool();
 
   bool any = false;
   if (looksLikeLegacy(legacyUser)) {
     any = migrateUserScope(legacyUser);
   }
-
-  QSettings legacySystem(QSettings::NativeFormat, QSettings::SystemScope, kLegacyOrganization, kAppName);
   if (looksLikeLegacy(legacySystem)) {
-    s_lastBackupPath = backupLegacy(legacySystem, Settings::SystemSettingFile + QStringLiteral(".legacy.bak"));
-    qInfo().noquote() << "settings migration: system-scope legacy backed up to" << s_lastBackupPath;
-    if (migrateOneScope(legacySystem, Settings::SystemSettingFile) > 0) {
-      any = true;
-      applyMasterCompatDefaults(Settings::SystemSettingFile);
-    }
-    migrateSerialKey(legacySystem, "system-scope");
-    maybeClearLegacy(legacySystem, Settings::SystemSettingFile, "system-scope");
-  }
-
-  if (legacyHadSystemScope) {
-    SettingsScope::setPreferSystem(true);
+    any = migrateSystemScope(legacySystem, systemWasActive) || any;
   }
   return any;
 }
