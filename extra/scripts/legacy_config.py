@@ -362,10 +362,24 @@ def system_conf_file():
     return system_dir() / f"{APP}.conf"
 
 
-def system_backup_files():
-    """Where the migration leaves the All users backup: beside the system file when it could
-    write there, otherwise beside the user's under a name that does not replace theirs."""
-    return [system_dir() / f"{APP}.conf.legacy.bak", user_dir() / f"{APP}.conf.system.legacy.bak"]
+def backup_files():
+    """Where the migration leaves its backups: beside the file it migrated, or for the All
+    users scope beside the user's under a name that does not replace theirs when the system
+    directory could not be written."""
+    return [
+        user_dir() / f"{APP}.conf.legacy.bak",
+        system_dir() / f"{APP}.conf.legacy.bak",
+        user_dir() / f"{APP}.conf.system.legacy.bak",
+    ]
+
+
+def generated_files():
+    """What the app writes beside its settings and a fresh install would not have: the server
+    config the GUI generates for the core, and the certificate 1.20 kept at the settings root."""
+    files = []
+    for directory in (user_dir(), system_dir()):
+        files += [directory / "synergy-server.conf", directory / f"{APP}.pem"]
+    return files
 
 
 def tls_dirs():
@@ -675,7 +689,7 @@ def live_paths():
         paths += [plist_file(name) for name in sorted(seen)]
     elif not IS_WINDOWS:
         paths.append(native_ini_file())
-    paths += [legacy_system_ini(), system_conf_file(), *system_backup_files(), *tls_dirs()]
+    paths += [legacy_system_ini(), system_conf_file(), *backup_files(), *generated_files(), *tls_dirs()]
     return [p for p in dict.fromkeys(paths)]
 
 
@@ -846,7 +860,7 @@ def cmd_show(args):
         (str(legacy_system_ini()), read_ini(legacy_system_ini())),
         (str(system_conf_file()), read_ini(system_conf_file())),
     ]
-    stores += [(str(path), read_ini(path)) for path in system_backup_files()]
+    stores += [(str(path), read_ini(path)) for path in backup_files()]
     for label, values in stores:
         if not values:
             continue
