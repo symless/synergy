@@ -9,7 +9,28 @@
 #include "OSXClipboardTests.h"
 
 #include "platform/OSXClipboard.h"
+#include "platform/OSXClipboardPNGConverter.h"
 #include "platform/OSXClipboardUTF8Converter.h"
+
+#include <QDataStream>
+#include <QtEndian>
+
+#include <cstdlib>
+
+namespace {
+
+std::string twoPixelDib()
+{
+  QByteArray dib;
+  QDataStream stream(&dib, QIODevice::WriteOnly);
+  stream.setByteOrder(QDataStream::LittleEndian);
+  stream << quint32(40) << qint32(2) << qint32(1) << quint16(1) << quint16(32) << quint32(0) << quint32(8) << qint32(0)
+         << qint32(0) << quint32(0) << quint32(0);
+  stream << quint32(0xFFFF0000) << quint32(0xFF0000FF);
+  return dib.toStdString();
+}
+
+} // namespace
 
 void OSXClipboardTests::open()
 {
@@ -37,6 +58,38 @@ void OSXClipboardTests::formatConvert_UTF8()
   QCOMPARE(converter.getOSXFormat(), CFSTR("public.utf8-plain-text"));
   QCOMPARE(converter.fromIClipboard("test data\n"), "test data\r");
   QCOMPARE(converter.toIClipboard("test data\r"), "test data\n");
+}
+
+void OSXClipboardTests::formatConvertPng()
+{
+  OSXClipboardPNGConverter converter;
+  QCOMPARE(converter.getFormat(), IClipboard::Format::Bitmap);
+  QCOMPARE(converter.getOSXFormat(), CFSTR("public.png"));
+
+  const auto png = converter.fromIClipboard(twoPixelDib());
+  QVERIFY(png.starts_with("\x89PNG"));
+
+  const auto dib = converter.toIClipboard(png);
+  QVERIFY(dib.size() >= 40);
+  QCOMPARE(qFromLittleEndian<qint32>(dib.data() + 4), 2);
+  QCOMPARE(std::abs(qFromLittleEndian<qint32>(dib.data() + 8)), 1);
+}
+
+void OSXClipboardTests::bitmapOfferedAsPng()
+{
+  OSXClipboard clipboard;
+  QVERIFY(clipboard.empty());
+  clipboard.add(IClipboard::Format::Bitmap, twoPixelDib());
+
+  PasteboardRef pasteboard = nullptr;
+  QVERIFY(PasteboardCreate(kPasteboardClipboard, &pasteboard) == noErr);
+  PasteboardSynchronize(pasteboard);
+  PasteboardItemID item = nullptr;
+  QVERIFY(PasteboardGetItemIdentifier(pasteboard, 1, &item) == noErr);
+  PasteboardFlavorFlags flags = 0;
+  QVERIFY(PasteboardGetItemFlavorFlags(pasteboard, item, CFSTR("public.png"), &flags) == noErr);
+  QVERIFY(PasteboardGetItemFlavorFlags(pasteboard, item, CFSTR("com.microsoft.bmp"), &flags) == noErr);
+  CFRelease(pasteboard);
 }
 
 QTEST_MAIN(OSXClipboardTests)
