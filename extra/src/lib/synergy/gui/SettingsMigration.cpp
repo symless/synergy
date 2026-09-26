@@ -21,6 +21,7 @@
 #include "common/Settings.h"
 #include "synergy/gui/LegacySettingsKeys.h"
 #include "synergy/gui/SettingsScope.h"
+#include "synergy/gui/UpdateChannel.h"
 #include "synergy/gui/styles.h"
 
 #include <QDebug>
@@ -42,6 +43,8 @@ namespace {
 const auto kSchemaKey = QStringLiteral("migration/schemaVersion");
 const auto kNotifiedKey = QStringLiteral("migration/notifiedFor");
 const auto kBackupPathKey = QStringLiteral("migration/backupPath");
+const auto kBackupSuffix = QStringLiteral(".legacy.bak");
+const auto kSystemBackupSuffix = QStringLiteral(".system.legacy.bak");
 const auto kInternalConfigGroup = QStringLiteral("internalConfig/");
 const auto kScreensSizeKey = QStringLiteral("internalConfig/screens/size");
 const auto kScreenNameKey = QStringLiteral("internalConfig/screens/%1/name");
@@ -53,9 +56,11 @@ const auto kLegacySystemScopeKey = QStringLiteral("loadFromSystemScope");
 
 // The schemas a machine may have recorded before this one, each named for what its migration got
 // wrong. Schema 1 read the wrong macOS preferences domain, so on macOS it carried nothing. Schema
-// 2 dropped the server configuration group and never read the All users scope.
+// 2 dropped the server configuration group and never read the All users scope. Schema 3, like
+// both before it, dropped the update channel.
 constexpr int kSchemaWrongMacDomain = 1;
 constexpr int kSchemaWithoutServerConfig = 2;
+constexpr int kSchemaWithoutUpdateChannel = 3;
 
 // Qt builds the macOS preferences domain from the organization, reversing it if it is dotted and
 // prefixing "com." if it is not. Every release up to 1.21 wrote com.symless.Synergy, which comes
@@ -71,6 +76,8 @@ const auto kLegacyOrganization = QString::fromUtf8(kAppName);
 #endif
 const auto kLegacySerialKey = QStringLiteral("serialKey");
 const auto kExtraSerialKey = QStringLiteral("license/serialKey");
+
+const auto kLegacyUpdateTrackKey = QStringLiteral("updateTrack");
 
 bool s_migrationRanThisLaunch = false;
 QString s_lastBackupPath;
@@ -194,6 +201,18 @@ void migrateSerialKey(const QSettings &legacy, const char *scopeLabel)
   qInfo("settings migration: %s legacy serial key carried to extra settings", scopeLabel);
 }
 
+// Beta goes over a stable channel already stored, since the settings dialog writes the channel on
+// every save and a stored stable may never have been chosen.
+void migrateUpdateChannel(const QString &legacyTrack)
+{
+  if (legacyTrack != UpdateChannel::Beta) {
+    return;
+  }
+
+  UpdateChannel::setCurrent(UpdateChannel::Beta);
+  qInfo("settings migration: legacy beta update channel carried to extra settings");
+}
+
 // On Linux, NativeFormat resolves to the same file beta's Settings uses,
 // so clear() on the legacy QSettings would wipe the keys we just wrote.
 // On macOS/Windows the storage backends are distinct (plist / registry).
@@ -224,7 +243,7 @@ void maybeClearLegacy(QSettings &legacy, const QString &newPath, const char *sco
 
 bool migrateUserScope(QSettings &legacyUser)
 {
-  s_lastBackupPath = backupLegacy(legacyUser, Settings::UserSettingFile + QStringLiteral(".legacy.bak"));
+  s_lastBackupPath = backupLegacy(legacyUser, Settings::UserSettingFile + kBackupSuffix);
   qInfo().noquote() << "settings migration: user-scope legacy backed up to" << s_lastBackupPath;
   const bool carried = migrateOneScope(legacyUser, Settings::UserSettingFile) > 0;
   if (carried) {
@@ -250,7 +269,7 @@ bool migrateSystemScope(QSettings &legacySystem, bool systemWasActive)
   }
 
   const auto target = systemWritable ? Settings::SystemSettingFile : Settings::UserSettingFile;
-  const auto suffix = systemWritable ? QStringLiteral(".legacy.bak") : QStringLiteral(".system.legacy.bak");
+  const auto suffix = systemWritable ? kBackupSuffix : kSystemBackupSuffix;
   s_lastBackupPath = backupLegacy(legacySystem, target + suffix);
   qInfo().noquote() << "settings migration: system-scope legacy backed up to" << s_lastBackupPath;
 
@@ -285,6 +304,9 @@ bool runLegacyMigration()
   const bool systemWasActive = legacySystem.value(kLegacySystemScopeKey, false).toBool() ||
                                legacyUser.value(kLegacySystemScopeKey, false).toBool();
 
+  // Read before the scopes are migrated, since migrating one clears it.
+  const auto legacyTrack = (systemWasActive ? legacySystem : legacyUser).value(kLegacyUpdateTrackKey).toString();
+
   bool any = false;
   if (looksLikeLegacy(legacyUser)) {
     any = migrateUserScope(legacyUser);
@@ -292,6 +314,7 @@ bool runLegacyMigration()
   if (looksLikeLegacy(legacySystem)) {
     any = migrateSystemScope(legacySystem, systemWasActive) || any;
   }
+  migrateUpdateChannel(legacyTrack);
   return any;
 }
 
@@ -346,6 +369,30 @@ bool recoverServerConfig()
   return true;
 }
 
+// A machine with legacy settings in both scopes backed up each, and the path recorded is whichever
+// came last. Only the scope that held the live settings has the channel the customer was using,
+// and a system scope backup says it was live by carrying the flag.
+QString liveScopeBackupPath()
+{
+  for (const auto &path :
+       {Settings::SystemSettingFile + kBackupSuffix, Settings::UserSettingFile + kSystemBackupSuffix}) {
+    if (QSettings(path, QSettings::IniFormat).value(kLegacySystemScopeKey, false).toBool()) {
+      return path;
+    }
+  }
+  return Settings::UserSettingFile + kBackupSuffix;
+}
+
+void recoverUpdateChannel()
+{
+  const auto backupPath = liveScopeBackupPath();
+  if (!QFile::exists(backupPath)) {
+    return;
+  }
+
+  migrateUpdateChannel(QSettings(backupPath, QSettings::IniFormat).value(kLegacyUpdateTrackKey).toString());
+}
+
 } // namespace
 
 bool migrateIfNeeded()
@@ -356,14 +403,19 @@ bool migrateIfNeeded()
   }
 
   // A machine that never migrated reads the legacy store, and so does one whose migration read
-  // the wrong domain, since that one found nothing to clear. Any machine that has migrated before
-  // may be missing its server configuration, and gets it back from that migration's backup.
+  // the wrong domain, since that one found nothing to clear. A machine that migrated before may be
+  // missing its server configuration or its update channel, and gets them back from that
+  // migration's backup. The channel alone does not raise the notice again: getting it back leaves
+  // nothing different for the customer to look for.
   bool ran = false;
   if (stored <= kSchemaWrongMacDomain) {
     ran = runLegacyMigration();
   }
   if (stored > 0 && stored <= kSchemaWithoutServerConfig) {
     ran = recoverServerConfig() || ran;
+  }
+  if (stored > 0 && stored <= kSchemaWithoutUpdateChannel) {
+    recoverUpdateChannel();
   }
 
   s_migrationRanThisLaunch = ran;

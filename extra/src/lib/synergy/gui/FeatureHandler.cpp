@@ -103,7 +103,9 @@ void FeatureHandler::handleSettings(QDialog *parent) const
     return;
   }
 
+#ifdef SYNERGY_VERSION_CHECK
   addUpdateChannelOption(parent);
+#endif
 
   const auto &licenseHandler = LicenseHandler::instance();
   if (licenseHandler.isEnabled() && !licenseHandler.license().isSettingsScopeAvailable()) {
