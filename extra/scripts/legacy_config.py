@@ -259,6 +259,9 @@ ERAS = {
 
             # The certificate moved out of SSL/ into tls/ in 1.17.2.
             "tlsCertPath": "@USERDIR@/tls/synergy.pem",
+
+            # Added in 1.20.3. Beta, because a channel that was lost comes back as stable.
+            "updateTrack": "beta",
             **server_layout("legacy-1-20", "legacy-1-20-client"),
         },
     },
