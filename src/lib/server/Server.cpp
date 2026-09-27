@@ -1513,13 +1513,26 @@ void Server::syncClipboardsWhenMouseIdle()
       syncClipboardsWhenMouseIdle();
     });
   } else {
+    LOG_DEBUG("mouse at rest, syncing clipboards with screen: %s", getName(m_active).c_str());
     syncClipboards();
   }
 }
 
+void Server::syncClipboardsBeforeInput()
+{
+  // a key or click may be a paste, so the clipboard has to reach the screen before it does
+  if (m_clipboardSyncTimer != nullptr) {
+    m_events->removeHandler(EventTypes::Timer, m_clipboardSyncTimer);
+    m_events->deleteTimer(m_clipboardSyncTimer);
+    m_clipboardSyncTimer = nullptr;
+    LOG_DEBUG("input before the mouse rested, syncing clipboards with screen: %s", getName(m_active).c_str());
+    syncClipboards();
+  }
+  m_active->finishClipboardTransfers();
+}
+
 void Server::syncClipboards()
 {
-  LOG_DEBUG("mouse at rest, syncing clipboards with screen: %s", getName(m_active).c_str());
 
   if (m_primaryClipboardStale) {
     m_primaryClipboardStale = false;
@@ -1602,6 +1615,7 @@ void Server::onKeyDown(KeyID id, KeyModifierMask mask, KeyButton button, const s
 {
   LOG_VERBOSE("onKeyDown id=%d mask=0x%04x button=0x%04x lang=%s", id, mask, button, lang.c_str());
   assert(m_active != nullptr);
+  syncClipboardsBeforeInput();
 
   // relay
   if (!m_keyboardBroadcasting && IKeyState::KeyInfo::isDefault(screens)) {
@@ -1661,6 +1675,7 @@ void Server::onMouseDown(ButtonID id)
   LOG_VERBOSE("onMouseDown id=%d", id);
   m_sinceMouseActivity.start();
   assert(m_active != nullptr);
+  syncClipboardsBeforeInput();
 
   // relay
   m_active->mouseDown(id);
