@@ -9,9 +9,11 @@
 #include "deskflow/IClipboard.h"
 
 #include <QByteArray>
-#include <QImage>
 
 class QIODevice;
+
+// on qt 5, <QImage> pulls in qdatastream.h, which fails to compile once xlib has defined Status
+class QImage;
 
 namespace deskflow {
 
