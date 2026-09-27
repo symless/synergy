@@ -230,7 +230,7 @@ void StatusBar::showClipboardOverLimit(qint64 bytes, qint64 limit)
 {
   const auto size = locale().formattedDataSize(bytes, 0, QLocale::DataSizeTraditionalFormat);
   const auto maximum = locale().formattedDataSize(limit, 0, QLocale::DataSizeTraditionalFormat);
-  const auto icon = QIcon::fromTheme(QIcon::ThemeIcon::DialogWarning);
+  const auto icon = QIcon::fromTheme(QStringLiteral("dialog-warning"));
   m_lblClipboardOverLimit->setPixmap(icon.pixmap(QSize(32, 32)));
   m_lblClipboardOverLimit->setToolTip(tr("Clipboard not shared, %1 is over the %2 limit").arg(size, maximum));
   m_lblClipboardOverLimit->setVisible(true);
@@ -244,15 +244,19 @@ void StatusBar::updateClipboardIcons()
   };
 
   QStringList sending;
-  for (const auto &[peer, bytes] : m_clipboardSendingTo.asKeyValueRange())
-    sending.append(tr("Sending clipboard to %1 (%2)...").arg(clipboardPeerName(peer), formatSize(bytes)));
+  for (auto it = m_clipboardSendingTo.cbegin(); it != m_clipboardSendingTo.cend(); ++it) {
+    const auto peer = clipboardPeerName(it.key());
+    sending.append(tr("Sending clipboard to %1 (%2)...").arg(peer, formatSize(it.value())));
+  }
   m_lblClipboardSending->setPixmap(QIcon::fromTheme(QStringLiteral("cloud-upload")).pixmap(QSize(32, 32)));
   m_lblClipboardSending->setToolTip(sending.join(QLatin1Char('\n')));
   showClipboardIconAfterDelay(m_lblClipboardSending, m_clipboardSendingTimer, !sending.isEmpty());
 
   QStringList receiving;
-  for (const auto &[peer, bytes] : m_clipboardReceivingFrom.asKeyValueRange())
-    receiving.append(tr("Receiving clipboard from %1 (%2)...").arg(clipboardPeerName(peer), formatSize(bytes)));
+  for (auto it = m_clipboardReceivingFrom.cbegin(); it != m_clipboardReceivingFrom.cend(); ++it) {
+    const auto peer = clipboardPeerName(it.key());
+    receiving.append(tr("Receiving clipboard from %1 (%2)...").arg(peer, formatSize(it.value())));
+  }
   m_lblClipboardReceiving->setPixmap(QIcon::fromTheme(QStringLiteral("cloud-download")).pixmap(QSize(32, 32)));
   m_lblClipboardReceiving->setToolTip(receiving.join(QLatin1Char('\n')));
   showClipboardIconAfterDelay(m_lblClipboardReceiving, m_clipboardReceivingTimer, !receiving.isEmpty());

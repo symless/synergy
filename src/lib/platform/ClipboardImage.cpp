@@ -78,7 +78,9 @@ const char *ClipboardImage::qtFormat(IClipboard::Format format)
 
 QImage ClipboardImage::decode(const QByteArray &encoded, const char *format)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
   QImageReader::setAllocationLimit(kMaxDecodeMegabytes);
+#endif
   QImage image;
   if (!image.loadFromData(encoded, format))
     LOG_WARN("failed to decode clipboard image, format: %s", format);

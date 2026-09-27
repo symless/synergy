@@ -200,7 +200,7 @@ add_library(platform STATIC ${PLATFORM_SOURCES})
 target_link_libraries(platform client ${libs})
 
 if(WIN32)
-  target_link_libraries(platform PRIVATE Qt6::Gui)
+  target_link_libraries(platform Qt6::Gui)
 endif()
 
 if(UNIX)
