@@ -30,7 +30,8 @@ ServerProxy::ServerProxy(Client *client, deskflow::IStream *stream, IEventQueue 
     : m_client(client),
       m_stream(stream),
       m_events(events),
-      m_clipboardSender(events, stream)
+      // the client's GUI names the server itself
+      m_clipboardSender(events, stream, {})
 {
   assert(m_client != nullptr);
   assert(m_stream != nullptr);
@@ -549,6 +550,7 @@ void ServerProxy::setClipboard()
   if (r == TransferState::Started) {
     size_t size = ClipboardChunk::getExpectedSize(m_clipboardChunkState);
     LOG_DEBUG("receiving clipboard %d size=%zu", id, size);
+    ipcSendToClient(QStringLiteral("clipboardReceiving"), QString::number(size));
   } else if (r == TransferState::Finished) {
     LOG_DEBUG("received clipboard %d size=%zu", id, m_clipboardDataCached.size());
 
@@ -560,6 +562,7 @@ void ServerProxy::setClipboard()
     m_clipboardDataCached.shrink_to_fit();
 
     LOG_INFO("clipboard was updated");
+    ipcSendToClient(QStringLiteral("clipboardReceived"));
   } else if (r == TransferState::Error) {
     requestDisconnect("invalid clipboard data from server");
   }
