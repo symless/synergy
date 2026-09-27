@@ -837,8 +837,14 @@ void OSXScreen::leave()
   m_isOnScreen = false;
 }
 
-bool OSXScreen::setClipboard(ClipboardID, const IClipboard *src)
+bool OSXScreen::setClipboard(ClipboardID id, const IClipboard *src)
 {
+  // macos has one pasteboard, so writing the selection would overwrite the clipboard
+  if (id == kClipboardSelection) {
+    LOG_DEBUG("ignoring selection, macos has no selection");
+    return true;
+  }
+
   if (src != nullptr) {
     LOG_DEBUG("setting clipboard");
     Clipboard::copy(&m_pasteboard, src);
@@ -852,7 +858,6 @@ void OSXScreen::checkClipboards()
   if (m_pasteboard.synchronize()) {
     LOG_DEBUG("clipboard changed");
     sendClipboardEvent(EventTypes::ClipboardGrabbed, kClipboardClipboard);
-    sendClipboardEvent(EventTypes::ClipboardGrabbed, kClipboardSelection);
   }
 }
 
