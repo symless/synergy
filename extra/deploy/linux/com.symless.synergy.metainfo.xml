@@ -35,6 +35,25 @@
 	</branding>
 	<content_rating type="oars-1.0" />
 	<releases>
+		<release version="1.21.4" date="2026-09-27" urgency="medium">
+			<description>
+				<p>
+					A clipboard fix. Since 1.21.2 a client dropped its connection whenever the server sent it
+					a clipboard over 3 MB, however high the server's limit was set; it now accepts clipboards
+					up to that limit.
+				</p>
+				<ul>
+					<li>A client accepts clipboards up to the limit set on its server, instead of refusing
+						anything over 3 MB and disconnecting.</li>
+					<li>Upgrading from 1.20 keeps the beta update channel, instead of moving it back to
+						stable.</li>
+					<li>The status bar no longer sticks on connecting after the warning that a client with
+						the same name is already connected.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
+			</description>
+			<url>https://symless.com/synergy/download</url>
+		</release>
 		<release version="1.21.3" date="2026-09-23" urgency="medium">
 			<description>
 				<p>
