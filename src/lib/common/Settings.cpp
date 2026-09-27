@@ -200,7 +200,7 @@ QVariant Settings::defaultValue(const QString &key)
     return 24800;
 
   if (key == Server::ClipboardSize)
-    return 3; // MiB
+    return 128; // MiB
 
   if (key == Core::ProcessMode) {
 #ifdef Q_OS_WIN

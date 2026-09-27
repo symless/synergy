@@ -418,7 +418,7 @@ bool ServerConfig::fixNoServer(const QString &name, int &index)
 
 size_t ServerConfig::defaultClipboardSharingSize()
 {
-  return 3 * 1024; // 3 MiB
+  return 128 * 1024; // 128 MiB
 }
 
 size_t ServerConfig::setClipboardSharingSize(size_t size)
