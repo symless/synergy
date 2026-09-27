@@ -316,8 +316,14 @@ void MSWindowsScreen::leave()
   m_isOnScreen = false;
 }
 
-bool MSWindowsScreen::setClipboard(ClipboardID, const IClipboard *src)
+bool MSWindowsScreen::setClipboard(ClipboardID id, const IClipboard *src)
 {
+  // windows has one clipboard, so writing the selection would overwrite the clipboard
+  if (id == kClipboardSelection) {
+    LOG_DEBUG("ignoring selection, windows has no selection");
+    return true;
+  }
+
   MSWindowsClipboard dst(m_window);
   if (src != nullptr) {
     // save clipboard data
@@ -350,7 +356,6 @@ void MSWindowsScreen::checkClipboards()
     LOG_DEBUG("clipboard changed: lost ownership and no notification received");
     m_ownClipboard = false;
     sendClipboardEvent(EventTypes::ClipboardGrabbed, kClipboardClipboard);
-    sendClipboardEvent(EventTypes::ClipboardGrabbed, kClipboardSelection);
   }
 }
 
@@ -1351,7 +1356,6 @@ void MSWindowsScreen::onClipboardChange()
       LOG_DEBUG("clipboard changed: lost ownership");
       m_ownClipboard = false;
       sendClipboardEvent(EventTypes::ClipboardGrabbed, kClipboardClipboard);
-      sendClipboardEvent(EventTypes::ClipboardGrabbed, kClipboardSelection);
     }
   } else if (!m_ownClipboard) {
     LOG_DEBUG("clipboard changed: %s owned", kAppId);
