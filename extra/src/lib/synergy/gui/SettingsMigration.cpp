@@ -57,10 +57,18 @@ const auto kLegacySystemScopeKey = QStringLiteral("loadFromSystemScope");
 // The schemas a machine may have recorded before this one, each named for what its migration got
 // wrong. Schema 1 read the wrong macOS preferences domain, so on macOS it carried nothing. Schema
 // 2 dropped the server configuration group and never read the All users scope. Schema 3, like
-// both before it, dropped the update channel.
+// both before it, dropped the update channel. Schema 4, like every one before it, left the
+// clipboard size limit at the old default.
 constexpr int kSchemaWrongMacDomain = 1;
 constexpr int kSchemaWithoutServerConfig = 2;
 constexpr int kSchemaWithoutUpdateChannel = 3;
+constexpr int kSchemaWithOldClipboardLimit = 4;
+
+// The server settings write the limit on every save, so nearly every install holds the old
+// default, and one saved at exactly that value cannot be told apart from one chosen deliberately.
+const auto kClipboardLimitKey = QStringLiteral("internalConfig/clipboardSharingSize");
+constexpr size_t kOldDefaultClipboardLimitKb = 3 * 1024;
+constexpr size_t kNewDefaultClipboardLimitKb = 128 * 1024;
 
 // Qt builds the macOS preferences domain from the organization, reversing it if it is dotted and
 // prefixing "com." if it is not. Every release up to 1.21 wrote com.symless.Synergy, which comes
@@ -393,6 +401,25 @@ void recoverUpdateChannel()
   migrateUpdateChannel(QSettings(backupPath, QSettings::IniFormat).value(kLegacyUpdateTrackKey).toString());
 }
 
+// A limit lowered below the old default, or 0 to turn sharing off, is the customer's choice and
+// stays as it is, and so does one raised above it.
+void raiseOldDefaultClipboardLimit(const QString &settingsPath)
+{
+  QSettings settings(settingsPath, QSettings::IniFormat);
+  if (settings.value(kClipboardLimitKey).toULongLong() != kOldDefaultClipboardLimitKb) {
+    return;
+  }
+
+  if (!settings.isWritable()) {
+    qWarning("settings migration: %s not writable, clipboard limit left at the old default", qPrintable(settingsPath));
+    return;
+  }
+
+  settings.setValue(kClipboardLimitKey, QVariant::fromValue(kNewDefaultClipboardLimitKb));
+  settings.sync();
+  qInfo("settings migration: clipboard limit in %s raised to the new default", qPrintable(settingsPath));
+}
+
 } // namespace
 
 bool migrateIfNeeded()
@@ -405,8 +432,8 @@ bool migrateIfNeeded()
   // A machine that never migrated reads the legacy store, and so does one whose migration read
   // the wrong domain, since that one found nothing to clear. A machine that migrated before may be
   // missing its server configuration or its update channel, and gets them back from that
-  // migration's backup. The channel alone does not raise the notice again: getting it back leaves
-  // nothing different for the customer to look for.
+  // migration's backup. The channel alone does not raise the notice again, nor does the clipboard
+  // limit: neither leaves anything different for the customer to look for.
   bool ran = false;
   if (stored <= kSchemaWrongMacDomain) {
     ran = runLegacyMigration();
@@ -416,6 +443,10 @@ bool migrateIfNeeded()
   }
   if (stored > 0 && stored <= kSchemaWithoutUpdateChannel) {
     recoverUpdateChannel();
+  }
+  if (stored <= kSchemaWithOldClipboardLimit) {
+    raiseOldDefaultClipboardLimit(Settings::UserSettingFile);
+    raiseOldDefaultClipboardLimit(Settings::SystemSettingFile);
   }
 
   s_migrationRanThisLaunch = ran;

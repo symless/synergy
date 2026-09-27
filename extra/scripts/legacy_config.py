@@ -130,6 +130,7 @@ def server_layout(server, client):
         "internalConfig/screens/8/name": server,
         "internalConfig/hotkeys/size": "0",
         "internalConfig/clipboardSharing": "false",
+        "internalConfig/clipboardSharingSize": "3072",
         "internalConfig/hasSwitchDelay": "true",
         "internalConfig/switchDelay": "500",
     }
