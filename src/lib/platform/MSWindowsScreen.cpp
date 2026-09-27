@@ -425,6 +425,7 @@ bool MSWindowsScreen::getClipboard(ClipboardID, IClipboard *dst) const
 {
   MSWindowsClipboard src(m_window);
   Clipboard::copy(dst, &src);
+  src.logUnreadableFormats();
   return true;
 }
 
