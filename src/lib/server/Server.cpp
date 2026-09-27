@@ -17,7 +17,6 @@
 #include "deskflow/PacketStreamFilter.h"
 #include "deskflow/ProtocolTypes.h"
 #include "deskflow/Screen.h"
-#include "deskflow/StreamChunker.h"
 #include "deskflow/ipc/CoreIpc.h"
 #include "net/TCPSocket.h"
 #include "server/ClientListener.h"

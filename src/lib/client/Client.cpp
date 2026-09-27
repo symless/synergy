@@ -21,7 +21,6 @@
 #include "deskflow/ProtocolTypes.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/Screen.h"
-#include "deskflow/StreamChunker.h"
 #include "deskflow/ipc/CoreIpc.h"
 #include "net/IDataSocket.h"
 #include "net/ISocketFactory.h"
