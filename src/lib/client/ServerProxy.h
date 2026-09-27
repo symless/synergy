@@ -10,10 +10,10 @@
 
 #include "common/Enums.h"
 #include "deskflow/ClipboardChunk.h"
+#include "deskflow/ClipboardSender.h"
 #include "deskflow/ClipboardTypes.h"
 #include "deskflow/KeyTypes.h"
 #include "deskflow/KeyboardLayoutManager.h"
-#include "deskflow/StreamChunker.h"
 
 class Client;
 class ClientInfo;
@@ -129,7 +129,7 @@ private:
   MessageParser m_parser = &ServerProxy::parseHandshakeMessage;
   IEventQueue *m_events = nullptr;
   std::string m_serverLayout = "";
-  StreamChunker m_clipboardSender;
+  ClipboardSender m_clipboardSender;
   std::string m_clipboardDataCached;
   ClipboardChunkAssemblyState m_clipboardChunkState;
   bool m_isUserNotifiedAboutLayoutSyncError = false;
