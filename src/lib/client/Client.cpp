@@ -21,7 +21,6 @@
 #include "deskflow/ProtocolTypes.h"
 #include "deskflow/ProtocolUtil.h"
 #include "deskflow/Screen.h"
-#include "deskflow/StreamChunker.h"
 #include "deskflow/ipc/CoreIpc.h"
 #include "net/IDataSocket.h"
 #include "net/ISocketFactory.h"
@@ -236,9 +235,9 @@ bool Client::leave()
   m_screen->leave();
 
   if (m_enableClipboard) {
-    // send clipboards that we own and that have changed
+    // a copy is sent when it's made, and reading a large clipboard again here would block input
     for (ClipboardID id = 0; id < kClipboardEnd; ++id) {
-      if (m_ownClipboard[id]) {
+      if (m_ownClipboard[id] && !m_sentClipboard[id]) {
         sendClipboard(id);
       }
     }
@@ -392,7 +391,13 @@ void Client::sendClipboard(ClipboardID id)
     // marshall the data
     std::string data = clipboard.marshall();
     if (data.size() >= m_maximumClipboardSize * 1024) {
-      LOG_WARN("not sending clipboard data, exceeds limit: %zu KB", m_maximumClipboardSize);
+      const auto size = IClipboard::formatSize(data.size());
+      const auto limit = IClipboard::formatSize(m_maximumClipboardSize * 1024);
+      LOG_WARN("not sending clipboard data, size: %s, limit: %s", size.constData(), limit.constData());
+      ipcSendToClient(
+          QStringLiteral("clipboardOverLimit"),
+          QStringLiteral("%1,%2").arg(data.size()).arg(m_maximumClipboardSize * 1024)
+      );
       return;
     }
 
@@ -635,11 +640,8 @@ void Client::handleClipboardGrabbed(const Event &event)
   m_sentClipboard[info->m_id] = false;
   m_timeClipboard[info->m_id] = 0;
 
-  // if we're not the active screen then send the clipboard now,
-  // otherwise we'll wait until we leave.
-  if (!m_active) {
-    sendClipboard(info->m_id);
-  }
+  // send now rather than on leave, so a wayland server gets it while it's still allowed to offer it locally
+  sendClipboard(info->m_id);
 }
 
 void Client::handleHello()
