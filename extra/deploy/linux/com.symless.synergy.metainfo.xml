@@ -35,6 +35,33 @@
 	</branding>
 	<content_rating type="oars-1.0" />
 	<releases>
+		<release version="1.22.0" date="2026-09-28" urgency="medium">
+			<description>
+				<p>
+					A clipboard release. Large clipboards no longer hold up the mouse, images travel as PNG
+					or JPEG files rather than raw pixels, and the clipboard size limit goes up to 128 MB.
+				</p>
+				<ul>
+					<li>Copying something large no longer makes the cursor stutter or freeze as it moves to
+						another computer: the clipboard is sent in small pieces behind your input.</li>
+					<li>The clipboard size limit is now 128 MB, as a new setting; a limit saved by an
+						earlier version is not carried over.</li>
+					<li>The status bar shows when a clipboard is being sent or received, and warns when one
+						is too large to share instead of saying nothing.</li>
+					<li>On Wayland, a copy made on another computer now pastes on a Wayland server; JPEG,
+						HTML and other formats are shared; large images paste into Qt apps; and a server no
+						longer re-sends an unchanged clipboard on every switch.</li>
+					<li>On X11, shared images are offered as PNG and JPEG, so modern apps can paste them.</li>
+					<li>GIF, SVG, RTF, WebP and TIFF are shared unchanged.</li>
+					<li>A client no longer drops a healthy connection while it receives a large
+						clipboard.</li>
+					<li>Timers such as the switch delay measure below a second again.</li>
+					<li>Various macOS and Windows fixes and improvements.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
+			</description>
+			<url>https://symless.com/synergy/download</url>
+		</release>
 		<release version="1.21.4" date="2026-09-27" urgency="medium">
 			<description>
 				<p>
