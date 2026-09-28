@@ -11,6 +11,7 @@
 
 #include <QEvent>
 #include <QLabel>
+#include <QLocale>
 #include <QPushButton>
 #include <QTimer>
 
@@ -150,11 +151,12 @@ void StatusBar::setStatus(ConnectionState connectionState, ProcessState processS
 // clang-format on
 void StatusBar::setServerClients(const QStringList &clients)
 {
-  const auto disconnected = [&clients](std::pair<const QString &, qint64 &> transfer) {
-    return !clients.contains(transfer.first);
+  const auto dropDisconnected = [&clients](QMap<QString, qint64> &transfers) {
+    for (auto it = transfers.begin(); it != transfers.end();)
+      it = clients.contains(it.key()) ? std::next(it) : transfers.erase(it);
   };
-  m_clipboardSendingTo.removeIf(disconnected);
-  m_clipboardReceivingFrom.removeIf(disconnected);
+  dropDisconnected(m_clipboardSendingTo);
+  dropDisconnected(m_clipboardReceivingFrom);
   updateClipboardIcons();
 
   if (clients.isEmpty()) {
