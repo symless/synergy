@@ -118,7 +118,7 @@ void ServerConfig::commit()
   settings().setValue("defaultLockToScreenState", defaultLockToScreenState());
   settings().setValue("disableLockToScreen", disableLockToScreen());
   settings().setValue("clipboardSharing", clipboardSharing());
-  settings().setValue("clipboardSharingSize", QVariant::fromValue(clipboardSharingSize()));
+  Settings::setValue(Settings::Server::ClipboardSizeLimit, static_cast<uint>(clipboardSharingSize() / 1024));
 
   writeSettings(settings(), switchCorners(), "switchCorner");
 
@@ -169,9 +169,7 @@ void ServerConfig::recall()
   setSwitchCornerSize(settings().value("switchCornerSize").toInt());
   setDefaultLockToScreenState(settings().value("defaultLockToScreenState", false).toBool());
   setDisableLockToScreen(settings().value("disableLockToScreen", false).toBool());
-  setClipboardSharingSize(
-      settings().value("clipboardSharingSize", (int)ServerConfig::defaultClipboardSharingSize()).toULongLong()
-  );
+  setClipboardSharingSize(Settings::value(Settings::Server::ClipboardSizeLimit).toULongLong() * 1024);
   setClipboardSharing(settings().value("clipboardSharing", true).toBool());
 
   readSettings(settings(), switchCorners(), "switchCorner", false, static_cast<int>(NumSwitchCorners));
@@ -418,7 +416,7 @@ bool ServerConfig::fixNoServer(const QString &name, int &index)
 
 size_t ServerConfig::defaultClipboardSharingSize()
 {
-  return 128 * 1024; // 128 MiB
+  return Settings::defaultValue(Settings::Server::ClipboardSizeLimit).toULongLong() * 1024;
 }
 
 size_t ServerConfig::setClipboardSharingSize(size_t size)

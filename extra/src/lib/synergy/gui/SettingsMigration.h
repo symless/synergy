@@ -26,9 +26,8 @@ namespace synergy::gui::migration {
 /// preferences domain, so those machines recorded a migration that carried nothing. Schema 2
 /// shipped in 1.21.0 to 1.21.2 dropping the server configuration and never reading the All users
 /// scope, so those machines have their screen layout only in the backup the migration took. Every
-/// schema up to 3, which shipped in 1.21.3, dropped the update channel 1.20.3 added. Schema 5
-/// raises a clipboard size limit left at the old 3 MB default to the new one.
-constexpr int kCurrentSchemaVersion = 5;
+/// schema up to 3, which shipped in 1.21.3, dropped the update channel 1.20.3 added.
+constexpr int kCurrentSchemaVersion = 4;
 
 /**
  * @brief Ports legacy-format settings (Synergy 1.x, the user scope from the native store and

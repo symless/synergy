@@ -199,8 +199,8 @@ QVariant Settings::defaultValue(const QString &key)
   if (key == Core::Port)
     return 24800;
 
-  if (key == Server::ClipboardSize)
-    return 128; // MiB
+  if (key == Server::ClipboardSizeLimit)
+    return 128; // 128 MiB
 
   if (key == Core::ProcessMode) {
 #ifdef Q_OS_WIN

@@ -34,7 +34,6 @@ namespace synergy::gui {
 namespace {
 
 const auto kClipboardSharing = QStringLiteral("internalConfig/clipboardSharing");
-const auto kClipboardSharingSize = QStringLiteral("internalConfig/clipboardSharingSize");
 
 QString resolveFileName()
 {
@@ -175,7 +174,6 @@ void LockedSettings::applyToDialog(QWidget *dialog) const
   );
   lock(Settings::Security::CheckPeers, {QStringLiteral("cbRequireClientCert")});
   lock(kClipboardSharing, {QStringLiteral("cbEnableClipboard")});
-  lock(kClipboardSharingSize, {QStringLiteral("sbClipboardSizeLimit")});
 }
 
 } // namespace synergy::gui
