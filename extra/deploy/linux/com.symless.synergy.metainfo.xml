@@ -35,6 +35,21 @@
 	</branding>
 	<content_rating type="oars-1.0" />
 	<releases>
+		<release version="1.22.1" date="2026-10-03" urgency="medium">
+			<description>
+				<p>
+					A keyboard fix. AltGr works on Windows clients again, after the 1.21 releases stopped
+					it typing symbols such as @, { and } on layouts that need it.
+				</p>
+				<ul>
+					<li>AltGr typed on a Linux server reaches a Windows client again when that client's
+						screen maps AltGr to Alt, the usual workaround for Linux servers.</li>
+					<li>Various Windows fixes and improvements.</li>
+				</ul>
+				<p>See the release notes for the full changelog.</p>
+			</description>
+			<url>https://symless.com/synergy/download</url>
+		</release>
 		<release version="1.22.0" date="2026-09-28" urgency="medium">
 			<description>
 				<p>
