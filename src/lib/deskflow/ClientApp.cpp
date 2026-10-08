@@ -37,6 +37,10 @@
 #include "platform/EiScreen.h"
 #endif
 
+#if HAVE_WLR_SCREEN
+#include "platform/WlrScreen.h"
+#endif
+
 #if defined(Q_OS_MAC)
 #include "platform/OSXScreen.h"
 #endif
@@ -118,6 +122,13 @@ deskflow::Screen *ClientApp::createScreen()
   );
 #else
   if (deskflow::platform::isWayland()) {
+#if HAVE_WLR_SCREEN
+    // wlroots compositors have no InputCapture/RemoteDesktop portal for the ei screen
+    if (deskflow::WlrScreen::isSupported(false)) {
+      LOG_INFO("using wlroots screen for wayland");
+      return new deskflow::Screen(new deskflow::WlrScreen(false, getEvents()), getEvents());
+    }
+#endif
 #if WINAPI_LIBEI
     LOG_INFO("using ei screen for wayland");
     return new deskflow::Screen(new deskflow::EiScreen(false, getEvents(), true), getEvents());
