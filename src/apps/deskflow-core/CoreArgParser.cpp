@@ -68,10 +68,10 @@ QString CoreArgParser::helpText() const
 
 QString CoreArgParser::versionText() const
 {
-  const static auto vString = QStringLiteral("%1 v%2, protocol v%3.%4\n%5\n");
+  const static auto vString = QStringLiteral("%1 v%2, based on Deskflow v%3, protocol v%4.%5\n%6\n");
   return vString.arg(
-      kCoreBinName, kDisplayVersion, QString::number(kProtocolMajorVersion), QString::number(kProtocolMinorVersion),
-      kCopyright
+      kCoreBinName, kDisplayVersion, kDeskflowVersion, QString::number(kProtocolMajorVersion),
+      QString::number(kProtocolMinorVersion), kCopyright
   );
 }
 

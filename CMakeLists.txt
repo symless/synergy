@@ -21,17 +21,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Project version. SYNERGY_VERSION_* constants live in extra/cmake/Version.cmake
-# (single source of truth, also consumed by SaveVersion.cmake in CI); bridged to
-# the upstream-named DESKFLOW_VERSION_* here so project() can keep its existing
-# shape. Synergy.cmake adds the dev/snapshot/release suffix later.
-include(${CMAKE_CURRENT_SOURCE_DIR}/extra/cmake/Version.cmake)
-set(DESKFLOW_VERSION_MAJOR ${SYNERGY_VERSION_MAJOR})
-set(DESKFLOW_VERSION_MINOR ${SYNERGY_VERSION_MINOR})
-set(DESKFLOW_VERSION_PATCH ${SYNERGY_VERSION_PATCH})
+# Fallback for when git can not be found
+set(DESKFLOW_VERSION_MAJOR 1)
+set(DESKFLOW_VERSION_MINOR 26)
+set(DESKFLOW_VERSION_PATCH 0)
 set(DESKFLOW_VERSION_TWEAK 0)
 
-# Git short SHA, consumed by VersionInfo.h.in (kVersionGitSha).
+# Get the version from git if it's a git repository
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
   find_package(Git)
   if(GIT_FOUND)
@@ -41,8 +37,34 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/.git)
       OUTPUT_VARIABLE GIT_SHA_SHORT
       ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
     )
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} describe --long --match v* --always
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      OUTPUT_VARIABLE GITREV
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    string(FIND "${GITREV}" "v" isRev)
+    if(NOT ${isRev} EQUAL -1)
+      string(REGEX MATCH [0-9]+ MAJOR ${GITREV})
+      string(REGEX MATCH \\.[0-9]+ MINOR ${GITREV})
+      string(REPLACE "." "" MINOR "${MINOR}")
+      string(REGEX MATCH [0-9]+\- PATCH ${GITREV})
+      string(REPLACE "-" "" PATCH "${PATCH}")
+      string(REGEX MATCH \-[0-9]+\- TWEAK ${GITREV})
+      string(REPLACE "-" "" TWEAK "${TWEAK}")
+      set(DESKFLOW_VERSION_MAJOR ${MAJOR})
+      set(DESKFLOW_VERSION_MINOR ${MINOR})
+      set(DESKFLOW_VERSION_PATCH ${PATCH})
+      set(DESKFLOW_VERSION_TWEAK ${TWEAK})
+    else()
+      set(DESKFLOW_VERSION_TWEAK "9999")
+    endif()
+    unset(GITREV)
   endif()
 endif()
+
+# The core's own version, replacing the Deskflow version above.
+include(${CMAKE_CURRENT_SOURCE_DIR}/extra/cmake/SynergyVersion.cmake)
 
 #generate vcpkg file if needed
 if(WIN32)
