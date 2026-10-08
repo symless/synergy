@@ -6,7 +6,7 @@
 # Bump these constants to release a new version.
 set(SYNERGY_VERSION_MAJOR 1)
 set(SYNERGY_VERSION_MINOR 22)
-set(SYNERGY_VERSION_PATCH 1)
+set(SYNERGY_VERSION_PATCH 2)
 set(SYNERGY_VERSION_STAGE "beta")
 
 # Composes the full version string by applying SYNERGY_VERSION_RELEASE /
