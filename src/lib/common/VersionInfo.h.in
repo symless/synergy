@@ -10,3 +10,4 @@
 const auto kVersion = "@CMAKE_PROJECT_VERSION@";
 const auto kVersionGitSha = "@GIT_SHA_SHORT@";
 const auto kDisplayVersion = "@CMAKE_PROJECT_VERSION_DISPLAY@";
+const auto kDeskflowVersion = "@SYNERGY_DESKFLOW_VERSION@";

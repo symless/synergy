@@ -67,6 +67,7 @@ void AboutDialog::copyVersionText() const
   // Divergence from upstream: kDisplayVersion already carries version + commit; don't append the git sha.
   QString infoString = QStringLiteral("%1: %2\nQt: %3\nSystem: %4")
                            .arg(kAppName, kDisplayVersion, qVersion(), QSysInfo::prettyProductName());
+  infoString.append(QStringLiteral("\nDeskflow: %1").arg(kDeskflowVersion));
   if (Settings::isPortableMode()) {
     infoString.append(QStringLiteral("\nPortable Mode"));
   }

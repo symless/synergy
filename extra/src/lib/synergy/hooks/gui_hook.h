@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common/Settings.h"
+#include "common/VersionInfo.h"
 #include "synergy/build_config.h"
 #include "synergy/gui/FeatureHandler.h"
 #include "synergy/gui/LockedSettings.h"
@@ -149,6 +150,14 @@ inline void onAbout(QDialog *parent)
 
   FeatureHandler::instance().handleAbout(parent);
   LicenseHandler::instance().handleAbout(parent);
+
+  if (auto *const attribution = parent->findChild<QLabel *>(QStringLiteral("lblDescription"))) {
+    attribution->setText(
+        attribution->text() + QStringLiteral(" ") +
+        QCoreApplication::translate("AboutDialog", "%1 is based on Deskflow v%2.")
+            .arg(synergy::kProductLine, kDeskflowVersion)
+    );
+  }
 
   // After the handlers, so the product name sits directly under the logo and above any license
   // section they inserted at the same anchor.
