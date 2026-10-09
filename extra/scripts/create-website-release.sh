@@ -105,8 +105,8 @@ package_rows_for() {
 	*_debian-13_aarch64.deb) echo "debian-13 Arm64" ;;
 	*_ubuntu-22-04_x86_64.deb) echo "ubuntu-22.04 X64" ;;
 	*_ubuntu-22-04_aarch64.deb) printf '%s\n' "ubuntu-22.04 Arm64" "raspberry-pi-os Arm64" ;;
-	*_ubuntu-24-04_x86_64.deb) printf '%s\n' "ubuntu-24.04 X64" "linux-mint-22 X64" ;;
-	*_ubuntu-24-04_aarch64.deb) echo "ubuntu-24.04 Arm64" ;;
+	*_ubuntu-24-04_x86_64.deb) printf '%s\n' "ubuntu-24.04 X64" "linux-mint-22 X64" "pop-os-24.04 X64" ;;
+	*_ubuntu-24-04_aarch64.deb) printf '%s\n' "ubuntu-24.04 Arm64" "pop-os-24.04 Arm64" ;;
 	*_ubuntu-26-04_x86_64.deb) echo "ubuntu-26.04 X64" ;;
 	*_ubuntu-26-04_aarch64.deb) echo "ubuntu-26.04 Arm64" ;;
 	*_fedora-43_x86_64.rpm) echo "fedora-43 X64" ;;
