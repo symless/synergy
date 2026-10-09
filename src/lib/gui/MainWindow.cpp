@@ -370,9 +370,8 @@ void MainWindow::settingsChanged(const QString &key)
 
   if ((key == Settings::Security::Certificate) || (key == Settings::Security::KeySize) ||
       (key == Settings::Security::TlsEnabled) || (key == Settings::Security::CheckPeers)) {
-    if (TlsUtility::isEnabled() && !TlsUtility::isCertValid()) {
-      qWarning() << tr("invalid certificate, generating a new one");
-      TlsUtility::generateCertificate();
+    if (TlsUtility::isEnabled()) {
+      generateCertificate();
     }
     updateSecurityIcon(m_statusBar->securityIconVisible());
     return;
