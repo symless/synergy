@@ -588,6 +588,12 @@ jobs:
             like: "suse"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
+          - name: "opensuse-arm64"
+            runs-on: ubuntu-24.04-arm
+            container: opensuse/tumbleweed:latest
+            like: "suse"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
           - name: "opensuse-leap-16.0-x86_64"
             runs-on: ubuntu-latest
             container: opensuse/leap:16.0
