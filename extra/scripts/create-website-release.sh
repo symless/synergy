@@ -117,6 +117,7 @@ package_rows_for() {
 	*_fedora-44_aarch64.rpm) echo "fedora-44 Arm64" ;;
 	*_el-8_x86_64.rpm) el_row_for 8 "$2" ;;
 	*_el-9_x86_64.rpm) el_row_for 9 "$2" ;;
+	*_el-10_x86_64.rpm) el_row_for 10 "$2" ;;
 	*_opensuse-tumbleweed_x86_64.rpm) echo "opensuse-tumbleweed X64" ;;
 	*_opensuse-tumbleweed_aarch64.rpm) echo "opensuse-tumbleweed Arm64" ;;
 	*_arch-linux_x86_64.pkg.tar.zst) echo "arch-linux X64" ;;

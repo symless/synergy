@@ -65,20 +65,27 @@ runs:
                 gcc openssl glib2 libxtst libxkbfile libei libportal \
                 qt6-base qt6-tools qt6-svg qt6-translations qt6-declarative gtk3 help2man doxygen graphviz rsync
             elif [ ${{ inputs.like }} == "rhel" ]; then
-              # el8: Qt5 + X11 only (no Qt6, no libei/libportal); tests and translations are
-              # off so no qttools. -devel packages live in the CodeReady Builder repo
-              # (powertools on el8).
+              # -devel packages live in the CodeReady Builder repo (powertools on el8).
               dnf install -y 'dnf-command(config-manager)'
               dnf install -y epel-release
               dnf config-manager --set-enabled powertools 2>/dev/null \
                 || dnf config-manager --set-enabled crb 2>/dev/null || true
-              dnf install -y \
-                cmake make ninja-build rpm-build help2man \
-                gcc-toolset-13 \
-                openssl-devel glib2-devel \
-                libX11-devel libXext-devel libXtst-devel libXrandr-devel \
-                libXinerama-devel libXi-devel libxkbfile-devel \
-                qt5-qtbase-devel gtk3-devel
+              . /etc/os-release
+              if [ "${VERSION_ID%%.*}" -ge 10 ]; then
+                dnf install -y cmake make ninja-build gcc-c++ rpm-build openssl-devel \
+                  glib2-devel libXtst-devel libxkbfile-devel qt6-qtbase-devel qt6-qttools-devel \
+                  gtk3-devel libei-devel libportal-devel help2man
+              else
+                # el8/el9: Qt5 + X11 only (no Qt6, no libei/libportal); tests and translations
+                # are off so no qttools.
+                dnf install -y \
+                  cmake make ninja-build rpm-build help2man \
+                  gcc-toolset-13 \
+                  openssl-devel glib2-devel \
+                  libX11-devel libXext-devel libXtst-devel libXrandr-devel \
+                  libXinerama-devel libXi-devel libxkbfile-devel \
+                  qt5-qtbase-devel gtk3-devel
+              fi
             else
               echo "Unknown like"
             fi
@@ -89,11 +96,16 @@ runs:
 
     # el8's system GCC 8 can't build C++20, so use gcc-toolset-13. It links the newer libstdc++
     # bits statically (libstdc++_nonshared) over the stable system ABI, so the binary still runs
-    # on stock el8. cmake comes from the distro (the project floor is lowered to match).
+    # on stock el8. cmake comes from the distro (the project floor is lowered to match). el10's
+    # system GCC 14 builds C++20 itself, and gcc-toolset-13 isn't packaged there.
     - name: Setup RHEL toolchain
       if: ${{ inputs.like == 'rhel' }}
       shell: bash
       run: |
+        . /etc/os-release
+        if [ "${VERSION_ID%%.*}" -ge 10 ]; then
+          exit 0
+        fi
         toolset=/opt/rh/gcc-toolset-13/root/usr
         echo "${toolset}/bin" >> "$GITHUB_PATH"
         echo "CC=${toolset}/bin/gcc" >> "$GITHUB_ENV"

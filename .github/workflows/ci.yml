@@ -497,6 +497,12 @@ jobs:
         # Each leg builds in its distro's own container against that distro's libraries, so
         # the package matches what users have installed. Legs without libei or libportal
         # >= 0.8 build X11-only. Drop a leg once its distro is EOL (Ubuntu 22.04: 2027-06).
+        #
+        # Debian 12's GCC 12 trips -Wstringop-overflow false positives (gone in GCC 13), so
+        # warnings-as-errors is off there; the GCC 13+ legs keep it on.
+        #
+        # Rocky 8 and 9 build Qt5, X11-only, with tests off (the suite needs Qt6 Test). The
+        # rockylinux library image stops at 9, so Rocky 10 comes from Rocky's own image.
         target:
           - name: "debian-13-x86_64"
             runs-on: ubuntu-latest
@@ -510,8 +516,6 @@ jobs:
             like: "debian"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
-          # Debian 12's GCC 12 trips -Wstringop-overflow false positives (gone in GCC 13),
-          # so warnings-as-errors is off here; the GCC 13+ legs keep it on.
           - name: "debian-12-x86_64"
             runs-on: ubuntu-latest
             container: debian:12-slim
@@ -560,7 +564,6 @@ jobs:
             like: "fedora"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
-          # RHEL/Rocky: Qt5, X11-only, tests off (the suite needs Qt6 Test).
           - name: "rocky-8-x86_64"
             runs-on: ubuntu-latest
             container: rockylinux:8
@@ -572,6 +575,12 @@ jobs:
             container: rockylinux:9
             like: "rhel"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_TESTS=OFF -DQT_VERSION_OVERRIDE=5.13 -DOPENSSL_VERSION_OVERRIDE=1.1.1"
+
+          - name: "rocky-10-x86_64"
+            runs-on: ubuntu-latest
+            container: rockylinux/rockylinux:10
+            like: "rhel"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
           - name: "opensuse-x86_64"
             runs-on: ubuntu-latest
@@ -719,7 +728,7 @@ jobs:
           fi
 
       - name: Tests
-        if: ${{ matrix.target.like != 'rhel' }}
+        if: ${{ !startsWith(matrix.target.name, 'rocky-8') && !startsWith(matrix.target.name, 'rocky-9') }}
         uses: ./.github/actions/run-tests
         timeout-minutes: 2
 
