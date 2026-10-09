@@ -3,11 +3,11 @@
 
 # Synergy version: single source of truth, shared between the build (root
 # CMakeLists.txt → Synergy.cmake) and CI (SaveVersion.cmake run via cmake -P).
-# Bump these constants to release a new version.
+# Bump these constants to release a new version. An empty stage is a stable release.
 set(SYNERGY_VERSION_MAJOR 1)
 set(SYNERGY_VERSION_MINOR 22)
 set(SYNERGY_VERSION_PATCH 2)
-set(SYNERGY_VERSION_STAGE "beta")
+set(SYNERGY_VERSION_STAGE "")
 
 # Composes the full version string by applying SYNERGY_VERSION_RELEASE /
 # SYNERGY_VERSION_SNAPSHOT semantics on top of the SYNERGY_VERSION_MAJOR/MINOR/PATCH
