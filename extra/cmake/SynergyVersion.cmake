@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: (C) 2026 Synergy App Ltd
 # SPDX-License-Identifier: MIT
 
-# Included from CMakeLists.txt straight after Deskflow's own version lines, so
-# those stay exactly as upstream has them and change with every pull. This keeps
+# Included from CMakeLists.txt straight after Deskflow's version lines. This keeps
 # Deskflow's version as a variable of its own, then replaces the numbers project()
 # is about to read with the core's own version from Version.cmake.
 set(SYNERGY_DESKFLOW_VERSION "${DESKFLOW_VERSION_MAJOR}.${DESKFLOW_VERSION_MINOR}")
