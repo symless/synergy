@@ -91,8 +91,8 @@ el_row_for() {
 }
 
 # Two things below read as typos and are not: a catalog slug keeps the dot the
-# file name replaces (ubuntu-24.04 against ubuntu-24-04), and a deb also fills the
-# distributions built on the one it was built for.
+# file name replaces (ubuntu-24.04 against ubuntu-24-04), and a package also fills
+# the distributions built on the one it was built for.
 package_rows_for() {
 	case "$1" in
 	*_windows_x64.msi) echo "windows-10 X64" ;;
@@ -122,7 +122,7 @@ package_rows_for() {
 	*_opensuse-tumbleweed_aarch64.rpm) echo "opensuse-tumbleweed Arm64" ;;
 	*_opensuse-leap-16-0_x86_64.rpm) echo "opensuse-leap X64" ;;
 	*_opensuse-leap-16-0_aarch64.rpm) echo "opensuse-leap Arm64" ;;
-	*_arch-linux_x86_64.pkg.tar.zst) echo "arch-linux X64" ;;
+	*_arch-linux_x86_64.pkg.tar.zst) printf '%s\n' "arch-linux X64" "cachyos X64" ;;
 	*_manjaro_x86_64.pkg.tar.zst) echo "manjaro X64" ;;
 	*_linux_x86_64.flatpak) echo "flatpak X64" ;;
 	*_linux_aarch64.flatpak) echo "flatpak Arm64" ;;
