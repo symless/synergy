@@ -109,8 +109,6 @@ package_rows_for() {
 	*_ubuntu-24-04_aarch64.deb) echo "ubuntu-24.04 Arm64" ;;
 	*_ubuntu-26-04_x86_64.deb) echo "ubuntu-26.04 X64" ;;
 	*_ubuntu-26-04_aarch64.deb) echo "ubuntu-26.04 Arm64" ;;
-	*_fedora-42_x86_64.rpm) echo "fedora-42 X64" ;;
-	*_fedora-42_aarch64.rpm) echo "fedora-42 Arm64" ;;
 	*_fedora-43_x86_64.rpm) echo "fedora-43 X64" ;;
 	*_fedora-43_aarch64.rpm) echo "fedora-43 Arm64" ;;
 	*_fedora-44_x86_64.rpm) echo "fedora-44 X64" ;;
