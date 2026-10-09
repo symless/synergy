@@ -206,6 +206,24 @@ bool showNewClientPrompt(QWidget *parent, const QString &clientName)
   return message.buttonRole(message.clickedButton()) == QMessageBox::AcceptRole;
 }
 
+bool showMissingClientCertificate(QWidget *parent, const QString &clientAddress)
+{
+  QMessageBox message(parent);
+  message.setIcon(QMessageBox::Warning);
+  message.setWindowTitle(QObject::tr("%1 - Client Refused").arg(kAppName));
+  message.setText(
+      QObject::tr(
+          "<p>The computer at %1 tried to connect without a TLS certificate, so it was refused.</p>"
+          "<p>It may be running an older version that can't send one.</p>"
+      )
+          .arg(clientAddress)
+  );
+  message.addButton(QObject::tr("Close"), QMessageBox::RejectRole);
+  message.addButton(QObject::tr("Preferences"), QMessageBox::AcceptRole);
+  message.exec();
+  return message.buttonRole(message.clickedButton()) == QMessageBox::AcceptRole;
+}
+
 bool showClearSettings(QWidget *parent)
 {
   const auto title = QObject::tr("%1 Clear Settings").arg(kAppName);

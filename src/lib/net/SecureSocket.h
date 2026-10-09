@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <mutex>
+#include <string>
 
 class Event;
 class IEventQueue;
@@ -67,6 +68,7 @@ public:
   JobResult doWrite() override;
   void initSsl(bool server);
   bool loadCertificate(const QString &filename);
+  void setPeerAddress(const std::string &address);
 
 private:
   // SSL
@@ -97,6 +99,7 @@ private:
   bool m_secureReady = false;
   bool m_fatal = false;
   SecurityLevel m_securityLevel = SecurityLevel::Encrypted;
+  std::string m_peerAddress;
 
   bool m_writeRetry = false;
   int m_writeRetrySize = 0;
