@@ -19,12 +19,16 @@
 
 #include "common/Constants.h"
 #include "common/Settings.h"
+#include "gui/TlsUtility.h"
+#include "net/Fingerprint.h"
+#include "net/FingerprintDatabase.h"
 #include "synergy/gui/LegacySettingsKeys.h"
 #include "synergy/gui/SettingsScope.h"
 #include "synergy/gui/UpdateChannel.h"
 #include "synergy/gui/styles.h"
 
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QMainWindow>
@@ -33,6 +37,7 @@
 #include <QSettings>
 #include <QStatusBar>
 #include <QStringLiteral>
+#include <QTextStream>
 
 #include <optional>
 
@@ -79,8 +84,14 @@ const auto kExtraSerialKey = QStringLiteral("license/serialKey");
 
 const auto kLegacyUpdateTrackKey = QStringLiteral("updateTrack");
 
+const auto kLegacyCertificateFile = QStringLiteral("%1.pem").arg(kAppName);
+constexpr int kMinimumKeyLength = 2048;
+const auto kLegacyTrustedServersFile = QStringLiteral("SSL/Fingerprints/TrustedServers.txt");
+const auto kLegacyTrustedClientsFile = QStringLiteral("SSL/Fingerprints/TrustedClients.txt");
+
 bool s_migrationRanThisLaunch = false;
 QString s_lastBackupPath;
+QString s_legacyTlsDir;
 
 QString extraFile()
 {
@@ -315,7 +326,131 @@ bool runLegacyMigration()
     any = migrateSystemScope(legacySystem, systemWasActive) || any;
   }
   migrateUpdateChannel(legacyTrack);
+
+  // 1.20 kept its TLS files in the ini config directory of the live scope, and passed the same
+  // directory to the core, which is where its trusted fingerprints were read from.
+  if (any) {
+    const QSettings legacyIniUser(QSettings::IniFormat, QSettings::UserScope, appName, appName);
+    const auto &liveScope = systemWasActive ? legacySystem : legacyIniUser;
+    s_legacyTlsDir = QFileInfo(liveScope.fileName()).absolutePath();
+  }
   return any;
+}
+
+void migrateCertificate(const QString &legacyPath)
+{
+  if (!QFile::exists(legacyPath)) {
+    qDebug("settings migration: no legacy tls certificate at %s", qPrintable(legacyPath));
+    return;
+  }
+
+  const auto target = Settings::value(Settings::Security::Certificate).toString();
+  if (target != Settings::defaultValue(Settings::Security::Certificate).toString()) {
+    qInfo("settings migration: tls certificate path carried, legacy default certificate not copied");
+    return;
+  }
+
+  if (QFile::exists(target)) {
+    qInfo("settings migration: tls certificate already at %s, legacy certificate not copied", qPrintable(target));
+    return;
+  }
+
+  if (!QDir().mkpath(QFileInfo(target).absolutePath()) || !QFile::copy(legacyPath, target)) {
+    qWarning("settings migration: failed to copy legacy tls certificate to %s", qPrintable(target));
+    return;
+  }
+  qInfo("settings migration: legacy tls certificate copied to %s", qPrintable(target));
+}
+
+// OpenSSL rejects a key under 2048 bits in the handshake with "ee key too small", so a carried
+// certificate that small is an identity nothing can connect to. It is replaced, and generating
+// over it keeps the old one beside the new as .pem.old.
+void replaceSmallCertificate()
+{
+  const auto path = Settings::value(Settings::Security::Certificate).toString();
+  if (!QFile::exists(path)) {
+    return;
+  }
+
+  const auto keyLength = deskflow::gui::TlsUtility::getCertKeyLength(path);
+  if (keyLength <= 0) {
+    qWarning("settings migration: unable to read the tls certificate key size, left as it is");
+    return;
+  }
+  if (keyLength >= kMinimumKeyLength) {
+    return;
+  }
+
+  qInfo("settings migration: tls certificate key is %d bits, replacing it with a %d-bit one", keyLength, kMinimumKeyLength);
+  if (!deskflow::gui::TlsUtility::generateCertificate(kMinimumKeyLength)) {
+    qWarning("settings migration: failed to replace the %d-bit tls certificate at %s", keyLength, qPrintable(path));
+  }
+}
+
+// 1.20 wrote one fingerprint per line as colon-separated hex with no type, which the current
+// format only accepts for SHA-1, so the type is taken from the length.
+Fingerprint fingerprintFromLegacyLine(const QString &line)
+{
+  auto hex = line;
+  hex.remove(QLatin1Char(':'));
+
+  Fingerprint fingerprint;
+  fingerprint.data = QByteArray::fromHex(hex.toLatin1());
+  if (fingerprint.data.size() * 2 != hex.size()) {
+    return {};
+  }
+
+  if (fingerprint.data.size() == 32) {
+    fingerprint.type = QCryptographicHash::Sha256;
+  } else if (fingerprint.data.size() == 20) {
+    fingerprint.type = QCryptographicHash::Sha1;
+  }
+  return fingerprint;
+}
+
+void migrateTrustedFingerprints(const QString &legacyPath, const QString &targetPath)
+{
+  QFile legacy(legacyPath);
+  if (!legacy.exists()) {
+    return;
+  }
+  if (!legacy.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    qWarning("settings migration: unable to read legacy trusted fingerprints at %s", qPrintable(legacyPath));
+    return;
+  }
+
+  FingerprintDatabase db;
+  db.read(targetPath);
+
+  int added = 0;
+  int unreadable = 0;
+  QTextStream in(&legacy);
+  while (!in.atEnd()) {
+    const auto line = in.readLine().trimmed();
+    if (line.isEmpty()) {
+      continue;
+    }
+    const auto fingerprint = fingerprintFromLegacyLine(line);
+    if (!fingerprint.isValid()) {
+      unreadable++;
+    } else if (!db.isTrusted(fingerprint)) {
+      db.addTrusted(fingerprint);
+      added++;
+    }
+  }
+
+  if (unreadable > 0) {
+    qWarning("settings migration: %d unreadable lines in legacy trusted fingerprints", unreadable);
+  }
+  if (added == 0) {
+    return;
+  }
+
+  if (!QDir().mkpath(QFileInfo(targetPath).absolutePath()) || !db.write(targetPath)) {
+    qWarning("settings migration: failed to write trusted fingerprints to %s", qPrintable(targetPath));
+    return;
+  }
+  qInfo("settings migration: %d legacy trusted fingerprints carried to %s", added, qPrintable(targetPath));
 }
 
 // The window adds the server's own screen to an empty layout by itself, so a layout holding only
@@ -429,6 +564,19 @@ bool migrateIfNeeded()
     writeNotifiedVersion(kCurrentSchemaVersion);
   }
   return s_migrationRanThisLaunch;
+}
+
+void migrateTlsFiles()
+{
+  if (s_legacyTlsDir.isEmpty()) {
+    return;
+  }
+
+  const QDir legacyDir(s_legacyTlsDir);
+  migrateCertificate(legacyDir.filePath(kLegacyCertificateFile));
+  replaceSmallCertificate();
+  migrateTrustedFingerprints(legacyDir.filePath(kLegacyTrustedServersFile), Settings::tlsTrustedServersDb());
+  migrateTrustedFingerprints(legacyDir.filePath(kLegacyTrustedClientsFile), Settings::tlsTrustedClientsDb());
 }
 
 void showNoticeIfPending(QWidget *parent)

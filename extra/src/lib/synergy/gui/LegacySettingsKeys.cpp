@@ -96,11 +96,18 @@ std::optional<std::pair<QString, QVariant>> mapLegacySetting(const QString &oldK
   if (oldKey == "serverHostname") {
     return std::make_pair(Settings::Client::RemoteHost, value);
   }
+  // 1.20 saved an empty path to mean its default certificate, but a stored empty string reads back
+  // as no path at all rather than the current default.
   if (oldKey == "tlsCertPath") {
+    if (value.toString().isEmpty()) {
+      return std::nullopt;
+    }
     return std::make_pair(Settings::Security::Certificate, value);
   }
+
+  // A smaller key is replaced by the migration, so the setting matches what it generates.
   if (oldKey == "tlsKeyLength") {
-    return std::make_pair(Settings::Security::KeySize, value);
+    return std::make_pair(Settings::Security::KeySize, std::max(2048, value.toInt()));
   }
   if (oldKey == "preventSleep") {
     return std::make_pair(Settings::Core::PreventSleep, value);

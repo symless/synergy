@@ -68,6 +68,9 @@ inline void onPreInit()
   // After the scope is settled, so the administrator's values land in the
   // settings file the rest of the launch reads.
   synergy::gui::LockedSettings::instance().apply();
+
+  // After the locked settings, so a certificate path an administrator fixed is the one checked.
+  synergy::gui::migration::migrateTlsFiles();
 }
 
 // The migration notice is shown at the end of onAppStart rather than here, so it cannot compete

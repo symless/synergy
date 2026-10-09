@@ -44,6 +44,16 @@ constexpr int kCurrentSchemaVersion = 4;
 bool migrateIfNeeded();
 
 /**
+ * @brief Carries the 1.20 TLS certificate and trusted fingerprints into the current TLS
+ * directory, when this launch's migration found 1.20 settings.
+ *
+ * Must run after the settings scope is settled, since the TLS directory depends on it. Never
+ * writes over an existing certificate, and adds to the trusted fingerprints rather than
+ * replacing them.
+ */
+void migrateTlsFiles();
+
+/**
  * @brief Adds a status bar pill telling the customer their settings were migrated, which
  * opens the full notice when clicked. Never a dialog of its own: startup raises several,
  * and two at once leave the window unusable.
