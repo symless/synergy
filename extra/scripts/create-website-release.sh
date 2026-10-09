@@ -120,6 +120,8 @@ package_rows_for() {
 	*_el-10_x86_64.rpm) el_row_for 10 "$2" ;;
 	*_opensuse-tumbleweed_x86_64.rpm) echo "opensuse-tumbleweed X64" ;;
 	*_opensuse-tumbleweed_aarch64.rpm) echo "opensuse-tumbleweed Arm64" ;;
+	*_opensuse-leap-16-0_x86_64.rpm) echo "opensuse-leap X64" ;;
+	*_opensuse-leap-16-0_aarch64.rpm) echo "opensuse-leap Arm64" ;;
 	*_arch-linux_x86_64.pkg.tar.zst) echo "arch-linux X64" ;;
 	*_manjaro_x86_64.pkg.tar.zst) echo "manjaro X64" ;;
 	*_linux_x86_64.flatpak) echo "flatpak X64" ;;
