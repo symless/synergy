@@ -117,10 +117,6 @@ void SettingsDialog::initConnections() const
   connect(ui->groupSecurity, &QGroupBox::toggled, this, &SettingsDialog::updateTlsControlsEnabled);
   connect(ui->groupService, &QGroupBox::toggled, this, &SettingsDialog::updateControls);
   connect(ui->btnTlsRegenCert, &QPushButton::clicked, this, &SettingsDialog::regenCertificates);
-  connect(
-      ui->comboTlsKeyLength, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-      &SettingsDialog::updateRequestedKeySize
-  );
   connect(ui->btnTlsCertPath, &QPushButton::clicked, this, &SettingsDialog::browseCertificatePath);
   connect(ui->btnBrowseLog, &QPushButton::clicked, this, &SettingsDialog::browseLogPath);
   connect(ui->groupLogToFile, &QGroupBox::toggled, this, &SettingsDialog::setLogToFile);
@@ -172,7 +168,7 @@ void SettingsDialog::initConnections() const
 
 void SettingsDialog::regenCertificates()
 {
-  if (TlsUtility::generateCertificate()) {
+  if (TlsUtility::generateCertificate(ui->comboTlsKeyLength->currentText().toInt())) {
     QMessageBox::information(this, tr("TLS Certificate Regenerated"), tr("TLS certificate regenerated successfully."));
     const auto certificate = Settings::value(Settings::Security::Certificate).toString();
     updateKeyLengthOnFile(certificate);
@@ -430,13 +426,6 @@ void SettingsDialog::updateControls()
   ui->widgetLogFilename->setEnabled(writable && logToFile);
 
   updateTlsControls();
-}
-
-void SettingsDialog::updateRequestedKeySize() const
-{
-  if (ui->comboTlsKeyLength->currentText() == Settings::value(Settings::Security::KeySize).toString())
-    return;
-  Settings::setValue(Settings::Security::KeySize, ui->comboTlsKeyLength->currentText());
 }
 
 void SettingsDialog::logLevelChanged()
