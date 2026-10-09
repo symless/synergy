@@ -90,9 +90,9 @@ el_row_for() {
 	esac
 }
 
-# Two entries below read as typos and are not: a catalog slug keeps the dot the
-# file name replaces (ubuntu-24.04 against ubuntu-24-04), and the Ubuntu 22.04
-# arm64 deb is also what fills Raspberry Pi OS.
+# Two things below read as typos and are not: a catalog slug keeps the dot the
+# file name replaces (ubuntu-24.04 against ubuntu-24-04), and a deb also fills the
+# distributions built on the one it was built for.
 package_rows_for() {
 	case "$1" in
 	*_windows_x64.msi) echo "windows-10 X64" ;;
@@ -102,23 +102,26 @@ package_rows_for() {
 	*_debian-12_x86_64.deb) echo "debian-12 X64" ;;
 	*_debian-12_aarch64.deb) echo "debian-12 Arm64" ;;
 	*_debian-13_x86_64.deb) echo "debian-13 X64" ;;
-	*_debian-13_aarch64.deb) echo "debian-13 Arm64" ;;
+	*_debian-13_aarch64.deb) printf '%s\n' "debian-13 Arm64" "raspberry-pi-os Arm64" ;;
 	*_ubuntu-22-04_x86_64.deb) echo "ubuntu-22.04 X64" ;;
-	*_ubuntu-22-04_aarch64.deb) printf '%s\n' "ubuntu-22.04 Arm64" "raspberry-pi-os Arm64" ;;
-	*_ubuntu-24-04_x86_64.deb) echo "ubuntu-24.04 X64" ;;
-	*_ubuntu-24-04_aarch64.deb) echo "ubuntu-24.04 Arm64" ;;
+	*_ubuntu-22-04_aarch64.deb) echo "ubuntu-22.04 Arm64" ;;
+	*_ubuntu-24-04_x86_64.deb) printf '%s\n' "ubuntu-24.04 X64" "linux-mint-22 X64" "pop-os-24.04 X64" ;;
+	*_ubuntu-24-04_aarch64.deb) printf '%s\n' "ubuntu-24.04 Arm64" "pop-os-24.04 Arm64" ;;
 	*_ubuntu-26-04_x86_64.deb) echo "ubuntu-26.04 X64" ;;
 	*_ubuntu-26-04_aarch64.deb) echo "ubuntu-26.04 Arm64" ;;
-	*_fedora-42_x86_64.rpm) echo "fedora-42 X64" ;;
-	*_fedora-42_aarch64.rpm) echo "fedora-42 Arm64" ;;
 	*_fedora-43_x86_64.rpm) echo "fedora-43 X64" ;;
 	*_fedora-43_aarch64.rpm) echo "fedora-43 Arm64" ;;
 	*_fedora-44_x86_64.rpm) echo "fedora-44 X64" ;;
 	*_fedora-44_aarch64.rpm) echo "fedora-44 Arm64" ;;
+	*_fedora-45_x86_64.rpm) echo "fedora-45 X64" ;;
+	*_fedora-45_aarch64.rpm) echo "fedora-45 Arm64" ;;
 	*_el-8_x86_64.rpm) el_row_for 8 "$2" ;;
 	*_el-9_x86_64.rpm) el_row_for 9 "$2" ;;
+	*_el-10_x86_64.rpm) el_row_for 10 "$2" ;;
 	*_opensuse-tumbleweed_x86_64.rpm) echo "opensuse-tumbleweed X64" ;;
 	*_opensuse-tumbleweed_aarch64.rpm) echo "opensuse-tumbleweed Arm64" ;;
+	*_opensuse-leap-16-0_x86_64.rpm) echo "opensuse-leap X64" ;;
+	*_opensuse-leap-16-0_aarch64.rpm) echo "opensuse-leap Arm64" ;;
 	*_arch-linux_x86_64.pkg.tar.zst) echo "arch-linux X64" ;;
 	*_manjaro_x86_64.pkg.tar.zst) echo "manjaro X64" ;;
 	*_linux_x86_64.flatpak) echo "flatpak X64" ;;
