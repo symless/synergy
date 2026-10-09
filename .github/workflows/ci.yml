@@ -564,6 +564,18 @@ jobs:
             like: "fedora"
             config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
 
+          - name: "fedora-45-x86_64"
+            runs-on: ubuntu-latest
+            container: fedora:45
+            like: "fedora"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
+          - name: "fedora-45-arm64"
+            runs-on: ubuntu-24.04-arm
+            container: fedora:45
+            like: "fedora"
+            config-args: "-G Ninja -DCMAKE_INSTALL_PREFIX=/usr"
+
           - name: "rocky-8-x86_64"
             runs-on: ubuntu-latest
             container: rockylinux:8

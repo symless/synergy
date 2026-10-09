@@ -115,6 +115,8 @@ package_rows_for() {
 	*_fedora-43_aarch64.rpm) echo "fedora-43 Arm64" ;;
 	*_fedora-44_x86_64.rpm) echo "fedora-44 X64" ;;
 	*_fedora-44_aarch64.rpm) echo "fedora-44 Arm64" ;;
+	*_fedora-45_x86_64.rpm) echo "fedora-45 X64" ;;
+	*_fedora-45_aarch64.rpm) echo "fedora-45 Arm64" ;;
 	*_el-8_x86_64.rpm) el_row_for 8 "$2" ;;
 	*_el-9_x86_64.rpm) el_row_for 9 "$2" ;;
 	*_el-10_x86_64.rpm) el_row_for 10 "$2" ;;
